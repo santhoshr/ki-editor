@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ki Editor — Quick Reference & Complete Functionality Manual</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #161b22;
+      --card-border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-bright: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --code-bg: #21262d;
+      --key-bg: #2d333b;
+      --key-border: #444c56;
+      --tag-mol: #d29922;
+      --tag-mode: #3fb950;
+      --tag-action: #a371f7;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    aside {
+      width: var(--sidebar-width);
+      background: #11141a;
+      border-right: 1px solid var(--card-border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      padding: 24px 16px;
+      z-index: 100;
+    }
+
+    .brand {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand span {
+      background: var(--accent);
+      color: #0b0e14;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
+
+    .search-box {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      color: var(--text-bright);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .search-box:focus {
+      border-color: var(--accent);
+    }
+
+    nav ul {
+      list-style: none;
+    }
+
+    nav li {
+      margin-bottom: 4px;
+    }
+
+    nav a {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+    }
+
+    nav a:hover {
+      color: var(--text-bright);
+      background: var(--code-bg);
+    }
+
+    nav .section-header {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 16px 0 6px 8px;
+    }
+
+    /* Main Content */
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 48px 80px 48px;
+      max-width: 1200px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    p, li {
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Badges & Keys */
+    .kbd, kbd {
+      background: var(--key-bg);
+      border: 1px solid var(--key-border);
+      border-radius: 4px;
+      box-shadow: inset 0 -1px 0 var(--key-border);
+      color: var(--text-bright);
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.85em;
+      padding: 2px 6px;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-mol { background: rgba(210, 153, 34, 0.2); color: var(--tag-mol); border: 1px solid rgba(210, 153, 34, 0.4); }
+    .badge-mode { background: rgba(63, 185, 80, 0.2); color: var(--tag-mode); border: 1px solid rgba(63, 185, 80, 0.4); }
+    .badge-action { background: rgba(163, 113, 247, 0.2); color: var(--tag-action); border: 1px solid rgba(163, 113, 247, 0.4); }
+    .badge-universal { background: rgba(88, 166, 255, 0.2); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.4); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px 0;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    th {
+      background: #1c2128;
+      color: var(--text-bright);
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Cards & Visual Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin: 16px 0 24px 0;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 18px 20px;
+    }
+
+    .card h4 {
+      font-size: 1rem;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* Notice callout */
+    .callout {
+      background: rgba(88, 166, 255, 0.1);
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 16px 0 24px 0;
+    }
+    .callout strong {
+      color: var(--text-bright);
+    }
+
+    .callout.tip {
+      background: rgba(63, 185, 80, 0.1);
+      border-left-color: var(--tag-mode);
+    }
+
+    .callout.warn {
+      background: rgba(210, 153, 34, 0.1);
+      border-left-color: var(--tag-mol);
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    /* Keyboard Layout Matrix Display */
+    .keyboard-matrix {
+      background: #11141a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0 24px 0;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      overflow-x: auto;
+    }
+
+    .matrix-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      justify-content: flex-start;
+    }
+
+    .matrix-key {
+      background: var(--key-bg);
+      border: 1px solid var(--key-border);
+      border-radius: 5px;
+      padding: 6px 8px;
+      min-width: 78px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.75rem;
+    }
+
+    .matrix-key .key-letter {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .matrix-key .key-action {
+      color: var(--text-bright);
+      font-size: 0.72rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .matrix-key .key-alt {
+      color: var(--tag-mol);
+      font-size: 0.68rem;
+    }
+
+    .matrix-key .key-shift {
+      color: var(--tag-action);
+      font-size: 0.68rem;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      aside {
+        position: relative;
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+      }
+      main {
+        margin-left: 0;
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <div class="brand">
+      KI EDITOR <span>Manual</span>
+    </div>
+    <div class="sidebar-desc">
+      A fast, clear, jargon-free reference for every concept, command, and keybinding in Ki.
+    </div>
+    <input type="text" id="filterInput" class="search-box" placeholder="Filter sections or keys...">
+
+    <nav>
+      <ul>
+        <li><a href="#core-model">Core Mental Model</a></li>
+        <li><a href="#escape-cancel">Escape / Dismissal</a></li>
+        <li class="section-header">Normal Mode</li>
+        <li><a href="#core-movements">Core Movements (Right Hand)</a></li>
+        <li><a href="#primary-modes">Primary Selection Modes</a></li>
+        <li><a href="#secondary-modes">Secondary Selection Modes</a></li>
+        <li><a href="#normal-actions">Normal Actions</a></li>
+        <li><a href="#space-menu">Space Menu</a></li>
+        <li class="section-header">Momentary Layers (MoL)</li>
+        <li><a href="#mol-concept">How MoL Works (≡)</a></li>
+        <li><a href="#mol-open">≡ Open (Insert)</a></li>
+        <li><a href="#mol-delete-cut-eat">≡ Delete, Cut &amp; Eat</a></li>
+        <li><a href="#mol-buffer">≡ Buffer &amp; Tabs</a></li>
+        <li><a href="#mol-multicursor">≡ Multi-Cursor</a></li>
+        <li><a href="#mol-paste-dup">≡ Paste &amp; Duplicate</a></li>
+        <li><a href="#mol-swap-undo">≡ Swap &amp; Undo/Redo</a></li>
+        <li class="section-header">Editing &amp; Tools</li>
+        <li><a href="#insert-mode">Insert Mode &amp; Completion</a></li>
+        <li><a href="#surround-transform">Surround &amp; Transform</a></li>
+        <li><a href="#prompt-picker">Prompts &amp; Pickers</a></li>
+        <li><a href="#file-explorer">File Explorer</a></li>
+        <li><a href="#reveals">Reveals (Split Views)</a></li>
+        <li><a href="#universal-keys">Universal Keybindings</a></li>
+        <li><a href="#full-cheatsheet">Master Cheat Sheet</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main>
+    <header>
+      <h1>Ki Editor: Functional Documentation &amp; Keybindings</h1>
+      <p>Clean, concise, and complete technical reference covering the entire ki editor interface without fluff.</p>
+    </header>
+
+    <!-- SECTION 1: THE CORE MODEL -->
+    <section id="core-model">
+      <h2>1. The Core Mental Model</h2>
+      <div class="callout tip">
+        <strong>The Rule:</strong> <code>Selection Mode</code> &rarr; <code>Movement</code> &rarr; <code>Action</code>
+      </div>
+      <p>Traditional modal editors (like Vim) couple the action and movement into inconsistent bindings (e.g. <code>w</code> for word, <code>j</code> for line, <code>]d</code> for diagnostics, <code>]c</code> for git hunks). Ki completely decouples them:</p>
+      <ul>
+        <li><strong>Left Hand:</strong> Selects the <em>Mode</em> (what text object to target: Word, Line, Syntax Node, Char, etc.) or holds an <em>Action Layer</em>.</li>
+        <li><strong>Right Hand:</strong> Always performs the <em>Movement</em> using the same predictable directional cluster (<code>u</code>/<code>o</code>, <code>j</code>/<code>l</code>, <code>i</code>/<code>k</code>, <code>y</code>/<code>p</code>).</li>
+      </ul>
+      <p>Once you learn the movement cluster on the right hand, you can navigate any text unit identically.</p>
+    </section>
+
+    <!-- SECTION 2: ESCAPE & DISMISSAL -->
+    <section id="escape-cancel">
+      <h2>2. Escape &amp; Universal Cancellation</h2>
+      <p>In Ki, returning to Normal Mode or cancelling an active overlay (prompt, popup menu, momentary layer, dropdown) uses a single unified escape behavior:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Context</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td>Insert Mode</td>
+            <td>Leave Insert mode and return to <strong>Normal Mode</strong>.</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td>Prompt / Picker</td>
+            <td>Close prompt and cancel input.</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td>Menu / Momentary Layer</td>
+            <td>Deactivate layer and close legend.</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td>Normal Mode</td>
+            <td>Reset multiple cursors and keep only the current primary window.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 3: CORE MOVEMENTS -->
+    <section id="core-movements">
+      <h2>3. Core Movements (Right-Hand Cluster)</h2>
+      <p>The standard movement cluster on QWERTY operates over whatever <strong>Selection Mode</strong> is currently active:</p>
+
+      <div class="keyboard-matrix">
+        <div class="matrix-row">
+          <div class="matrix-key"><div class="key-letter">y</div><div class="key-action">|&lt; First</div><div class="key-shift">Shift: &larr; Align</div></div>
+          <div class="matrix-key"><div class="key-letter">u</div><div class="key-action">&lt; Prev</div></div>
+          <div class="matrix-key"><div class="key-letter">i</div><div class="key-action">^ Up</div><div class="key-shift">Shift: Join</div><div class="key-alt">Alt: Scroll &uarr;</div></div>
+          <div class="matrix-key"><div class="key-letter">o</div><div class="key-action">&gt; Next</div></div>
+          <div class="matrix-key"><div class="key-letter">p</div><div class="key-action">&gt;| Last</div><div class="key-shift">Shift: Align &rarr;</div></div>
+        </div>
+        <div class="matrix-row" style="margin-left: 20px;">
+          <div class="matrix-key"><div class="key-letter">h</div><div class="key-action">&larr; Insert</div></div>
+          <div class="matrix-key"><div class="key-letter">j</div><div class="key-action">&lt;&lt; Left</div><div class="key-shift">Shift: Dedent</div></div>
+          <div class="matrix-key"><div class="key-letter">k</div><div class="key-action">v Down</div><div class="key-shift">Shift: Break</div><div class="key-alt">Alt: Scroll &darr;</div></div>
+          <div class="matrix-key"><div class="key-letter">l</div><div class="key-action">&gt;&gt; Right</div><div class="key-shift">Shift: Indent</div></div>
+          <div class="matrix-key"><div class="key-letter">;</div><div class="key-action">Insert &rarr;</div><div class="key-alt">Alt: &harr; Align View</div></div>
+        </div>
+        <div class="matrix-row" style="margin-left: 40px;">
+          <div class="matrix-key"><div class="key-letter">m</div><div class="key-action">Jump</div><div class="key-shift">Shift: Index</div></div>
+          <div class="matrix-key"><div class="key-letter">,</div><div class="key-action">Surround</div></div>
+          <div class="matrix-key"><div class="key-letter">.</div><div class="key-action">Parent Line</div></div>
+          <div class="matrix-key"><div class="key-letter">/</div><div class="key-action">&harr; Cursor</div><div class="key-alt">Alt: &harr; Window</div></div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Name</th>
+            <th>Behavior Across Selection Modes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>j</kbd> / <kbd>l</kbd></td>
+            <td><code>&lt;&lt;</code> / <code>&gt;&gt;</code> Common</td>
+            <td>Move to previous / next predictable unit (e.g. Next Word, Next Line, Next named syntax sibling).</td>
+          </tr>
+          <tr>
+            <td><kbd>u</kbd> / <kbd>o</kbd></td>
+            <td><code>&lt;</code> / <code>&gt;</code> Flexible</td>
+            <td>More granular or specific motion (e.g. words including symbols, syntax node including anonymous tokens, empty lines).</td>
+          </tr>
+          <tr>
+            <td><kbd>i</kbd> / <kbd>k</kbd></td>
+            <td><code>^</code> / <code>v</code> Vertical</td>
+            <td>Move vertically above / below with sticky cursor column. In syntax mode: Parent node / First child node.</td>
+          </tr>
+          <tr>
+            <td><kbd>y</kbd> / <kbd>p</kbd></td>
+            <td><code>|&lt;</code> / <code>&gt;|</code> First / Last</td>
+            <td>Move to the first / last item in current scope (first/last line of file, first/last sibling, etc.).</td>
+          </tr>
+          <tr>
+            <td><kbd>m</kbd></td>
+            <td><code>Jump</code> (EasyMotion)</td>
+            <td>Two-step fast visual jump to any token on screen: press <kbd>m</kbd>, type target letter, then type visual badge letter.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+m</kbd></td>
+            <td><code>Index</code></td>
+            <td>Prompts for a 1-based index (e.g. jump to line number or column index).</td>
+          </tr>
+          <tr>
+            <td><kbd>.</kbd></td>
+            <td><code>Parent Line</code></td>
+            <td>Jumps up to the nearest dedented line above (great for navigating code blocks and file tree hierarchy).</td>
+          </tr>
+          <tr>
+            <td><kbd>/</kbd></td>
+            <td><code>&harr; Curs</code></td>
+            <td>Swaps the primary cursor with the secondary anchor cursor, reversing action direction.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 4: PRIMARY SELECTION MODES -->
+    <section id="primary-modes">
+      <h2>4. Primary Selection Modes (Contiguous Text Objects)</h2>
+      <p>Primary selection modes are located on the <strong>Left Hand</strong> in Normal mode. Selecting one immediately selects the current text object under the cursor and sets the context for right-hand movements:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Mode</th>
+            <th>Target Unit</th>
+            <th>Key Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>d</kbd></td>
+            <td><code>Syntax</code></td>
+            <td>Tree-Sitter Syntax Node</td>
+            <td>Selects the largest semantic node at cursor. <kbd>i</kbd> goes to Parent node, <kbd>k</kbd> to child.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+d</kbd></td>
+            <td><code>Syntax*</code></td>
+            <td>Fine Syntax Node</td>
+            <td>Selects the smallest node at cursor. Great for expanding expressions step by step.</td>
+          </tr>
+          <tr>
+            <td><kbd>a</kbd></td>
+            <td><code>Line</code></td>
+            <td>Trimmed Line</td>
+            <td>Selects non-empty line content (excluding leading/trailing whitespace).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+a</kbd></td>
+            <td><code>Line*</code></td>
+            <td>Full Line</td>
+            <td>Selects the full line including leading indentation and trailing newline.</td>
+          </tr>
+          <tr>
+            <td><kbd>s</kbd></td>
+            <td><code>Word</code></td>
+            <td>Alphanumeric Word</td>
+            <td>Standard word (identifiers, words). <kbd>j</kbd>/<kbd>l</kbd> moves over non-symbols.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+s</kbd></td>
+            <td><code>Word*</code></td>
+            <td>Big Word</td>
+            <td>Whitespace-delimited chunk (equivalent to Vim's <code>W</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>w</kbd></td>
+            <td><code>Subword</code></td>
+            <td>CamelCase / snake_case token</td>
+            <td>Selects individual parts of compound identifiers (e.g. <code>get</code> in <code>getUserName</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+w</kbd></td>
+            <td><code>Char</code></td>
+            <td>Single Character</td>
+            <td>Character-level movement like a conventional editor.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+e</kbd></td>
+            <td><code>Paragraph</code></td>
+            <td>Paragraph block</td>
+            <td>Contiguous run of non-empty lines separated by blank lines.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 5: SECONDARY SELECTION MODES -->
+    <section id="secondary-modes">
+      <h2>5. Secondary Selection Modes (Non-Contiguous Search &amp; LSP)</h2>
+      <p>Secondary selection modes target scattered occurrences across the file (<strong>Local</strong> via <kbd>n</kbd>) or across the workspace (<strong>Global</strong> via <kbd>Space</kbd>). Once active, the right-hand movement cluster navigates between occurrences:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Subkey</th>
+            <th>Mode</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>d</kbd></td>
+            <td><code>Search</code></td>
+            <td>Opens search prompt. (<kbd>Shift+d</kbd>: pre-fills with current selection).</td>
+          </tr>
+          <tr>
+            <td><kbd>f</kbd></td>
+            <td><code>Search This</code></td>
+            <td>Immediately searches for the exact text currently selected.</td>
+          </tr>
+          <tr>
+            <td><kbd>r</kbd></td>
+            <td><code>Repeat Search</code></td>
+            <td>Re-runs the most recent search.</td>
+          </tr>
+          <tr>
+            <td><kbd>y</kbd> / <kbd>Shift+y</kbd></td>
+            <td><code>One</code> / <code>Int</code> (Local)</td>
+            <td>Jump to single character (like Vim <code>f</code>) or integer digits.</td>
+          </tr>
+          <tr>
+            <td><kbd>a</kbd></td>
+            <td><code>All Diagnostics</code></td>
+            <td>Navigate all LSP diagnostics (errors, warnings, hints, info).</td>
+          </tr>
+          <tr>
+            <td><kbd>s</kbd></td>
+            <td><code>Error</code></td>
+            <td>Navigate compiler/linter error diagnostics only.</td>
+          </tr>
+          <tr>
+            <td><kbd>w</kbd></td>
+            <td><code>Warn</code></td>
+            <td>Navigate warning diagnostics only.</td>
+          </tr>
+          <tr>
+            <td><kbd>q</kbd> / <kbd>Shift+q</kbd></td>
+            <td><code>Hint</code> / <code>Info</code></td>
+            <td>Navigate hints or info items.</td>
+          </tr>
+          <tr>
+            <td><kbd>x</kbd> / <kbd>Shift+x</kbd></td>
+            <td><code>Def</code> / <code>Decl</code></td>
+            <td>LSP Definition / Declaration.</td>
+          </tr>
+          <tr>
+            <td><kbd>c</kbd></td>
+            <td><code>Type</code></td>
+            <td>LSP Type Definition.</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd> / <kbd>Shift+v</kbd></td>
+            <td><code>Ref-</code> / <code>Ref+</code></td>
+            <td>LSP References (excluding or including original declaration).</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd></td>
+            <td><code>Impl</code></td>
+            <td>LSP Implementations.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd> / <kbd>Shift+g</kbd></td>
+            <td><code>Hunk@</code> / <code>Hunk^</code></td>
+            <td>Git diff hunks vs. current branch or vs. main/master branch.</td>
+          </tr>
+          <tr>
+            <td><kbd>t</kbd></td>
+            <td><code>Quickfix</code></td>
+            <td>Navigates current Quickfix list entries.</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd></td>
+            <td><code>Mark</code></td>
+            <td>Navigates active bookmarked locations.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 6: NORMAL ACTIONS -->
+    <section id="normal-actions">
+      <h2>6. Normal Mode Actions &amp; Edits</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Action</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Enter</kbd></td>
+            <td><code>Save</code></td>
+            <td>Saves the current file and runs automatic code formatting.</td>
+          </tr>
+          <tr>
+            <td><kbd>h</kbd></td>
+            <td><code>&larr; Insert</code></td>
+            <td>Enters Insert Mode at the start of current selection.</td>
+          </tr>
+          <tr>
+            <td><kbd>;</kbd></td>
+            <td><code>Insert &rarr;</code></td>
+            <td>Enters Insert Mode at the end of current selection.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd> (tap)</td>
+            <td><code>Change</code></td>
+            <td>Deletes current selection and immediately enters Insert Mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+g</kbd></td>
+            <td><code>Change X</code></td>
+            <td>Cuts current selection into clipboard and enters Insert Mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>c</kbd> (tap)</td>
+            <td><code>Copy</code></td>
+            <td>Copies current selection to clipboard (supports multi-cursor selections).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+i</kbd></td>
+            <td><code>Join</code></td>
+            <td>Joins current line with the line above.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+k</kbd></td>
+            <td><code>Break</code></td>
+            <td>Breaks line at selection with identical indentation (shortcut for <code>i enter esc</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+j</kbd> / <kbd>Shift+l</kbd></td>
+            <td><code>Dedent</code> / <code>Indent</code></td>
+            <td>Dedent or indent selection by 4 spaces.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+y</kbd> / <kbd>Shift+p</kbd></td>
+            <td><code>&larr; Align</code> / <code>Align &rarr;</code></td>
+            <td>Align multiple selections to column boundary.</td>
+          </tr>
+          <tr>
+            <td><kbd>,</kbd></td>
+            <td><code>Surround Menu</code></td>
+            <td>Opens surrounding enclosures menu (quotes, brackets, tags).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+f</kbd></td>
+            <td><code>Transform Menu</code></td>
+            <td>Opens case conversions (camelCase, snake_case, UPPER_CASE) and comments.</td>
+          </tr>
+          <tr>
+            <td><kbd>*</kbd></td>
+            <td><code>Layout Switch</code></td>
+            <td>Cycles keyboard layout (QWERTY, Dvorak, Colemak, Workman, etc.).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 7: SPACE MENU -->
+    <section id="space-menu">
+      <h2>7. Space Menu (<kbd>Space</kbd>)</h2>
+      <p>Pressing <kbd>Space</kbd> brings up the central command HUD:</p>
+      <div class="grid">
+        <div class="card">
+          <h4><span>Right Hand Menus</span> <span class="badge badge-action">Menus</span></h4>
+          <ul>
+            <li><kbd>k</kbd> &rarr; <strong>Pick</strong> (Open file, buffer, symbols, theme, branch)</li>
+            <li><kbd>j</kbd> &rarr; <strong>Editor</strong> (Save all, reload, restart LSP, quit)</li>
+            <li><kbd>l</kbd> &rarr; <strong>Context</strong> (LSP hover, rename, code actions, blame)</li>
+            <li><kbd>;</kbd> &rarr; <strong>Explorer</strong> (Reveal file in tree)</li>
+            <li><kbd>/</kbd> &rarr; <strong>Help</strong> (Display full keymap on screen)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Viewports (Reveals)</span> <span class="badge badge-mode">Split</span></h4>
+          <ul>
+            <li><kbd>u</kbd> &rarr; <code>&divide; Selection</code> (Tile view over all active selection matches)</li>
+            <li><kbd>i</kbd> &rarr; <code>&divide; Cursor</code> (Tile view across all cursor positions)</li>
+            <li><kbd>o</kbd> &rarr; <code>&divide; Mark</code> (Tile view across all marked buffers)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Picker Shortcuts (Space k)</span> <span class="badge badge-universal">Pickers</span></h4>
+          <ul>
+            <li><kbd>d</kbd> &rarr; Open File (fuzzy search via Nucleo)</li>
+            <li><kbd>f</kbd> &rarr; Open Buffer (switch opened files)</li>
+            <li><kbd>s</kbd> &rarr; LSP Document Symbols (<kbd>Shift+s</kbd>: Workspace Symbols)</li>
+            <li><kbd>g</kbd> &rarr; Git Status changed files</li>
+            <li><kbd>b</kbd> &rarr; Git Branch switch</li>
+            <li><kbd>a</kbd> &rarr; Themes switcher</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Editor Actions (Space j)</span> <span class="badge badge-action">System</span></h4>
+          <ul>
+            <li><kbd>v</kbd> &rarr; Quit Ki (guards against unsaved files)</li>
+            <li><kbd>q</kbd> &rarr; Quit without saving (forced)</li>
+            <li><kbd>c</kbd> &rarr; Save All files</li>
+            <li><kbd>r</kbd> &rarr; Restart LSP server</li>
+            <li><kbd>e</kbd> &rarr; Reload all modified files from disk</li>
+            <li><kbd>x</kbd> &rarr; Global Project Replace</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: MOMENTARY LAYERS -->
+    <section id="mol-concept">
+      <h2>8. Momentary Layers (MoL) Explained</h2>
+      <div class="callout">
+        <strong>What is a MoL?</strong> Marked with <code>≡</code>, a Momentary Layer activates <em>while holding down a key</em>, and immediately releases on key release (using the Kitty Keyboard Protocol). If your terminal doesn't support KKP, simply tap the key and press <kbd>Esc</kbd> when done.
+      </div>
+      <p>While holding the layer key, the right-hand movement cluster applies the layer's verb across the movement distance:</p>
+    </section>
+
+    <section id="mol-open">
+      <h3>≡ Open / Insert Layer (<kbd>g</kbd>)</h3>
+      <p>Hold <kbd>g</kbd> to insert space and transition into Insert Mode:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>g</kbd> (tap)</td>
+            <td>Change: Delete selection and enter Insert mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd> + <kbd>h</kbd> / <kbd>;</kbd></td>
+            <td>Insert before / after selection.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Open gap / new line before / after current item.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd> + <kbd>i</kbd> / <kbd>k</kbd></td>
+            <td>Open line above / line below.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mol-delete-cut-eat">
+      <h3>≡ Delete (<kbd>r</kbd>), Cut (<kbd>x</kbd>), &amp; Eat (<kbd>r</kbd> in submode)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Layer</th>
+            <th>Action Cluster</th>
+            <th>Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>≡ Delete</strong> (Hold <kbd>r</kbd>)</td>
+            <td><kbd>j</kbd>/<kbd>l</kbd>, <kbd>u</kbd>/<kbd>o</kbd>, <kbd>y</kbd>/<kbd>p</kbd></td>
+            <td>Deletes the current selection and everything through the chosen direction target.</td>
+          </tr>
+          <tr>
+            <td><strong>≡ Cut</strong> (Hold <kbd>x</kbd>)</td>
+            <td><kbd>j</kbd>/<kbd>l</kbd>, <kbd>u</kbd>/<kbd>o</kbd>, <kbd>y</kbd>/<kbd>p</kbd></td>
+            <td>Copies to clipboard first, then deletes through the chosen direction target.</td>
+          </tr>
+          <tr>
+            <td><strong>≡ Eat</strong></td>
+            <td><kbd>j</kbd>/<kbd>l</kbd>, <kbd>i</kbd>/<kbd>k</kbd></td>
+            <td>Replaces everything between current selection and target with the content of current selection.</td>
+          </tr>
+          <tr>
+            <td><strong>Hold + <kbd>m</kbd></strong></td>
+            <td>Jump Target</td>
+            <td>Combine with Jump: hold <kbd>r</kbd> or <kbd>x</kbd>, press <kbd>m</kbd> and jump anywhere on screen to delete/cut directly there!</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mol-buffer">
+      <h3>≡ Buffer &amp; Tabs (<kbd>e</kbd>)</h3>
+      <p>Hold <kbd>e</kbd> to interact with open files and tabs:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Switch to previous / next marked file on tab bar.</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>k</kbd></td>
+            <td>Toggle Mark File (add/remove tab for current file).</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>n</kbd></td>
+            <td>Close current buffer.</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>m</kbd></td>
+            <td>Alternate: Jump to previously visited file.</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>i</kbd></td>
+            <td>Unmark all other files (closes other tabs).</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd> + <kbd>y</kbd> / <kbd>p</kbd></td>
+            <td>Switch to first / last marked file tab.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mol-multicursor">
+      <h3>≡ Multi-Cursor (<kbd>b</kbd>)</h3>
+      <p>Hold <kbd>b</kbd> to spawn additional cursors directionally:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Add cursor at previous / next selection match.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>i</kbd> / <kbd>k</kbd></td>
+            <td>Add cursor directly above / below.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>m</kbd></td>
+            <td>Jump Add Cursor: use Jump visual letters to place a cursor anywhere.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>n</kbd></td>
+            <td>Delete current cursor from selection set.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> (tap)</td>
+            <td>Enters multi-cursor submode menu (select all matches via <kbd>j</kbd>, remove match via <kbd>k</kbd>).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mol-paste-dup">
+      <h3>≡ Paste (<kbd>v</kbd>) &amp; ≡ Duplicate (<kbd>c</kbd>)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>v</kbd> (tap)</td>
+            <td>Standard Paste.</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd> + <kbd>h</kbd> / <kbd>;</kbd></td>
+            <td>Paste immediately before / after current selection.</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Paste with gap before / after.</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd> + <kbd>y</kbd> / <kbd>p</kbd></td>
+            <td>Cycle back / forward through clipboard history.</td>
+          </tr>
+          <tr>
+            <td><kbd>c</kbd> + <kbd>h</kbd> / <kbd>;</kbd></td>
+            <td>Duplicate current text directly before / after without touching clipboard.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="mol-swap-undo">
+      <h3>≡ Swap (<kbd>t</kbd>) &amp; ≡ Undo/Redo (<kbd>z</kbd>)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>t</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Swap current selection with previous / next unit of active Selection Mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>t</kbd> + <kbd>m</kbd></td>
+            <td>Jump Swap: Swap current node/expression with any expression on screen!</td>
+          </tr>
+          <tr>
+            <td><kbd>z</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
+            <td>Coarse Undo / Coarse Redo (standard structural edits).</td>
+          </tr>
+          <tr>
+            <td><kbd>z</kbd> + <kbd>u</kbd> / <kbd>o</kbd></td>
+            <td>Fine Undo / Fine Redo (character-level granular step).</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 9: INSERT MODE -->
+    <section id="insert-mode">
+      <h2>9. Insert Mode &amp; Autocompletion</h2>
+      <p>Insert mode edits text like any modern editor with powerful embedded navigation:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td>Return to <strong>Normal Mode</strong>.</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+Backspace</kbd> / <kbd>Ctrl+Backspace</kbd></td>
+            <td>Delete word backward.</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl+Delete</kbd></td>
+            <td>Delete word forward.</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+Left</kbd> / <kbd>Alt+Right</kbd></td>
+            <td>Jump one word left / right.</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+y</kbd> / <kbd>Alt+p</kbd></td>
+            <td>Move cursor to line start / line end.</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+e</kbd></td>
+            <td>Activate ≡ Buffer Momentary Layer right inside Insert Mode!</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+j</kbd> / <kbd>Alt+l</kbd></td>
+            <td>Navigate completion items in popup dropdown.</td>
+          </tr>
+          <tr>
+            <td><kbd>Tab</kbd> / <kbd>Enter</kbd></td>
+            <td>Accept selected completion candidate.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 10: SURROUND & TRANSFORM -->
+    <section id="surround-transform">
+      <h2>10. Surround (<kbd>,</kbd>) &amp; Transform (<kbd>Shift+f</kbd>)</h2>
+      <div class="grid">
+        <div class="card">
+          <h4><span>Surround Menu (<kbd>,</kbd>)</span></h4>
+          <p>Operates on brackets <code>()</code>, <code>{}</code>, <code>[]</code>, quotes <code>''</code>, <code>""</code>, <code>``</code>, and XML/HTML tags:</p>
+          <ul>
+            <li><kbd>s</kbd> + <em>delimiter</em> &rarr; Surround selection with delimiter</li>
+            <li><kbd>d</kbd> + <em>delimiter</em> &rarr; Select inside delimiter</li>
+            <li><kbd>e</kbd> + <em>delimiter</em> &rarr; Select around delimiter</li>
+            <li><kbd>r</kbd> + <em>delimiter</em> &rarr; Delete surrounding delimiter</li>
+            <li><kbd>f</kbd> + <em>old</em> + <em>new</em> &rarr; Change surrounding delimiter</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Transform Menu (<kbd>Shift+f</kbd>)</span></h4>
+          <p>Instant casing transformation &amp; comments:</p>
+          <ul>
+            <li><kbd>s</kbd> &rarr; <code>snake_case</code></li>
+            <li><kbd>d</kbd> &rarr; <code>camelCase</code></li>
+            <li><kbd>e</kbd> &rarr; <code>PascalCase</code></li>
+            <li><kbd>f</kbd> &rarr; <code>kebab-case</code></li>
+            <li><kbd>q</kbd> &rarr; <code>UPPER CASE</code></li>
+            <li><kbd>w</kbd> &rarr; <code>UPPER_SNAKE_CASE</code></li>
+            <li><kbd>k</kbd> &rarr; Toggle Line Comment</li>
+            <li><kbd>l</kbd> &rarr; Toggle Block Comment</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 11: PROMPT & PICKER -->
+    <section id="prompt-picker">
+      <h2>11. Prompts &amp; Nucleo Fuzzy Pickers</h2>
+      <p>All picker dialogs in Ki share fuzzy matching powered by Nucleo:</p>
+      <ul>
+        <li><strong>Substrings:</strong> Type characters anywhere in filename or path (e.g. <code>ekl</code> matches <code>editor_keymap_legend.rs</code>).</li>
+        <li><strong>Exact tokens:</strong> Prefix with single-quote <code>'pattern</code> to enforce substring match.</li>
+        <li><strong>Suffix tokens:</strong> End with <code>$</code> to match extension (e.g. <code>.rs$</code>).</li>
+        <li><strong>Multi-term AND:</strong> Separate words with spaces (e.g. <code>components 'editor .rs$</code>).</li>
+        <li><strong>History:</strong> Historical queries display below prompt; navigate with <kbd>Up</kbd>/<kbd>Down</kbd>.</li>
+      </ul>
+    </section>
+
+    <!-- SECTION 12: FILE EXPLORER -->
+    <section id="file-explorer">
+      <h2>12. File Explorer (<kbd>Space</kbd> + <kbd>;</kbd>)</h2>
+      <p>The file tree is presented as an editable YAML structure:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>;</kbd></td>
+            <td>Create new file or folder at current line.</td>
+          </tr>
+          <tr>
+            <td><kbd>r</kbd></td>
+            <td>Delete selected paths.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd></td>
+            <td>Move / Rename paths.</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd></td>
+            <td>Duplicate file or folder.</td>
+          </tr>
+          <tr>
+            <td><kbd>x</kbd></td>
+            <td>Refresh directory tree from disk.</td>
+          </tr>
+          <tr>
+            <td><kbd>.</kbd></td>
+            <td>Jump to parent directory line.</td>
+          </tr>
+          <tr>
+            <td><kbd>Enter</kbd></td>
+            <td>Open focused file in editor window.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 13: REVEALS -->
+    <section id="reveals">
+      <h2>13. Reveals (Automated Multi-Viewports)</h2>
+      <p>Instead of manually splitting, sizing, and closing splits, Ki provides three dynamic Reveal modes:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Mode</th>
+            <th>Utility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>u</kbd></td>
+            <td><code>&divide; Selection</code></td>
+            <td>Splits screen to display all active matches of the current selection mode (emulates code folding by showing all sibling functions or headers simultaneously).</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>i</kbd></td>
+            <td><code>&divide; Cursor</code></td>
+            <td>Tiles viewports over all active cursor locations so you can watch multi-cursor edits safely across distance.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>o</kbd></td>
+            <td><code>&divide; Mark</code></td>
+            <td>Automatically splits and tiles all bookmarked marks on screen.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 14: UNIVERSAL KEYBINDINGS -->
+    <section id="universal-keys">
+      <h2>14. Universal Keybindings</h2>
+      <p>These keybindings operate globally across all modes and components:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Name</th>
+            <th>Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Alt+;</kbd></td>
+            <td><code>&harr; Align View</code></td>
+            <td>Cycles viewport centering between <strong>Top</strong> (zt), <strong>Center</strong> (zz), and <strong>Bottom</strong> (zb).</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+/</kbd></td>
+            <td><code>&harr; Window</code></td>
+            <td>Cycles focus to next split window.</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl+z</kbd></td>
+            <td><code>Suspend</code></td>
+            <td>Suspends Ki process back to Unix shell (resume with <code>fg</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
+            <td><code>Escape</code></td>
+            <td>Universal dismiss / cancel / return to normal mode.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 15: MASTER CHEATSHEET -->
+    <section id="full-cheatsheet">
+      <h2>15. Master Quick Reference Summary</h2>
+      <div class="grid">
+        <div class="card">
+          <h4><span>Movements (Right Hand)</span> <span class="badge badge-universal">Core</span></h4>
+          <p><code>u</code>/<code>o</code> &rarr; Prev / Next</p>
+          <p><code>j</code>/<code>l</code> &rarr; Left / Right</p>
+          <p><code>i</code>/<code>k</code> &rarr; Up / Down</p>
+          <p><code>y</code>/<code>p</code> &rarr; First / Last</p>
+          <p><code>m</code> &rarr; EasyMotion Jump</p>
+          <p><code>.</code> &rarr; Parent Line</p>
+          <p><code>/</code> &rarr; Flip Cursor Direction</p>
+        </div>
+        <div class="card">
+          <h4><span>Primary Modes (Left Hand)</span> <span class="badge badge-mode">Objects</span></h4>
+          <p><code>d</code> / <code>D</code> &rarr; Syntax Node / Fine Node</p>
+          <p><code>s</code> / <code>S</code> &rarr; Word / Big Word</p>
+          <p><code>w</code> / <code>W</code> &rarr; Subword / Char</p>
+          <p><code>a</code> / <code>A</code> &rarr; Line / Full Line</p>
+          <p><code>E</code> &rarr; Paragraph</p>
+        </div>
+        <div class="card">
+          <h4><span>Momentary Layers</span> <span class="badge badge-mol">Hold Verbs</span></h4>
+          <p>Hold <code>g</code> &rarr; ≡ Open / Insert</p>
+          <p>Hold <code>r</code> &rarr; ≡ Delete</p>
+          <p>Hold <code>x</code> &rarr; ≡ Cut</p>
+          <p>Hold <code>e</code> &rarr; ≡ Buffer / Tabs</p>
+          <p>Hold <code>b</code> &rarr; ≡ Multi-Cursor</p>
+          <p>Hold <code>v</code> &rarr; ≡ Paste</p>
+          <p>Hold <code>c</code> &rarr; ≡ Duplicate</p>
+          <p>Hold <code>t</code> &rarr; ≡ Swap</p>
+          <p>Hold <code>z</code> &rarr; ≡ Undo/Redo</p>
+        </div>
+        <div class="card">
+          <h4><span>Core Actions</span> <span class="badge badge-action">Edit</span></h4>
+          <p><code>Enter</code> &rarr; Save &amp; Format</p>
+          <p><code>Space</code> &rarr; Master HUD Menu</p>
+          <p><code>h</code> / <code>;</code> &rarr; Insert Start / End</p>
+          <p><code>g</code> / <code>G</code> &rarr; Change / Change X</p>
+          <p><code>c</code> / <code>v</code> &rarr; Copy / Paste</p>
+          <p><code>,</code> &rarr; Surround Enclosures</p>
+          <p><code>Shift+f</code> &rarr; Transform Casing</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Live filter functionality for search input
+    const filterInput = document.getElementById('filterInput');
+    const sections = document.querySelectorAll('main section');
+    const navLinks = document.querySelectorAll('nav a');
+
+    filterInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        sections.forEach(s => s.style.display = '');
+        navLinks.forEach(l => l.style.display = '');
+        return;
+      }
+
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        if (text.includes(q)) {
+          sec.style.display = '';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+
+      navLinks.forEach(link => {
+        const text = link.innerText.toLowerCase();
+        if (text.includes(q)) {
+          link.style.display = '';
+        } else {
+          link.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

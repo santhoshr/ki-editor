@@ -414,6 +414,9 @@
         <li><a href="#file-explorer">File Explorer</a></li>
         <li><a href="#reveals">Reveals (Split Views)</a></li>
         <li><a href="#universal-keys">Universal Keybindings</a></li>
+        <li class="section-header">Configuration &amp; Extension</li>
+        <li><a href="#config-reference">Configuration Files &amp; Locations</a></li>
+        <li><a href="#leader-custom-scripts">Leader Keymap &amp; Shell Scripts</a></li>
         <li><a href="#full-cheatsheet">Master Cheat Sheet</a></li>
       </ul>
     </nav>
@@ -457,6 +460,11 @@
             <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
             <td>Insert Mode</td>
             <td>Leave Insert mode and return to <strong>Normal Mode</strong>.</td>
+          </tr>
+          <tr>
+            <td><kbd>j</kbd><kbd>k</kbd></td>
+            <td>Insert Mode</td>
+            <td>Fast two-key escape sequence (within 500ms): erases the <code>j</code> and returns to <strong>Normal Mode</strong>.</td>
           </tr>
           <tr>
             <td><kbd>Esc</kbd> / <kbd>Ctrl+g</kbd> / <kbd>Ctrl+[</kbd></td>
@@ -791,6 +799,16 @@
             <td>Opens surrounding enclosures menu (quotes, brackets, tags).</td>
           </tr>
           <tr>
+            <td><kbd>f</kbd></td>
+            <td><code>Extend Mode</code></td>
+            <td>Enables selection extension submode (anchor remains pinned while movement keys expand selection range).</td>
+          </tr>
+          <tr>
+            <td><kbd>\</kbd> (Backslash)</td>
+            <td><code>Leader Menu</code></td>
+            <td>Opens user-defined custom scripts matrix menu (defined in <code>leader_keymap</code>).</td>
+          </tr>
+          <tr>
             <td><kbd>Shift+f</kbd></td>
             <td><code>Transform Menu</code></td>
             <td>Opens case conversions (camelCase, snake_case, UPPER_CASE) and comments.</td>
@@ -1082,6 +1100,10 @@
             <td>Return to <strong>Normal Mode</strong>.</td>
           </tr>
           <tr>
+            <td><kbd>j</kbd><kbd>k</kbd></td>
+            <td>Fast two-key combo (&le; 500ms): erases <code>j</code> and returns to <strong>Normal Mode</strong>.</td>
+          </tr>
+          <tr>
             <td><kbd>Alt+Backspace</kbd> / <kbd>Ctrl+Backspace</kbd></td>
             <td>Delete word backward.</td>
           </tr>
@@ -1271,9 +1293,202 @@
       </table>
     </section>
 
-    <!-- SECTION 15: MASTER CHEATSHEET -->
+    <!-- SECTION 15: CONFIGURATION FILES & LOCATIONS -->
+    <section id="config-reference">
+      <h2>15. Configuration Reference &amp; File Locations</h2>
+      <p>Ki supports dual-level hierarchical configuration with full fallback. Global user settings apply everywhere, while workspace settings override on a per-project basis.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h4><span>Global Configuration</span> <span class="badge badge-universal">User-Wide</span></h4>
+          <p>Read from your operating system's standard user configuration folder:</p>
+          <ul>
+            <li><strong>Linux / BSD:</strong> <code>~/.config/ki/config.json</code> (or <code>.toml</code> / <code>.yaml</code>)</li>
+            <li><strong>macOS:</strong> <code>~/Library/Application Support/ki/config.json</code></li>
+            <li><strong>Windows:</strong> <code>%APPDATA%\ki\config.json</code> (or <code>%LOCALAPPDATA%</code>)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Workspace Configuration</span> <span class="badge badge-mode">Per-Project</span></h4>
+          <p>Placed in the root directory of your project/repository:</p>
+          <ul>
+            <li><code>.ki/config.json</code></li>
+            <li><code>.ki/config.toml</code></li>
+            <li><code>.ki/config.yaml</code></li>
+          </ul>
+          <p>Note: JSON config files support JSON5 extensions (comments with <code>//</code> and trailing commas).</p>
+        </div>
+      </div>
+
+      <h3>Example Configuration (<code>config.json</code>)</h3>
+      <div class="keyboard-matrix" style="padding: 16px; font-size: 0.85rem; line-height: 1.45;">
+<pre><code style="color: #c9d1d9;">{
+  <span style="color: #79c0ff;">"theme"</span>: <span style="color: #a5d6ff;">"VS Code (Dark)"</span>,           <span style="color: #8b949e;">// e.g. "Catppuccin Mocha", "Gruvbox Dark", "Dracula", "Nord Dark"</span>
+  <span style="color: #79c0ff;">"keyboard_layout"</span>: <span style="color: #a5d6ff;">"QWERTY"</span>,         <span style="color: #8b949e;">// "QWERTY", "QWERTZ", "DVORAK", "COLEMAK", "COLEMAK-DH", "WORKMAN"</span>
+  <span style="color: #79c0ff;">"indent_width"</span>: <span style="color: #79c0ff;">4</span>,                   <span style="color: #8b949e;">// Number of spaces per indentation level</span>
+  <span style="color: #79c0ff;">"indent_char"</span>: <span style="color: #a5d6ff;">"space"</span>,              <span style="color: #8b949e;">// "space" or "tab"</span>
+  <span style="color: #79c0ff;">"icon_style"</span>: <span style="color: #a5d6ff;">"emoji"</span>,                <span style="color: #8b949e;">// "emoji", "nerd-font", or "none"</span>
+  <span style="color: #79c0ff;">"show_key_in_keymap"</span>: <span style="color: #ff7b72;">false</span>,         <span style="color: #8b949e;">// Show key letters directly on keymap legend items</span>
+
+  <span style="color: #79c0ff;">"languages"</span>: {
+    <span style="color: #79c0ff;">"rust"</span>: {
+      <span style="color: #79c0ff;">"extensions"</span>: [<span style="color: #a5d6ff;">"rs"</span>],
+      <span style="color: #79c0ff;">"file_names"</span>: [],
+      <span style="color: #79c0ff;">"line_comment_prefix"</span>: <span style="color: #a5d6ff;">"//"</span>,
+      <span style="color: #79c0ff;">"block_comment_affixes"</span>: [<span style="color: #a5d6ff;">"/*"</span>, <span style="color: #a5d6ff;">"*/"</span>],
+      <span style="color: #79c0ff;">"formatter"</span>: {
+        <span style="color: #79c0ff;">"command"</span>: <span style="color: #a5d6ff;">"rustfmt"</span>,
+        <span style="color: #79c0ff;">"arguments"</span>: [<span style="color: #a5d6ff;">"--emit=stdout"</span>]
+      },
+      <span style="color: #79c0ff;">"lsp_command"</span>: {
+        <span style="color: #79c0ff;">"command"</span>: {
+          <span style="color: #79c0ff;">"command"</span>: <span style="color: #a5d6ff;">"rust-analyzer"</span>,
+          <span style="color: #79c0ff;">"arguments"</span>: []
+        },
+        <span style="color: #79c0ff;">"environment"</span>: {
+          <span style="color: #79c0ff;">"CARGO_TARGET_DIR"</span>: <span style="color: #a5d6ff;">"target/analyzer"</span>
+        }
+      }
+    },
+    <span style="color: #79c0ff;">"typescript"</span>: {
+      <span style="color: #79c0ff;">"extensions"</span>: [<span style="color: #a5d6ff;">"ts"</span>, <span style="color: #a5d6ff;">"tsx"</span>],
+      <span style="color: #79c0ff;">"file_names"</span>: [],
+      <span style="color: #79c0ff;">"line_comment_prefix"</span>: <span style="color: #a5d6ff;">"//"</span>,
+      <span style="color: #79c0ff;">"formatter"</span>: {
+        <span style="color: #79c0ff;">"command"</span>: <span style="color: #a5d6ff;">"prettier"</span>,
+        <span style="color: #79c0ff;">"arguments"</span>: [<span style="color: #a5d6ff;">"--stdin-filepath"</span>, <span style="color: #a5d6ff;">"$FILENAME"</span>]
+      }
+    }
+  },
+
+  <span style="color: #79c0ff;">"status_lines"</span>: [
+    {
+      <span style="color: #79c0ff;">"components"</span>: [
+        <span style="color: #a5d6ff;">"KiCharacter"</span>, <span style="color: #a5d6ff;">"Mode"</span>, <span style="color: #a5d6ff;">"SelectionMode"</span>, <span style="color: #a5d6ff;">"Language"</span>, <span style="color: #a5d6ff;">"Reveal"</span>,
+        <span style="color: #a5d6ff;">"LastSearchString"</span>, <span style="color: #a5d6ff;">"Spacer"</span>, <span style="color: #a5d6ff;">"LastDispatch"</span>, <span style="color: #a5d6ff;">"KeyboardLayout"</span>, <span style="color: #a5d6ff;">"Help"</span>
+      ]
+    },
+    {
+      <span style="color: #79c0ff;">"components"</span>: [
+        <span style="color: #a5d6ff;">"GitBranch"</span>, <span style="color: #a5d6ff;">"LineColumn"</span>, <span style="color: #a5d6ff;">"LspProgress"</span>, <span style="color: #a5d6ff;">"Spacer"</span>,
+        <span style="color: #a5d6ff;">"CurrentFileParentFolder"</span>, <span style="color: #a5d6ff;">"CurrentWorkingDirectory"</span>
+      ]
+    }
+  ]
+}</code></pre>
+      </div>
+
+      <h3>Status Line Components Available</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Component Name</th>
+            <th>Information Displayed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>KiCharacter</code></td>
+            <td>The Ki ASCII logo / mascot indicator.</td>
+          </tr>
+          <tr>
+            <td><code>Mode</code></td>
+            <td>Current editor mode (Normal, Insert, MultiCursor, Swap).</td>
+          </tr>
+          <tr>
+            <td><code>SelectionMode</code></td>
+            <td>Current active text object / selection mode (LINE, WORD, NODE, CHAR, etc.).</td>
+          </tr>
+          <tr>
+            <td><code>Language</code></td>
+            <td>Detected programming language for the active buffer.</td>
+          </tr>
+          <tr>
+            <td><code>Reveal</code></td>
+            <td>Active reveal viewport mode (Selection, Cursor, Mark, or None).</td>
+          </tr>
+          <tr>
+            <td><code>LastSearchString</code></td>
+            <td>Most recently executed text search query.</td>
+          </tr>
+          <tr>
+            <td><code>Spacer</code></td>
+            <td>Pushes elements apart (flex spacer across the status bar).</td>
+          </tr>
+          <tr>
+            <td><code>LastDispatch</code></td>
+            <td>Name of the last executed command / dispatch action.</td>
+          </tr>
+          <tr>
+            <td><code>KeyboardLayout</code></td>
+            <td>Active layout translation (QWERTY, Dvorak, etc.).</td>
+          </tr>
+          <tr>
+            <td><code>GitBranch</code></td>
+            <td>Current Git branch name of the repository.</td>
+          </tr>
+          <tr>
+            <td><code>LineColumn</code></td>
+            <td>1-based line number and column position of primary cursor.</td>
+          </tr>
+          <tr>
+            <td><code>LspProgress</code></td>
+            <td>LSP server background indexing / task status messages.</td>
+          </tr>
+          <tr>
+            <td><code>CurrentFileParentFolder</code> / <code>CurrentWorkingDirectory</code></td>
+            <td>Directory breadcrumb of the current buffer or workspace root.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 16: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->
+    <section id="leader-custom-scripts">
+      <h2>16. Leader Keymap (<kbd>\</kbd>) &amp; Custom Shell Scripts</h2>
+      <p>Ki includes a built-in Leader key mechanism invoked via <kbd>\</kbd> (Backslash in Normal mode). It maps a 3&times;10 matrix corresponding to the 3 main keyboard rows directly to custom shell scripts stored in your <code>scripts/</code> directory.</p>
+
+      <div class="callout tip">
+        <strong>Script Locations:</strong> Scripts are searched in <code>.ki/scripts/&lt;script_name&gt;</code> (workspace) first, then in <code>~/.config/ki/scripts/&lt;script_name&gt;</code> (global).
+      </div>
+
+      <h3>Defining Leader Keys in <code>config.json</code></h3>
+      <p>The <code>leader_keymap</code> is a 3-row array of 10 items matching the keyboard matrix (Row 1: <code>q w e r t y u i o p</code>, Row 2: <code>a s d f g h j k l ;</code>, Row 3: <code>z x c v b n m , . /</code>):</p>
+
+      <div class="keyboard-matrix" style="padding: 16px; font-size: 0.85rem; line-height: 1.45;">
+<pre><code style="color: #c9d1d9;">{
+  <span style="color: #79c0ff;">"leader_keymap"</span>: [
+    <span style="color: #8b949e;">// Row 1: q  w  e  r  t  y  u  i  o  p</span>
+    [
+      { <span style="color: #79c0ff;">"name"</span>: <span style="color: #a5d6ff;">"Run Tests"</span>, <span style="color: #79c0ff;">"script"</span>: <span style="color: #a5d6ff;">"run-tests.sh"</span> }, <span style="color: #8b949e;">// bound to \ q</span>
+      <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>
+    ],
+    <span style="color: #8b949e;">// Row 2: a  s  d  f  g  h  j  k  l  ;</span>
+    [
+      <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>,
+      { <span style="color: #79c0ff;">"name"</span>: <span style="color: #a5d6ff;">"Git Push"</span>, <span style="color: #79c0ff;">"script"</span>: <span style="color: #a5d6ff;">"git-push.sh"</span> },   <span style="color: #8b949e;">// bound to \ g</span>
+      <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>
+    ],
+    <span style="color: #8b949e;">// Row 3: z  x  c  v  b  n  m  ,  .  /</span>
+    [
+      <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>, <span style="color: #ff7b72;">null</span>
+    ]
+  ]
+}</code></pre>
+      </div>
+
+      <h3>Script Input / Output Protocol (JSON over STDIN / STDOUT)</h3>
+      <p>When triggered via <kbd>\</kbd>, Ki passes current editor state as a JSON payload over <strong>STDIN</strong> to your script:</p>
+      <ul>
+        <li><code>current_file_path</code>: Absolute path of the current buffer.</li>
+        <li><code>selections</code>: Array of all active selections with their <code>content</code> and <code>range</code> (0-based line &amp; column coordinates).</li>
+      </ul>
+      <p>If your script outputs JSON back on <strong>STDOUT</strong>, Ki executes instructions returned (e.g. replacing selections or showing notification dialogs).</p>
+    </section>
+
+    <!-- SECTION 17: MASTER CHEATSHEET -->
     <section id="full-cheatsheet">
-      <h2>15. Master Quick Reference Summary</h2>
+      <h2>17. Master Quick Reference Summary</h2>
       <div class="grid">
         <div class="card">
           <h4><span>Movements (Right Hand)</span> <span class="badge badge-universal">Core</span></h4>

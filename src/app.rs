@@ -438,9 +438,9 @@ impl<T: Frontend> App<T> {
     /// Returns true if the app should quit.
     pub fn handle_event(&mut self, mut event: Event) -> anyhow::Result<bool> {
         if let Event::Key(ref mut key_event) = event {
-            if *key_event == key!("ctrl+g") {
+            if *key_event == key!("ctrl+g") || *key_event == key!("ctrl+[") {
                 *key_event = key!("esc");
-            } else if *key_event == key!("release-ctrl+g") {
+            } else if *key_event == key!("release-ctrl+g") || *key_event == key!("release-ctrl+[") {
                 *key_event = key!("release-esc");
             }
         }

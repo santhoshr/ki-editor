@@ -412,6 +412,7 @@
         <li><a href="#surround-transform">Surround &amp; Transform</a></li>
         <li><a href="#prompt-picker">Prompts &amp; Pickers</a></li>
         <li><a href="#file-explorer">File Explorer</a></li>
+        <li><a href="#git-integration">Git Integration &amp; Workflow</a></li>
         <li><a href="#reveals">Reveals (Split Views)</a></li>
         <li><a href="#universal-keys">Universal Keybindings</a></li>
         <li class="section-header">Configuration &amp; Extension</li>
@@ -1224,9 +1225,109 @@
       </table>
     </section>
 
-    <!-- SECTION 13: REVEALS -->
+    <!-- SECTION 13: GIT INTEGRATION -->
+    <section id="git-integration">
+      <h2>13. Git Integration &amp; Workflow</h2>
+      <p>Ki embeds native Git operations powered directly by <code>libgit2</code>. Git is not an afterthought or third-party plugin—hunks, branches, and statuses are first-class editor primitives.</p>
+
+      <div class="grid">
+        <div class="card">
+          <h4><span>Branch &amp; Reference Diffs</span> <span class="badge badge-universal">Modes</span></h4>
+          <p>Ki supports comparing and jumping against two distinct references:</p>
+          <ul>
+            <li><strong><code>@</code> (Current Branch):</strong> Unstaged / uncommitted changes compared against <code>HEAD</code> of your current branch.</li>
+            <li><strong><code>^</code> (Main Branch):</strong> Changes compared against the primary/trunk branch (<code>main</code> or <code>master</code>). Extremely useful on feature branches to see everything modified in the PR.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Gutter Diff Indicators</span> <span class="badge badge-mode">Visuals</span></h4>
+          <p>Live diff markers appear alongside the line numbers in real-time:</p>
+          <ul>
+            <li><strong>Insert:</strong> Highlights newly added lines.</li>
+            <li><strong>Delete:</strong> Indicators marking deleted lines.</li>
+            <li><strong>Replace:</strong> Modified line ranges.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Git Keybindings &amp; Actions</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Shortcut</th>
+            <th>Scope</th>
+            <th>Action</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>n</kbd> then <kbd>g</kbd></td>
+            <td>Local / File</td>
+            <td><code>Hunk@</code> (Selection Mode)</td>
+            <td>Selects Git hunks in the current file relative to <strong>current branch</strong>. Use <kbd>j</kbd>/<kbd>l</kbd> or <kbd>u</kbd>/<kbd>o</kbd> to jump between hunks!</td>
+          </tr>
+          <tr>
+            <td><kbd>n</kbd> then <kbd>Shift+g</kbd></td>
+            <td>Local / File</td>
+            <td><code>Hunk^</code> (Selection Mode)</td>
+            <td>Selects Git hunks in the current file relative to <strong>main/master branch</strong>.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> then <kbd>g</kbd> / <kbd>Shift+g</kbd></td>
+            <td>Global / Project</td>
+            <td><code>Repo Hunk@</code> / <code>Repo Hunk^</code></td>
+            <td>Loads all changed hunks across all files into the Quickfix list for multi-file review.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>l</kbd> then <kbd>g</kbd></td>
+            <td>Context Menu</td>
+            <td><code>Revert Hunk @</code></td>
+            <td>Reverts the Git hunk intersecting current selection back to the current branch commit.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>l</kbd> then <kbd>Shift+g</kbd></td>
+            <td>Context Menu</td>
+            <td><code>Revert Hunk ^</code></td>
+            <td>Reverts the Git hunk intersecting current selection back to the main branch commit.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>l</kbd> then <kbd>b</kbd></td>
+            <td>Context Menu</td>
+            <td><code>Git Blame</code></td>
+            <td>Displays commit hash, author, timestamp, commit message, and commit URL for the selected line(s).</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>k</kbd> then <kbd>g</kbd></td>
+            <td>Picker</td>
+            <td><code>Git Status ^</code></td>
+            <td>Fuzzy picker showing files changed against the main/master branch.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>k</kbd> then <kbd>Shift+g</kbd></td>
+            <td>Picker</td>
+            <td><code>Git Status @</code></td>
+            <td>Fuzzy picker showing files changed against the current branch.</td>
+          </tr>
+          <tr>
+            <td><kbd>Space</kbd> + <kbd>k</kbd> then <kbd>b</kbd></td>
+            <td>Picker</td>
+            <td><code>Git Branch</code></td>
+            <td>Fuzzy picker listing all local/remote branches to instantly checkout.</td>
+          </tr>
+          <tr>
+            <td>Status Bar</td>
+            <td>Status Line</td>
+            <td><code>GitBranch</code></td>
+            <td>Real-time branch indicator in the status line.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SECTION 14: REVEALS -->
     <section id="reveals">
-      <h2>13. Reveals (Automated Multi-Viewports)</h2>
+      <h2>14. Reveals (Automated Multi-Viewports)</h2>
       <p>Instead of manually splitting, sizing, and closing splits, Ki provides three dynamic Reveal modes:</p>
       <table>
         <thead>
@@ -1256,9 +1357,9 @@
       </table>
     </section>
 
-    <!-- SECTION 14: UNIVERSAL KEYBINDINGS -->
+    <!-- SECTION 15: UNIVERSAL KEYBINDINGS -->
     <section id="universal-keys">
-      <h2>14. Universal Keybindings</h2>
+      <h2>15. Universal Keybindings</h2>
       <p>These keybindings operate globally across all modes and components:</p>
       <table>
         <thead>
@@ -1293,9 +1394,9 @@
       </table>
     </section>
 
-    <!-- SECTION 15: CONFIGURATION FILES & LOCATIONS -->
+    <!-- SECTION 16: CONFIGURATION FILES & LOCATIONS -->
     <section id="config-reference">
-      <h2>15. Configuration Reference &amp; File Locations</h2>
+      <h2>16. Configuration Reference &amp; File Locations</h2>
       <p>Ki supports dual-level hierarchical configuration with full fallback. Global user settings apply everywhere, while workspace settings override on a per-project basis.</p>
 
       <div class="grid">
@@ -1443,9 +1544,9 @@
       </table>
     </section>
 
-    <!-- SECTION 16: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->
+    <!-- SECTION 17: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->
     <section id="leader-custom-scripts">
-      <h2>16. Leader Keymap (<kbd>\</kbd>) &amp; Custom Shell Scripts</h2>
+      <h2>17. Leader Keymap (<kbd>\</kbd>) &amp; Custom Shell Scripts</h2>
       <p>Ki includes a built-in Leader key mechanism invoked via <kbd>\</kbd> (Backslash in Normal mode). It maps a 3&times;10 matrix corresponding to the 3 main keyboard rows directly to custom shell scripts stored in your <code>scripts/</code> directory.</p>
 
       <div class="callout tip">
@@ -1486,9 +1587,9 @@
       <p>If your script outputs JSON back on <strong>STDOUT</strong>, Ki executes instructions returned (e.g. replacing selections or showing notification dialogs).</p>
     </section>
 
-    <!-- SECTION 17: MASTER CHEATSHEET -->
+    <!-- SECTION 18: MASTER CHEATSHEET -->
     <section id="full-cheatsheet">
-      <h2>17. Master Quick Reference Summary</h2>
+      <h2>18. Master Quick Reference Summary</h2>
       <div class="grid">
         <div class="card">
           <h4><span>Movements (Right Hand)</span> <span class="badge badge-universal">Core</span></h4>

@@ -79,7 +79,7 @@ pub fn main() {
 
 #[derive(Default)]
 pub struct RunConfig {
-    pub entry_path: Option<AbsolutePath>,
+    pub entry_paths: Vec<AbsolutePath>,
     pub working_directory: Option<AbsolutePath>,
 }
 
@@ -166,7 +166,7 @@ pub fn run(config: RunConfig) -> anyhow::Result<()> {
             .map_err(|err| log::info!("main::run::crossterm {err:#?}"));
     });
 
-    app.run(config.entry_path)
+    app.run(config.entry_paths)
         .map_err(|error| anyhow::anyhow!("screen.run {:?}", error))?;
 
     Ok(())

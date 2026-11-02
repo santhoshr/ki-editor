@@ -298,28 +298,44 @@ impl<T: Frontend> App<T> {
     }
 
     /// This is the main event loop.
-    pub fn run(mut self, entry_path: Option<AbsolutePath>) -> Result<(), anyhow::Error> {
+    pub fn run(mut self, entry_paths: Vec<AbsolutePath>) -> Result<(), anyhow::Error> {
         self.set_terminal_options()?;
 
-        let first_dispatch = entry_path.map(|entry_path| {
-            if entry_path.as_ref().is_dir() {
-                Dispatch::OpenFileExplorer
-            } else if !entry_path.as_ref().exists() {
-                Dispatch::OpenNewFile { path: entry_path }
+        let mut dispatches = Vec::new();
+        if let Some((first, rest)) = entry_paths.split_first() {
+            if first.as_ref().is_dir() && rest.is_empty() {
+                dispatches.push(Dispatch::OpenFileExplorer);
             } else {
-                Dispatch::OpenFile {
-                    path: entry_path,
-                    owner: BufferOwner::User,
-                    focus: true,
+                for path in rest {
+                    if path.as_ref().exists() {
+                        dispatches.push(Dispatch::OpenFile {
+                            path: path.clone(),
+                            owner: BufferOwner::User,
+                            focus: false,
+                        });
+                        self.context.mark_file(path.clone());
+                    } else {
+                        dispatches.push(Dispatch::OpenNewFile { path: path.clone() });
+                        self.context.mark_file(path.clone());
+                    }
+                }
+                if !first.as_ref().exists() {
+                    dispatches.push(Dispatch::OpenNewFile { path: first.clone() });
+                    self.context.mark_file(first.clone());
+                } else {
+                    dispatches.push(Dispatch::OpenFile {
+                        path: first.clone(),
+                        owner: BufferOwner::User,
+                        focus: true,
+                    });
+                    self.context.mark_file(first.clone());
                 }
             }
-        });
+        }
 
-        if let Some(first_dispatch) = first_dispatch {
-            if let Err(error) = self.sender.send(AppMessage::ExternalDispatch(Box::new(
-                first_dispatch.clone(),
-            ))) {
-                log::error!("Failed to send the first dispatch {first_dispatch:?} due to {error}");
+        for dispatch in dispatches {
+            if let Err(error) = self.sender.send(AppMessage::ExternalDispatch(Box::new(dispatch.clone()))) {
+                log::error!("Failed to send startup dispatch {dispatch:?} due to {error}");
             }
         }
 
@@ -3237,6 +3253,9 @@ impl<T: Frontend> App<T> {
     fn set_file_dirty_status(&mut self, path: Option<AbsolutePath>, dirty_status: bool) {
         if let Some(path) = path {
             self.context.set_file_dirty_status(&path, dirty_status);
+            if dirty_status {
+                self.context.mark_file(path);
+            }
         }
     }
 

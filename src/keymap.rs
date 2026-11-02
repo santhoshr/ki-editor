@@ -596,13 +596,13 @@ pub fn space_pick_keymap_legend_config() -> KeymapLegendConfig {
             &[
                 Keybinding::new_undocumented(
                     key!("f"),
-                    "Buffer",
-                    Dispatch::OpenFilePicker(FilePickerKind::Opened),
+                    "File",
+                    Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored),
                 ),
                 Keybinding::new_undocumented(
                     key!("d"),
-                    "File",
-                    Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored),
+                    "Buffer",
+                    Dispatch::OpenFilePicker(FilePickerKind::Opened),
                 ),
             ]
             .into_iter()

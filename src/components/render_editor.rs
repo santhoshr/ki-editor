@@ -1014,17 +1014,17 @@ impl Editor {
                 })
             });
 
+        let full_content = buffer.rope().to_string();
         let regex_highlight_rules = self
             .regex_highlight_rules
             .iter()
             .filter_map(|rule| {
-                let captures = rule.regex.captures(&visible_slice_str)?;
+                let captures = rule.regex.captures(&full_content)?;
                 let get_highlight_span = |name: &'static str, source: Source| {
                     let match_ = captures.name(name)?;
-                    let range = (match_.start() + visible_offset)..(match_.end() + visible_offset);
                     Some(HighlightSpan {
                         source,
-                        range: HighlightSpanRange::ByteRange(range),
+                        range: HighlightSpanRange::ByteRange(match_.range()),
                         set_symbol: None,
                         is_cursor: false,
                         is_protected_range_start: false,

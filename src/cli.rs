@@ -130,9 +130,10 @@ impl LogKind {
 
 #[derive(Args, Default, Clone)]
 struct EditArgs {
-    /// Path to file to edit. If not provided and stdin is not connected to a terminal,
+    /// Paths to files to edit. If not provided and stdin is not connected to a terminal,
     /// content will be read from stdin and saved to a timestamp-based file
-    path: Option<String>,
+    #[arg(trailing_var_arg = true)]
+    paths: Vec<String>,
 }
 
 #[derive(Args)]
@@ -175,7 +176,6 @@ fn read_stdin() -> anyhow::Result<PathBuf> {
 pub(crate) enum EditAction {
     Open(AbsolutePath),
     MissingParentDirectory { parent: PathBuf },
-    Launch,
 }
 
 pub(crate) fn parse_path_arg(path: String) -> anyhow::Result<EditAction> {
@@ -195,38 +195,52 @@ pub(crate) fn parse_path_arg(path: String) -> anyhow::Result<EditAction> {
 }
 
 fn run_edit_command(args: EditArgs) -> anyhow::Result<()> {
-    let action = match args.path {
-        Some(path) => parse_path_arg(path)?,
-        None => {
-            if !io::stdin().is_terminal() {
-                let path = read_stdin()?;
-                EditAction::Open(path.to_string_lossy().to_string().try_into()?)
-            } else {
-                EditAction::Launch
+    if args.paths.is_empty() {
+        if !io::stdin().is_terminal() {
+            let path = read_stdin()?;
+            let abs_path: AbsolutePath = path.to_string_lossy().to_string().try_into()?;
+            return crate::run(RunConfig {
+                entry_paths: vec![abs_path],
+                working_directory: None,
+            });
+        } else {
+            return crate::run(RunConfig::default());
+        }
+    }
+
+    let mut parsed_paths = Vec::new();
+    let mut open_explorer_dir = None;
+
+    for path_str in args.paths {
+        match parse_path_arg(path_str)? {
+            EditAction::Open(path) => {
+                if path.is_dir() && parsed_paths.is_empty() && open_explorer_dir.is_none() {
+                    open_explorer_dir = Some(path);
+                } else {
+                    parsed_paths.push(path);
+                }
+            }
+            EditAction::MissingParentDirectory { parent } => {
+                eprintln!("Error: directory '{}' does not exist", parent.display());
+                eprintln!("Press Enter to continue...");
+                let _ = io::stdin().read_line(&mut String::new());
             }
         }
-    };
-
-    match action {
-        EditAction::Open(path) => {
-            let working_directory = if path.is_dir() {
-                Some(path.clone())
-            } else {
-                None
-            };
-            crate::run(RunConfig {
-                entry_path: Some(path),
-                working_directory,
-            })
-        }
-        EditAction::MissingParentDirectory { parent } => {
-            eprintln!("Error: directory '{}' does not exist", parent.display());
-            eprintln!("Press Enter to continue...");
-            let _ = io::stdin().read_line(&mut String::new());
-            crate::run(RunConfig::default())
-        }
-        EditAction::Launch => crate::run(RunConfig::default()),
     }
+
+    if let Some(dir) = open_explorer_dir {
+        if parsed_paths.is_empty() {
+            return crate::run(RunConfig {
+                entry_paths: vec![dir.clone()],
+                working_directory: Some(dir),
+            });
+        }
+    }
+
+    crate::run(RunConfig {
+        entry_paths: parsed_paths,
+        working_directory: None,
+    })
 }
 
 pub fn cli() -> anyhow::Result<()> {

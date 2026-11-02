@@ -125,6 +125,7 @@ pub struct App<T: Frontend> {
     /// the server with too many requests, and also Ki with too many incoming Completion responses
     debounce_lsp_request_completion: Callback<()>,
     pub multibuffer: Option<Multibuffer>,
+    last_insert_j_press: Option<std::time::Instant>,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -266,6 +267,7 @@ impl<T: Frontend> App<T> {
             queued_events: Vec::new(),
             file_watcher_input_sender,
             multibuffer: None,
+            last_insert_j_press: None,
         };
 
         app.restore_session();
@@ -447,6 +449,34 @@ impl<T: Frontend> App<T> {
 
         // Pass event to focused window
         let component = self.current_component();
+
+        if let Event::Key(key_event) = event {
+            let is_insert_mode = component.borrow().editor().mode == crate::components::editor::Mode::Insert;
+            if is_insert_mode {
+                if key_event == key!("j") {
+                    self.last_insert_j_press = Some(std::time::Instant::now());
+                } else if key_event == key!("k") {
+                    if let Some(j_time) = self.last_insert_j_press.take() {
+                        if j_time.elapsed() <= std::time::Duration::from_millis(500) {
+                            // Erase the previously inserted 'j' and switch to Normal mode
+                            self.handle_dispatches(Dispatches::from(vec![
+                                Dispatch::ToEditor(Backspace),
+                                Dispatch::ToEditor(EnterNormalMode),
+                                Dispatch::CloseDropdown,
+                                Dispatch::CloseGlobalInfo,
+                                Dispatch::CloseEditorInfo,
+                            ]))?;
+                            return Ok(false);
+                        }
+                    }
+                } else if key_event.kind == KeyEventKind::Press {
+                    self.last_insert_j_press = None;
+                }
+            } else {
+                self.last_insert_j_press = None;
+            }
+        }
+
         match event {
             Event::Resize(columns, rows) => {
                 self.resize(Dimension {

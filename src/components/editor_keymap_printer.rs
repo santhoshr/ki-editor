@@ -199,11 +199,12 @@ impl KeymapPrintSection {
             let mut cols: Vec<Cell> = cells
                 .enumerate()
                 .map(|(col_index, key)| {
+                    let layout_col_index = skip + col_index;
                     let display = if let Some(value) = layout.and_then(|layout| {
                         layout
                             .get_keyboard_layout()
                             .get(row_index)
-                            .and_then(|row| row.get(col_index))
+                            .and_then(|row| row.get(layout_col_index))
                     }) {
                         format!("{}\n{}", value, key.display(&option))
                     } else {
@@ -231,12 +232,11 @@ impl KeymapPrintSection {
         });
 
         let get_column_constraint = |column_index: usize| {
+            let actual_col_index = skip + column_index;
             let min_width = self
                 .keys
                 .iter()
-                .skip(skip)
-                .take(take)
-                .filter_map(|row| row.get(column_index))
+                .filter_map(|row| row.get(actual_col_index))
                 .map(|key| {
                     key.display(option)
                         .lines()

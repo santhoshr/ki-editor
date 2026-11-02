@@ -24,7 +24,7 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
             Dispatch::CloseKeymapLegend,
             Dispatch::ToEditor(DispatchEditor::SetKeymapOverride(None)),
         ]);
-        if key_event.original == key!("esc") {
+        if key_event.original == key!("esc") || key_event.original == key!("space") {
             return Ok(close_dispatches);
         }
 

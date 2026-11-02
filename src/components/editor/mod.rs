@@ -331,6 +331,9 @@ impl Component for Editor {
             SelectLineAt(index) => {
                 return Ok(self.select_line_at(index, context)?.into_vec().into())
             }
+            GotoPosition { line, column } => {
+                return self.goto_position(line, column, context);
+            }
             Surround(open, close) => return self.surround(open, close, context),
             SwapCursor => self.swap_cursor(context),
             SetDecorations(decorations) => self.buffer_mut().set_decorations(&decorations),
@@ -841,6 +844,48 @@ impl Editor {
                         .len_chars())
                 .into(),
         )));
+
+        Ok(self.update_selection_set(selection_set, false, context))
+    }
+
+    pub fn goto_position(&mut self, line: usize, column: usize, context: &Context) -> anyhow::Result<Dispatches> {
+        let (line_start_char, target_col) = {
+            let buffer = self.buffer();
+            let total_lines = buffer.rope().len_lines().max(1);
+            let target_line = line.min(total_lines.saturating_sub(1));
+            let start = buffer.line_to_char(target_line)?;
+            let line_len = buffer.get_line_by_char_index(start)?.len_chars();
+            let col = column.min(line_len.saturating_sub(1));
+            (start, col)
+        };
+        let char_idx = line_start_char + target_col;
+
+        let current_mode = self.selection_set.mode.clone();
+        let mut selection_set = self.char_index_range_to_selection_set((char_idx..char_idx + 1).into())?;
+        selection_set.mode = current_mode;
+
+        // If in a structured mode like Node mode, snap selection to the node at the target cursor position
+        let snapped_selection = {
+            let buffer = self.buffer();
+            let selection_mode_trait = selection_set.mode.primary().to_selection_mode_trait_object(
+                &buffer,
+                selection_set.primary_selection(),
+                &self.cursor_direction,
+                context.current_working_directory(),
+                context.quickfix_list_items(),
+                &[],
+            )?;
+            let params = crate::selection_mode::SelectionModeParams {
+                buffer: &buffer,
+                current_selection: selection_set.primary_selection(),
+                cursor_direction: &self.cursor_direction,
+            };
+            selection_mode_trait.current(&params, IfCurrentNotFound::LookForward).ok().flatten()
+        };
+
+        if let Some(selection) = snapped_selection {
+            selection_set.selections = NonEmpty::singleton(selection);
+        }
 
         Ok(self.update_selection_set(selection_set, false, context))
     }
@@ -2545,9 +2590,10 @@ impl Editor {
     }
 
     fn apply_scroll(&mut self, direction: Direction, scroll_height: usize) {
+        let max_scroll = self.buffer().len_lines().saturating_sub(1);
         self.scroll_offset = match direction {
             Direction::Start => self.scroll_offset.saturating_sub(scroll_height),
-            Direction::End => self.scroll_offset.saturating_add(scroll_height),
+            Direction::End => self.scroll_offset.saturating_add(scroll_height).min(max_scroll),
         };
     }
 
@@ -3231,8 +3277,9 @@ impl Editor {
         scroll_offset: usize,
         height: usize,
     ) -> Range<usize> {
-        let start = scroll_offset;
-        let end = (start + height).min(self.buffer().len_lines());
+        let total_lines = self.buffer().len_lines();
+        let start = scroll_offset.min(total_lines);
+        let end = (start + height).min(total_lines);
 
         start..end
     }
@@ -5277,6 +5324,7 @@ pub enum DispatchEditor {
     SetLanguage(Box<shared::language::Language>),
     ReplaceCurrentSelectionWith(String),
     SelectLineAt(usize),
+    GotoPosition { line: usize, column: usize },
     SwapCursor,
     MoveCharacterBack,
     MoveCharacterForward,

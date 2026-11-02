@@ -60,7 +60,7 @@ use crate::{
 };
 use anyhow::ensure;
 use event::{event::Event, KeyEvent, KeyEventKind};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
 use my_proc_macros::{key, NamedVariant};
 use nonempty::NonEmpty;
@@ -584,7 +584,9 @@ impl<T: Frontend> App<T> {
     fn render_component_window(&self, component: KindedComponent) -> (Window, Option<Cursor>) {
         let rectangle = component.component().borrow().rectangle().clone();
         let focused_component_id = self.layout.focused_component_id();
-        let focused = component.component().borrow().id() == focused_component_id;
+        let is_prompt_open = self.layout.get_component_by_kind(ComponentKind::Prompt).is_some();
+        let focused = component.component().borrow().id() == focused_component_id
+            || (is_prompt_open && component.kind() == ComponentKind::SuggestiveEditor);
         let otherwise = || {
             component
                 .component()
@@ -1437,8 +1439,14 @@ impl<T: Frontend> App<T> {
             self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
                 self.layout.get_opened_files(),
             ));
-            if let Some(path) = self.context.unmark_path(removed_path).cloned() {
-                self.open_file(&path, BufferOwner::User, true, true)?;
+            let mut next_path = self.context.unmark_path(removed_path).cloned();
+            while let Some(path) = next_path {
+                if let Err(_err) = self.open_file(&path, BufferOwner::User, true, true) {
+                    // If the path is not a file or unopenable, remove it and try next
+                    next_path = self.context.unmark_path(path).cloned();
+                } else {
+                    break;
+                }
             }
         }
         Ok(())
@@ -1713,15 +1721,25 @@ impl<T: Frontend> App<T> {
                     })
                     .collect_vec(),
             ),
-            FilePickerKind::Opened => PromptItems::Precomputed(
-                self.layout
-                    .get_opened_files()
+            FilePickerKind::Opened => {
+                let mut opened_paths: IndexSet<AbsolutePath> = self
+                    .context
+                    .get_marked_files()
                     .into_iter()
-                    .map(|path| {
-                        DropdownItem::from_path_buf(&working_directory, path.into_path_buf())
-                    })
-                    .collect_vec(),
-            ),
+                    .cloned()
+                    .collect();
+                for path in self.layout.get_opened_files() {
+                    opened_paths.insert(path);
+                }
+                PromptItems::Precomputed(
+                    opened_paths
+                        .into_iter()
+                        .map(|path| {
+                            DropdownItem::from_path_buf(&working_directory, path.into_path_buf())
+                        })
+                        .collect_vec(),
+                )
+            }
         };
         self.open_prompt(PromptConfig::new(
             format!("Open file: {}", kind.display()),
@@ -2658,27 +2676,11 @@ impl<T: Frontend> App<T> {
                 .cloned()
         } {
             let next_file_path = next_file_path.clone();
-            if let Err(err) = self.open_file(&next_file_path.clone(), BufferOwner::User, true, true)
+            if let Err(_err) = self.open_file(&next_file_path.clone(), BufferOwner::User, true, true)
             {
-                // If the file failed to open, show the error.
-                // The failure reasons might be:
-                // - the file no longer exists
-                // - the file is not a file
-                //
-                // In such cases we should remove it from the list of marked files,
-                // and then cycle to the next file.
-                //
-                // The removal is necessary otherwise this file will become an
-                // an obstacle that prevents cycle_mark_file from passing through.
+                // If the file failed to open (e.g. non-UTF-8 binary, no longer exists, etc.),
+                // silently remove it from the list of marked files and cycle to the next file.
                 self.context.toggle_path_mark(next_file_path.clone());
-                self.show_global_info(Info::new(
-                    "Cycle marked file error".to_string(),
-                    format!(
-                        "The file mark {:?} is removed from the list as it cannot be opened due to the following error:\n\n{err:?}",
-                        next_file_path
-                            .try_display_relative_to(self.context.current_working_directory())
-                    ),
-                ));
                 self.cycle_marked_file(movement)?;
             }
         }
@@ -3243,8 +3245,13 @@ impl<T: Frontend> App<T> {
 
     fn toggle_file_mark(&mut self) -> anyhow::Result<()> {
         if let Some(path) = self.get_current_file_path() {
-            if let Some(new_path) = self.context.toggle_path_mark(path).cloned() {
-                self.open_file(&new_path, BufferOwner::User, true, true)?;
+            let mut next_path = self.context.toggle_path_mark(path).cloned();
+            while let Some(path) = next_path {
+                if let Err(_err) = self.open_file(&path, BufferOwner::User, true, true) {
+                    next_path = self.context.unmark_path(path).cloned();
+                } else {
+                    break;
+                }
             }
         }
         Ok(())
@@ -4421,10 +4428,19 @@ impl DispatchParser {
     pub fn parse(&self, text: &str) -> anyhow::Result<Dispatches> {
         match self.clone() {
             DispatchParser::MoveSelectionByIndex => {
-                let index = text.parse::<usize>()?.saturating_sub(1);
-                Ok(Dispatches::new(
-                    [Dispatch::ToEditor(MoveSelection(Movement::Index(index)))].to_vec(),
-                ))
+                let trimmed = text.trim();
+                if let Some((line_str, col_str)) = trimmed.split_once(':').or_else(|| trimmed.split_once(' ')) {
+                    let line = line_str.trim().parse::<usize>()?.saturating_sub(1);
+                    let col = col_str.trim().parse::<usize>()?.saturating_sub(1);
+                    Ok(Dispatches::new(vec![Dispatch::ToEditor(
+                        DispatchEditor::GotoPosition { line, column: col },
+                    )]))
+                } else {
+                    let index = trimmed.parse::<usize>()?.saturating_sub(1);
+                    Ok(Dispatches::new(vec![Dispatch::ToEditor(
+                        MoveSelection(Movement::Index(index)),
+                    )]))
+                }
             }
             DispatchParser::RenameSymbol => Ok(Dispatches::new(vec![Dispatch::RenameSymbol {
                 new_name: text.to_string(),

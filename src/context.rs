@@ -294,6 +294,7 @@ impl Context {
                         .get_marked_files(current_working_directory.to_path_buf())?
                         .into_iter()
                         .filter_map(|path| AbsolutePath::try_from(path).ok())
+                        .filter(|path| path.is_file())
                         .collect(),
                 )
             })

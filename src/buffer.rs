@@ -1362,7 +1362,15 @@ impl Buffer {
         &self,
         visible_line_range: &Range<usize>,
     ) -> anyhow::Result<Range<usize>> {
-        debug_assert!(visible_line_range.start <= visible_line_range.end);
+        if visible_line_range.start >= visible_line_range.end {
+            let start = if self.len_lines() == 0 {
+                0
+            } else {
+                let clamped_line = visible_line_range.start.min(self.len_lines().saturating_sub(1));
+                self.line_to_byte_range(clamped_line)?.range().start
+            };
+            return Ok(start..start);
+        }
         let start = self
             .line_to_byte_range(visible_line_range.start)?
             .range()

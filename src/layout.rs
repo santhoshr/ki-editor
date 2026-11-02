@@ -21,7 +21,6 @@ use crate::{
     quickfix_list::{Location, QuickfixListItem},
     rectangle::{Border, LayoutKind, Rectangle},
 };
-use anyhow::anyhow;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nary_tree::NodeId;
@@ -391,21 +390,22 @@ impl Layout {
     ) -> Result<(), anyhow::Error> {
         let component = match &self.background_quickfix_list {
             Some(component) if component.borrow().id() == component_id => {
-                Box::new(component.clone() as Rc<RefCell<dyn Component>>)
+                Some(Box::new(component.clone() as Rc<RefCell<dyn Component>>))
             }
             _ => self
                 .background_suggestive_editors
                 .iter()
                 .find(|(_, component)| component.borrow().id() == component_id)
-                .map(|(_, component)| Box::new(component.clone() as Rc<RefCell<dyn Component>>))
-                .ok_or_else(|| anyhow!("Couldn't find component with id {:?}", component_id))?,
+                .map(|(_, component)| Box::new(component.clone() as Rc<RefCell<dyn Component>>)),
         };
 
-        let mut component = component.borrow_mut();
-        component
-            .editor_mut()
-            .buffer_mut()
-            .update_highlighted_spans(batch_id, highlighted_spans);
+        if let Some(component) = component {
+            let mut component = component.borrow_mut();
+            component
+                .editor_mut()
+                .buffer_mut()
+                .update_highlighted_spans(batch_id, highlighted_spans);
+        }
 
         Ok(())
     }

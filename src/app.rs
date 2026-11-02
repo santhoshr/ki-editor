@@ -436,7 +436,15 @@ impl<T: Frontend> App<T> {
     }
 
     /// Returns true if the app should quit.
-    pub fn handle_event(&mut self, event: Event) -> anyhow::Result<bool> {
+    pub fn handle_event(&mut self, mut event: Event) -> anyhow::Result<bool> {
+        if let Event::Key(ref mut key_event) = event {
+            if *key_event == key!("ctrl+g") {
+                *key_event = key!("esc");
+            } else if *key_event == key!("release-ctrl+g") {
+                *key_event = key!("release-esc");
+            }
+        }
+
         // Pass event to focused window
         let component = self.current_component();
         match event {

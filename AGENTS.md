@@ -315,6 +315,17 @@ Clarified that Ki has no timer/timeout or config setting to auto-dismiss or disa
 **Response:**
 Updated `MomentaryLayerKeymapOverride::handle_press` in `src/keymap_override/momentary_layer/mod.rs` to intercept `key!("space")`. It closes the momentary layer and dispatches the layer's tap action if no other key in the layer was pressed, matching the exact behavior of the release event.
 
+### Request 51
+> "when I split windows into two in wm, the half size cause ki to crash out
+> thread 'main' (25265) panicked at src/components/render_editor.rs:411:9:
+> assertion failed: result.lines().count() <= dimension.height.saturating_sub(1)"
+**Response:**
+When window height is very small (e.g. split into half in a window manager, leaving `dimension.height <= 2`), the tab rows + bottom indicator row attempted to render 2 lines while `dimension.height.saturating_sub(1)` was only 0 or 1.
+Fixed in `src/components/render_editor.rs`:
+- If `max_allowed_lines == 0`, tabline rendering is suppressed (`None`).
+- If `max_allowed_lines == 1`, only the focused tab line is rendered (without the bottom indicator line).
+- When `max_allowed_lines >= 2`, tab rows and indicator row are bounded by `max_allowed_lines`, ensuring `result.lines().count() <= dimension.height.saturating_sub(1)` is never violated.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

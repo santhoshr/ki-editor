@@ -341,12 +341,27 @@ impl Editor {
                     }
 
                     let total_rows = all_wrapped_rows.len();
+                    let max_allowed_lines = dimension.height.saturating_sub(1);
 
-                    // Maximum of 5 rows total, capped by 20% of screen height, and at least 1 row (unless window height <= 1)
+                    if max_allowed_lines == 0 {
+                        return None;
+                    }
+
+                    if max_allowed_lines == 1 {
+                        // Only 1 line allowed total: show the focused row or first row without indicator
+                        let focused_row = all_wrapped_rows
+                            .iter()
+                            .position(|row| row.contains('\u{200B}'))
+                            .unwrap_or(0);
+                        let row = all_wrapped_rows.get(focused_row).or_else(|| all_wrapped_rows.first());
+                        return row.map(|r| format!("{:0width$}│{r}", focused_row + 1, width = row_num_digits));
+                    }
+
+                    // Maximum of 5 rows total, capped by 20% of screen height, and between 2 and max_allowed_lines
                     let max_total_lines = ((dimension.height * 20) / 100)
                         .min(5)
-                        .max(1)
-                        .min(dimension.height.saturating_sub(1));
+                        .max(2)
+                        .min(max_allowed_lines);
 
                     // Reserve 1 row for the bottom indicator row "[filename]" / "(tab rows)"
                     let tab_rows_capacity = max_total_lines.saturating_sub(1).max(1);

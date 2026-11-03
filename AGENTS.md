@@ -337,6 +337,11 @@ Fixed in `src/components/render_editor.rs`:
 **Response:**
 Replaced `Dispatch::ToEditor(Backspace)` with a dedicated `DispatchEditor::RevertLastInsertChar`. It performs an `undo(true)` of the fine insert edit that inserted `j` and immediately removes the inverted edit from `redo_stack` (`pop_redo_stack`), leaving no trace of the typed or deleted `j` in either the undo or redo rings.
 
+### Request 54
+> "for some reason they designe r menu to go to e menu and then from there to r menu back! this causes our space to quit hud fails in 'sticky' terminals, also space to one tap also fails due to higher menu, for these situations, let us also map enter to do one tap action as well"
+**Response:**
+Updated `MomentaryLayerKeymapOverride::handle_press` in `src/keymap_override/momentary_layer/mod.rs` to allow <kbd>Enter</kbd> alongside <kbd>Space</kbd> to close the momentary layer and execute the layer's tap action (e.g. Delete One) when no other keys in the layer have been pressed.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

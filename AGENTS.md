@@ -342,6 +342,17 @@ Replaced `Dispatch::ToEditor(Backspace)` with a dedicated `DispatchEditor::Rever
 **Response:**
 Updated `MomentaryLayerKeymapOverride::handle_press` in `src/keymap_override/momentary_layer/mod.rs` to allow <kbd>Enter</kbd> alongside <kbd>Space</kbd> to close the momentary layer and execute the layer's tap action (e.g. Delete One) when no other keys in the layer have been pressed.
 
+### Request 55
+> "I'm thinking of making 'x' as e'x'change key instead of : which is difficult placement, also cut functionality is superflous, we can copy and delete if required, also we can move the cut to shift+r (also check shift+r is used anywhere) which is right place because both remove things one cut/one copies and cut; tell me what do you think after checking before code changes"
+> "you got it, yes I'm freeing up / and ? for search, such basic requirement for editor made it hard to reach, go ahead"
+**Response:**
+1. Unified `SwapCursor`: if the current selection is extended (`selection_set.is_extended()`), it atomically swaps both anchor and direction (`swap_anchor()` + flips `cursor_direction`), preventing directional mismatch.
+2. Mapped `x` in Normal mode to `⇋ Swap` (`DispatchEditor::SwapCursor`).
+3. Moved Cut (`≡ Cut`) to `Shift+R` (`R`) alongside Delete (`r`).
+4. Reclaimed `/` and `?` in Normal mode for instant forward (`LookForward`) and backward (`LookBackward`) search prompt (`Dispatch::OpenSearchPrompt`).
+5. Made `MomentaryLayerKeymapOverride::handle_release` case-insensitive for character release events so uppercase momentary layers like `Shift+R` release cleanly regardless of physical Shift key release order.
+6. Updated `newdoc/index.html`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -560,13 +560,13 @@
           </tr>
           <tr>
             <td><kbd>/</kbd></td>
-            <td><code>⇋ Curs</code></td>
-            <td>Swaps cursor between the start and end of the current target selection (<code>SwapCursor</code>).</td>
+            <td><code>Search</code></td>
+            <td>Opens document search prompt forward (equivalent to <kbd>n</kbd> &rarr; <kbd>d</kbd>).</td>
           </tr>
           <tr>
             <td><kbd>?</kbd> (Shift+<code>/</code>)</td>
-            <td><code>⇋ Anchor</code></td>
-            <td>Swaps the extended selection anchor with the active head (<code>SwapExtensionAnchor</code>). Allows extending selection from opposite direction in Extend mode (<kbd>f</kbd>).</td>
+            <td><code>Search (Bwd)</code></td>
+            <td>Opens document search prompt backward.</td>
           </tr>
         </tbody>
       </table>
@@ -755,6 +755,11 @@
             <td>Saves the current file and runs automatic code formatting.</td>
           </tr>
           <tr>
+            <td><kbd>x</kbd></td>
+            <td><code>⇋ Swap</code></td>
+            <td>Atomic selection swap: swaps cursor ends in regular selection, or swaps anchor and direction in Extend mode (<kbd>f</kbd>).</td>
+          </tr>
+          <tr>
             <td><kbd>h</kbd></td>
             <td><code>&larr; Insert</code></td>
             <td>Enters Insert Mode at the start of current selection.</td>
@@ -917,7 +922,7 @@
     </section>
 
     <section id="mol-delete-cut-eat">
-      <h3>≡ Delete (<kbd>r</kbd>), Cut (<kbd>x</kbd>), &amp; Eat (<kbd>r</kbd> in submode)</h3>
+      <h3>≡ Delete (<kbd>r</kbd>), Cut (<kbd>Shift+r</kbd>), &amp; Eat (<kbd>r</kbd> &rarr; <kbd>Space</kbd>)</h3>
       <table>
         <thead>
           <tr>
@@ -930,12 +935,12 @@
           <tr>
             <td><strong>≡ Delete</strong> (Hold <kbd>r</kbd>)</td>
             <td><kbd>j</kbd>/<kbd>l</kbd>, <kbd>u</kbd>/<kbd>o</kbd>, <kbd>y</kbd>/<kbd>p</kbd></td>
-            <td>Deletes the current selection and everything through the chosen direction target.</td>
+            <td>Deletes the current selection and everything through the chosen direction target. Tap <kbd>r</kbd> deletes single item.</td>
           </tr>
           <tr>
-            <td><strong>≡ Cut</strong> (Hold <kbd>x</kbd>)</td>
+            <td><strong>≡ Cut</strong> (Hold <kbd>Shift+r</kbd>)</td>
             <td><kbd>j</kbd>/<kbd>l</kbd>, <kbd>u</kbd>/<kbd>o</kbd>, <kbd>y</kbd>/<kbd>p</kbd></td>
-            <td>Copies to clipboard first, then deletes through the chosen direction target.</td>
+            <td>Copies to clipboard first, then deletes through the chosen direction target. Tap <kbd>Shift+r</kbd> cuts single item.</td>
           </tr>
           <tr>
             <td><strong>≡ Eat</strong></td>
@@ -945,7 +950,7 @@
           <tr>
             <td><strong>Hold + <kbd>m</kbd></strong></td>
             <td>Jump Target</td>
-            <td>Combine with Jump: hold <kbd>r</kbd> or <kbd>x</kbd>, press <kbd>m</kbd> and jump anywhere on screen to delete/cut directly there!</td>
+            <td>Combine with Jump: hold <kbd>r</kbd> or <kbd>Shift+r</kbd>, press <kbd>m</kbd> and jump anywhere on screen to delete/cut directly there.</td>
           </tr>
         </tbody>
       </table>
@@ -1618,7 +1623,9 @@
           <h4><span>Momentary Layers</span> <span class="badge badge-mol">Hold Verbs</span></h4>
           <p>Hold <code>g</code> &rarr; ≡ Open / Insert</p>
           <p>Hold <code>r</code> &rarr; ≡ Delete</p>
-          <p>Hold <code>x</code> &rarr; ≡ Cut</p>
+          <p>Hold <code>Shift+r</code> &rarr; ≡ Cut</p>
+          <p><code>x</code> &rarr; ⇋ Atomic Selection Swap</p>
+          <p><code>/</code> / <code>?</code> &rarr; Search (Fwd / Bwd)</p>
           <p>Hold <code>e</code> &rarr; ≡ Buffer / Tabs</p>
           <p>Hold <code>b</code> &rarr; ≡ Multi-Cursor</p>
           <p>Hold <code>v</code> &rarr; ≡ Paste</p>

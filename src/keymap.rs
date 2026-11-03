@@ -1509,8 +1509,13 @@ pub fn keymap_actions_overridable(
             )),
         })
         .override_keymap(normal_mode_override.change.as_ref(), none_if_no_override),
+        Some(Keybinding::new_undocumented(
+            key!("x"),
+            "⇋ Swap",
+            Dispatch::ToEditor(DispatchEditor::SwapCursor),
+        )),
         Keybinding::momentary_layer(MomentaryLayer {
-            event: key!("x"),
+            event: key!("R"),
             name: "≡ Cut".to_string(),
             config: KeymapLegendConfig {
                 title: "≡ Cut".to_string(),
@@ -1593,14 +1598,20 @@ pub fn keymap_other_movements() -> Vec<Keybinding> {
             )),
         }),
         Keybinding::new_undocumented(
-            key!("?"),
-            "⇋ Anchor",
-            Dispatch::ToEditor(SwapExtensionAnchor),
+            key!("/"),
+            "Search",
+            Dispatch::OpenSearchPrompt {
+                scope: Scope::Local,
+                if_current_not_found: IfCurrentNotFound::LookForward,
+            },
         ),
         Keybinding::new_undocumented(
-            key!("/"),
-            "⇋ Curs",
-            Dispatch::ToEditor(DispatchEditor::SwapCursor),
+            key!("?"),
+            "Search (Bwd)",
+            Dispatch::OpenSearchPrompt {
+                scope: Scope::Local,
+                if_current_not_found: IfCurrentNotFound::LookBackward,
+            },
         ),
     ]
     .into_iter()

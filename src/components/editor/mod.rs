@@ -1759,6 +1759,9 @@ impl Editor {
     }
 
     pub fn swap_cursor(&mut self, context: &Context) {
+        if self.selection_set.is_extended() {
+            self.selection_set.swap_anchor();
+        }
         self.cursor_direction = match self.cursor_direction {
             Direction::Start => Direction::End,
             Direction::End => Direction::Start,

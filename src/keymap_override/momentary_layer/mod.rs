@@ -75,7 +75,16 @@ impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
         _context: &Context,
         key_event: CombinedKeyEvent,
     ) -> anyhow::Result<Dispatches> {
-        Ok(if self.release_key == key_event.translated {
+        let is_release_match = self.release_key == key_event.translated
+            || match (self.release_key.code, key_event.translated.code) {
+                (crossterm::event::KeyCode::Char(expected), crossterm::event::KeyCode::Char(actual)) => {
+                    expected.to_ascii_lowercase() == actual.to_ascii_lowercase()
+                        && key_event.translated.kind == event::KeyEventKind::Release
+                }
+                _ => false,
+            };
+
+        Ok(if is_release_match {
             let dispatches = self.close_dispatches();
 
             if !self.other_keys_pressed {

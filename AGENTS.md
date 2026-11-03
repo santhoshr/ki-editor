@@ -376,6 +376,11 @@ Updated `newdoc/index.html`:
 **Response:**
 Explained Pipe to Shell: select text, trigger via <kbd>Space</kbd> &rarr; <kbd>l</kbd> (Context) &rarr; <kbd>e</kbd> (`OpenPipeToShellPrompt`), enter the command (run as `bash -c "<cmd>"`), and Ki pipes the selection to `STDIN` and in-place replaces it with `STDOUT`. Added Section 11 ("Pipe to Shell") with step-by-step usage and common examples (`sort`, `jq .`, `column -t`) to `newdoc/index.html`.
 
+### Request 60
+> "alt / jumps to views, when no views are around make alt / open buffer picker"
+**Response:**
+Checked window/view count via `layout.can_cycle_window()`. If there are multiple windows/views open, `alt+/` (`Dispatch::OtherWindow`) cycles between them as usual; if only a single view is present, it now opens the Buffer picker (`open_file_picker(FilePickerKind::Opened)`).
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

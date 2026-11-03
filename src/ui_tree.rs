@@ -189,6 +189,14 @@ impl UiTree {
         self.focused_component_id
     }
 
+    pub fn can_cycle_component(&self) -> bool {
+        self.root()
+            .traverse_pre_order()
+            .filter(|node| node.node_id() != self.root_id())
+            .count()
+            > 1
+    }
+
     pub fn cycle_component(&mut self) {
         self.set_focus_component_id(
             self.root()

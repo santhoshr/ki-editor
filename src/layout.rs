@@ -108,6 +108,10 @@ impl Layout {
         removed_path
     }
 
+    pub fn can_cycle_window(&self) -> bool {
+        self.tree.can_cycle_component()
+    }
+
     pub fn cycle_window(&mut self) {
         self.tree.cycle_component();
     }

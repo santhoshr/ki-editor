@@ -1298,7 +1298,13 @@ impl<T: Frontend> App<T> {
             Dispatch::ReceiveCodeActions(code_actions) => {
                 self.open_code_actions_picker(code_actions)?;
             }
-            Dispatch::OtherWindow => self.layout.cycle_window(),
+            Dispatch::OtherWindow => {
+                if self.layout.can_cycle_window() {
+                    self.layout.cycle_window();
+                } else {
+                    self.open_file_picker(FilePickerKind::Opened)?;
+                }
+            }
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
             Dispatch::OpenAlternateFile => self.open_alternate_file()?,
             Dispatch::PushPromptHistory { key, line } => self.push_history_prompt(key, line),

@@ -305,6 +305,16 @@ In `src/app.rs` (`render_component_window`), updated `focused` to evaluate to `t
 **Response:**
 `FilePickerKind::Opened` in `App::open_file_picker` previously only queried `self.layout.get_opened_files()`, which only contained buffers loaded into memory (`background_suggestive_editors`), omitting persisted or marked tabs that haven't yet been loaded into memory. Updated it to merge `self.context.get_marked_files()` with `self.layout.get_opened_files()` into an ordered `IndexSet`, ensuring all open tabs and active buffers appear in the buffer picker.
 
+### Request 49
+> "is there any HUD settings like hide/disable remove after certain elapsed time?"
+**Response:**
+Clarified that Ki has no timer/timeout or config setting to auto-dismiss or disable the HUD.
+
+### Request 50
+> "there are some consoles where momentary key doesn't work, but every within the layer works, for those 'sticky' situation, make space to close the momentary layer also triggering release event so tap actions happen"
+**Response:**
+Updated `MomentaryLayerKeymapOverride::handle_press` in `src/keymap_override/momentary_layer/mod.rs` to intercept `key!("space")`. It closes the momentary layer and dispatches the layer's tap action if no other key in the layer was pressed, matching the exact behavior of the release event.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

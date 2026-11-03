@@ -54,6 +54,14 @@ impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
         if key_event.original == key!("esc") {
             return Ok(self.close_dispatches());
         }
+        if key_event.original == key!("space") {
+            let dispatches = self.close_dispatches();
+            return Ok(if !self.other_keys_pressed {
+                dispatches.chain(self.base.inner().tap()?)
+            } else {
+                dispatches
+            });
+        }
         let (key_press, dispatches) = self.base.inner().handle_press(key_event)?;
         self.other_keys_pressed |= key_press;
         Ok(dispatches)

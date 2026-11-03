@@ -281,6 +281,7 @@ impl Component for Editor {
                     .chain(dispatches));
             }
             FineUndo => return self.fine_undo(context),
+            RevertLastInsertChar => return self.revert_last_insert_char(context),
             KillLine(direction) => return self.kill_line(direction, context),
             #[cfg(test)]
             Reset => self.reset(),
@@ -5218,6 +5219,16 @@ impl Editor {
             .unwrap_or_default())
     }
 
+    fn revert_last_insert_char(&mut self, context: &Context) -> Result<Dispatches, anyhow::Error> {
+        let dispatches = self
+            .undo(context, true)?
+            .map(|(dispatches, _)| dispatches)
+            .unwrap_or_default();
+        // Discard the undone insert edit from redo_stack so it does not linger in the redo ring
+        self.buffer_mut().pop_redo_stack();
+        Ok(dispatches)
+    }
+
     fn fine_redo(&mut self, context: &Context) -> Result<Dispatches, anyhow::Error> {
         Ok(self
             .redo(context, true)?
@@ -5306,6 +5317,7 @@ pub enum DispatchEditor {
     },
     FineUndo,
     FineRedo,
+    RevertLastInsertChar,
     KillLine(Direction),
     #[cfg(test)]
     Reset,

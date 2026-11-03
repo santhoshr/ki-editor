@@ -332,6 +332,11 @@ Fixed in `src/components/render_editor.rs`:
 1. In `src/keymap_override/menu.rs`, checked `self.config.keymap.get(&key_event)` before the fallback `space` close check, so menus that define a `Space` keybinding (e.g. multi-cursor menu) dispatch to their higher level instead of closing immediately.
 2. In `src/keymap_override/momentary_layer/mod.rs`, forwarded key events to `self.base.inner().handle_press(key_event)` before the fallback `space` close check, preserving layer swaps (such as `space` swapping between Delete and Eat). Added `Dispatches::is_empty` in `src/app.rs`.
 
+### Request 53
+> "our jk to escape adds to undo I was able to see it when doing it in 'sticky' terminal emulators, is it possible to avoid jk deletion into undo/redo ring?"
+**Response:**
+Replaced `Dispatch::ToEditor(Backspace)` with a dedicated `DispatchEditor::RevertLastInsertChar`. It performs an `undo(true)` of the fine insert edit that inserted `j` and immediately removes the inverted edit from `redo_stack` (`pop_redo_stack`), leaving no trace of the typed or deleted `j` in either the undo or redo rings.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

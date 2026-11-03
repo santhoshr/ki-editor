@@ -474,9 +474,9 @@ impl<T: Frontend> App<T> {
                 } else if key_event == key!("k") {
                     if let Some(j_time) = self.last_insert_j_press.take() {
                         if j_time.elapsed() <= std::time::Duration::from_millis(500) {
-                            // Erase the previously inserted 'j' and switch to Normal mode
+                            // Revert the previously inserted 'j' cleanly without leaving anything in the undo/redo ring
                             self.handle_dispatches(Dispatches::from(vec![
-                                Dispatch::ToEditor(Backspace),
+                                Dispatch::ToEditor(RevertLastInsertChar),
                                 Dispatch::ToEditor(EnterNormalMode),
                                 Dispatch::CloseDropdown,
                                 Dispatch::CloseGlobalInfo,

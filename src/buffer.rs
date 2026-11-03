@@ -1464,6 +1464,10 @@ impl Buffer {
         self.redo_stack.last()
     }
 
+    pub fn pop_redo_stack(&mut self) -> Option<EditHistory> {
+        self.redo_stack.pop()
+    }
+
     pub fn line_to_char_range(&self, line: usize) -> anyhow::Result<CharIndexRange> {
         let start = self.line_to_char(line)?;
         let end = self.line_to_char(line + 1)?;

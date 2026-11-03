@@ -420,7 +420,7 @@ pub fn leader_keymap_legend_config() -> KeymapLegendConfig {
         ),
     }
 }
-pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapLegendConfig {
+pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Space".to_string(),
 
@@ -458,12 +458,8 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                 ),
                 Keybinding::new_undocumented(
                     key!(";"),
-                    "Explorer",
-                    Dispatch::RevealInExplorer(
-                        editor
-                            .path()
-                            .unwrap_or_else(|| context.current_working_directory().clone()),
-                    ),
+                    "File",
+                    Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored),
                 ),
                 Keybinding::new_undocumented(
                     key!("/"),
@@ -1074,6 +1070,11 @@ pub fn keymap_others() -> Vec<Keybinding> {
             key!("space"),
             "Space",
             Dispatch::ToEditor(DispatchEditor::PressSpace),
+        ),
+        Keybinding::new_undocumented(
+            key!("-"),
+            "Explorer",
+            Dispatch::RevealCurrentInExplorer,
         ),
         Keybinding::new_undocumented(
             key!(","),

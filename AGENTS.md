@@ -381,6 +381,47 @@ Explained Pipe to Shell: select text, trigger via <kbd>Space</kbd> &rarr; <kbd>l
 **Response:**
 Checked window/view count via `layout.can_cycle_window()`. If there are multiple windows/views open, `alt+/` (`Dispatch::OtherWindow`) cycles between them as usual; if only a single view is present, it now opens the Buffer picker (`open_file_picker(FilePickerKind::Opened)`).
 
+### Request 61
+> "I read in official manual, I can open multiple files in space -> file picker but those keys are not working, what keys are configured, tried alt+g and ctrl+o"
+> "yes keep both shortcuts"
+> "it does not mark files, update tabstrip when opening files"
+**Response:**
+Investigated history: `ctrl+o` / `alt+g` was originally documented in `docs/docs/prompt.md` ("Open all narrowed files in the Completion list"), but commit `475f3f0e8` accidentally dropped `all_filtered_items()` during the prompt rewrite.
+1. Reimplemented `all_filtered_items()` across `DropdownSync`, `DropdownAsync`, and `SuggestiveEditor`.
+2. Updated `ctrl+o` / `alt+g` in `Prompt::handle_key_event` to dispatch `Dispatch::OpenAndMarkFiles(paths)`. This ensures all narrowed files opened together are automatically added to `marked_files` so the tabstrip immediately updates with `[-]` tabs for all opened files, and focuses the first file.
+3. Updated `newdoc/index.html`.
+
+### Request 62
+> "make ctrl+k to close selected buffers from recent picker, can I go into filtered view with alt+/ and select based on multi curser or whatever ways and possible to close only those files? otherwise no selection in filter then close all that appears in filter? also add alt+c additional shortcut"
+> "let us not use alt+i/k it is required for page scroll"
+**Response:**
+Added `Dispatch::CloseBuffers(Vec<AbsolutePath>)` in `src/app.rs` which unmarks the given paths, closes background suggestive editors, and syncs open paths with the file watcher.
+In `src/components/prompt.rs`, bound <kbd>Ctrl+k</kbd> and <kbd>Alt+c</kbd> (leaving `alt+i`/`alt+k` reserved for vertical page scrolling) to close all matching buffers in the current filtered dropdown view. Updated `newdoc/index.html`.
+
+### Request 63
+> "make space+; to show file picker, and - to show file explorer view of current file reveal"
+**Response:**
+1. In `src/keymap.rs`, changed <kbd>Space</kbd> &rarr; <kbd>;</kbd> from Explorer to `Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored)`.
+2. Added `Dispatch::RevealCurrentInExplorer` to `src/app.rs` which fetches the current file path (or working directory) and reveals it in the file explorer.
+3. Mapped <kbd>-</kbd> in Normal mode (`keymap_others`) to `Dispatch::RevealCurrentInExplorer`.
+4. Updated `newdoc/index.html`.
+
+### Request 64
+> "for some reasons there are always unmarked files in huge numbers after file picker ctrl+o, I see it when I closed with e+ unmark other which will close all files usually except current file but now after unmark files, I have to repeateddly close many similar files"
+**Response:**
+Diagnosed and resolved the ghost unmarked files issue:
+1. In `open_and_mark_files`, previously only the first file was loaded as an editor buffer while all others were merely added to `marked_files`. Now all files are explicitly opened in background (`focus: false`) into `layout.background_suggestive_editors` and marked, avoiding out-of-sync duplicate buffer instances.
+2. In `unmark_all_others` (`≡ Buffer` &rarr; `Unmark Others`), explicitly removed unflagged buffers from `layout.remove_suggestive_editor(&path)` and synced file watcher open paths, preventing unmarked buffers from remaining alive in memory.
+
+### Request 65
+> "does filter support search mode like l, c, w, etc ?"
+> "put this info in newdoc html"
+**Response:**
+Confirmed and documented:
+1. Multi-cursor selection filter (`b` &rarr; `j`/`k`) supports all `parse_search_config` mode prefixes (`l`, `c`, `w`, `s`/`cw`, `r`, `rc`, `rw`, `n`) followed by a space or separator.
+2. File/buffer pickers support Nucleo tokens (`'pattern` for exact match, `^prefix`, `suffix$`, `!invert`, space for AND).
+Added dedicated tables and explanations in `newdoc/index.html` under Section 8.4 (`≡ Multi-Cursor`) and Section 12 (`Prompts & Nucleo Fuzzy Pickers`).
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

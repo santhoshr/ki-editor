@@ -838,6 +838,9 @@ impl<T: Frontend> App<T> {
             Dispatch::CloseCurrentWindow => {
                 self.close_current_window()?;
             }
+            Dispatch::CloseBuffers(paths) => {
+                self.close_buffers(paths)?;
+            }
             Dispatch::UnmarkAllOthers => {
                 self.unmark_all_others()?;
             }
@@ -1179,6 +1182,12 @@ impl<T: Frontend> App<T> {
             Dispatch::QuitNoSave => self.quit_all()?,
             Dispatch::SafeQuit => self.safe_quit()?,
             Dispatch::RevealInExplorer(path) => self.reveal_path_in_explorer(&path)?,
+            Dispatch::RevealCurrentInExplorer => {
+                let path = self
+                    .get_current_file_path()
+                    .unwrap_or_else(|| self.context.current_working_directory().clone());
+                self.reveal_path_in_explorer(&path)?;
+            }
             Dispatch::OpenMovePathsPrompt => self.open_move_paths_prompt()?,
             Dispatch::OpenDuplicateFilePrompt => self.open_copy_file_prompt()?,
             Dispatch::OpenAddPathPrompt => self.open_add_path_prompt()?,
@@ -1458,6 +1467,32 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
+    fn close_buffers(&mut self, paths: Vec<AbsolutePath>) -> anyhow::Result<()> {
+        let current_path = self.get_current_file_path();
+        let current_closed = current_path.as_ref().map_or(false, |cp| paths.contains(cp));
+
+        for path in &paths {
+            self.context.unmark_path(path.clone());
+            self.layout.remove_suggestive_editor(path);
+        }
+
+        self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+            self.layout.get_opened_files(),
+        ));
+
+        if current_closed {
+            let mut next_path = self.context.get_marked_files().into_iter().next().cloned();
+            while let Some(path) = next_path {
+                if let Err(_err) = self.open_file(&path, BufferOwner::User, true, true) {
+                    next_path = self.context.unmark_path(path).cloned();
+                } else {
+                    break;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn unmark_all_others(&mut self) -> anyhow::Result<()> {
         if let Some(current_file_path) = self.get_current_file_path() {
             let paths_to_unmark: Vec<AbsolutePath> = self
@@ -1469,8 +1504,13 @@ impl<T: Frontend> App<T> {
                 .collect();
 
             for path in paths_to_unmark {
-                self.context.unmark_path(path);
+                self.context.unmark_path(path.clone());
+                self.layout.remove_suggestive_editor(&path);
             }
+
+            self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+                self.layout.get_opened_files(),
+            ));
         }
 
         Ok(())
@@ -3810,8 +3850,14 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
     }
 
     fn open_and_mark_files(&mut self, paths: NonEmpty<AbsolutePath>) -> anyhow::Result<()> {
-        self.open_file(paths.first(), BufferOwner::User, true, true)?;
-        self.context.mark_files(paths);
+        let first = paths.first().clone();
+        for path in &paths {
+            self.context.mark_file(path.clone());
+            if path != &first {
+                let _ = self.open_file(path, BufferOwner::User, false, false);
+            }
+        }
+        self.open_file(&first, BufferOwner::User, true, true)?;
         Ok(())
     }
 
@@ -4016,6 +4062,7 @@ pub enum Dispatch {
     SetTheme(crate::themes::Theme),
     SetThemeFromDescriptor(crate::themes::theme_descriptor::ThemeDescriptor),
     CloseCurrentWindow,
+    CloseBuffers(Vec<AbsolutePath>),
     UnmarkAllOthers,
     OpenFilePicker(FilePickerKind),
     OpenSearchPrompt {
@@ -4102,6 +4149,7 @@ pub enum Dispatch {
     SafeQuit,
     QuitNoSave,
     RevealInExplorer(AbsolutePath),
+    RevealCurrentInExplorer,
     OpenMovePathsPrompt,
     OpenDuplicateFilePrompt,
     OpenAddPathPrompt,

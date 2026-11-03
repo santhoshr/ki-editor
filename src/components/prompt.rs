@@ -400,6 +400,54 @@ impl Component for Prompt {
             _ if event.display() == "alt+x" => {
                 self.replace_current_query_with_focused_item(context, event)
             }
+            key!("ctrl+k") | key!("alt+c") => {
+                let all_items = self.editor.completion_dropdown_all_filtered_items();
+                let mut paths: Vec<AbsolutePath> = Vec::new();
+                for item in &all_items {
+                    for dispatch in item.dispatches.clone().into_vec() {
+                        if let Dispatch::OpenFileFromPathBuf { path, .. } = dispatch {
+                            if let Ok(abs_path) = path.try_into() {
+                                paths.push(abs_path);
+                            }
+                        }
+                    }
+                }
+
+                if !paths.is_empty() {
+                    Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
+                        .chain(Dispatches::one(Dispatch::CloseBuffers(paths))))
+                } else {
+                    Ok(Dispatches::empty())
+                }
+            }
+            key!("ctrl+o") | key!("alt+g") => {
+                let all_items = self.editor.completion_dropdown_all_filtered_items();
+                if !all_items.is_empty() {
+                    let mut paths: Vec<AbsolutePath> = Vec::new();
+                    for item in &all_items {
+                        for dispatch in item.dispatches.clone().into_vec() {
+                            if let Dispatch::OpenFileFromPathBuf { path, .. } = dispatch {
+                                if let Ok(abs_path) = path.try_into() {
+                                    paths.push(abs_path);
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(non_empty_paths) = nonempty::NonEmpty::from_vec(paths) {
+                        Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
+                            .chain(Dispatches::one(Dispatch::OpenAndMarkFiles(non_empty_paths))))
+                    } else {
+                        let dispatches = all_items
+                            .into_iter()
+                            .flat_map(|item| item.dispatches.into_vec())
+                            .collect();
+                        Ok(Dispatches::one(Dispatch::CloseCurrentWindow).chain(Dispatches::new(dispatches)))
+                    }
+                } else {
+                    Ok(Dispatches::empty())
+                }
+            }
             key!("enter") => {
                 let dispatches = match &self.on_enter {
                     PromptOnEnter::SelectsFirstMatchingItem { .. } => self

@@ -85,6 +85,10 @@ impl DropdownAsync {
         self.inner.current_item()
     }
 
+    pub fn all_filtered_items(&self) -> Vec<DropdownItem> {
+        self.inner.all_filtered_items()
+    }
+
     pub fn opened(&self) -> bool {
         !self.inner.items().is_empty()
     }

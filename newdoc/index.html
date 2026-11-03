@@ -1180,6 +1180,61 @@
           </tr>
         </tbody>
       </table>
+
+      <h4>Filtering Active Selections (Modes &amp; Search Syntax)</h4>
+      <p>When in the multi-cursor menu (tap <kbd>b</kbd>), pressing <kbd>j</kbd> (<strong>Maintain Match</strong>) or <kbd>k</kbd> (<strong>Remove Match</strong>) opens the filter prompt. Filter inputs accept mode prefixes separated by a space or slash <code>/</code>:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Prefix</th>
+            <th>Search Mode</th>
+            <th>Description &amp; Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>l </code></td>
+            <td><strong>Literal</strong></td>
+            <td>Case-insensitive literal string match with escaped symbols (e.g. <code>l foo.bar</code>).</td>
+          </tr>
+          <tr>
+            <td><code>c </code></td>
+            <td><strong>Case-Sensitive</strong></td>
+            <td>Literal match strictly respecting character casing (e.g. <code>c FooBar</code>).</td>
+          </tr>
+          <tr>
+            <td><code>w </code></td>
+            <td><strong>Whole Word</strong></td>
+            <td>Matches exact whole word boundaries (e.g. <code>w count</code>).</td>
+          </tr>
+          <tr>
+            <td><code>s </code> / <code>cw </code></td>
+            <td><strong>Strict</strong></td>
+            <td>Whole word boundary + case-sensitive (e.g. <code>s MyClass</code>).</td>
+          </tr>
+          <tr>
+            <td><code>r </code></td>
+            <td><strong>Regex</strong></td>
+            <td>Unescaped regular expression (e.g. <code>r \d+</code>).</td>
+          </tr>
+          <tr>
+            <td><code>rc </code></td>
+            <td><strong>Regex Case</strong></td>
+            <td>Regular expression + case-sensitive (e.g. <code>rc [A-Z]+</code>).</td>
+          </tr>
+          <tr>
+            <td><code>rw </code></td>
+            <td><strong>Regex Word</strong></td>
+            <td>Regular expression + whole word boundary (e.g. <code>rw test\w+</code>).</td>
+          </tr>
+          <tr>
+            <td><code>n </code></td>
+            <td><strong>Naming Agnostic</strong></td>
+            <td>Matches across conventions: camelCase, PascalCase, snake_case, kebab-case (e.g. <code>n parse_config</code>).</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section id="mol-paste-dup">
@@ -1432,16 +1487,20 @@
       <ul>
         <li><strong>Substrings:</strong> Type characters anywhere in filename or path (e.g. <code>ekl</code> matches <code>editor_keymap_legend.rs</code>).</li>
         <li><strong>Exact tokens:</strong> Prefix with single-quote <code>'pattern</code> to enforce substring match.</li>
-        <li><strong>Suffix tokens:</strong> End with <code>$</code> to match extension (e.g. <code>.rs$</code>).</li>
+        <li><strong>Prefix tokens:</strong> Prefix with <code>^pattern</code> to match the start of filename or path.</li>
+        <li><strong>Suffix tokens:</strong> End with <code>$</code> to match extension or suffix (e.g. <code>.rs$</code>).</li>
+        <li><strong>Inverse tokens:</strong> Prefix with <code>!pattern</code> to exclude items matching the pattern.</li>
         <li><strong>Multi-term AND:</strong> Separate words with spaces (e.g. <code>components 'editor .rs$</code>).</li>
+        <li><strong>Open all narrowed items:</strong> Press <kbd>Ctrl+o</kbd> or <kbd>Alt+g</kbd> to open all currently filtered files/items in the picker and close the prompt.</li>
+        <li><strong>Close all narrowed buffers:</strong> Press <kbd>Ctrl+k</kbd> or <kbd>Alt+c</kbd> in the buffer picker to close and unmark all matching buffers.</li>
         <li><strong>History:</strong> Historical queries display below prompt; navigate with <kbd>Up</kbd>/<kbd>Down</kbd>.</li>
       </ul>
     </section>
 
     <!-- SECTION 13: FILE EXPLORER -->
     <section id="file-explorer">
-      <h2>13. File Explorer (<kbd>Space</kbd> + <kbd>;</kbd>)</h2>
-      <p>The file tree is presented as an editable YAML structure:</p>
+      <h2>13. File Explorer (<kbd>-</kbd> / File Reveal)</h2>
+      <p>Press <kbd>-</kbd> in Normal mode to open the file explorer and automatically reveal and highlight the current file in the project tree. (Alternatively, <kbd>Space</kbd> &rarr; <kbd>;</kbd> opens the fuzzy file picker). The file tree is presented as an editable YAML structure:</p>
       <table>
         <thead>
           <tr>

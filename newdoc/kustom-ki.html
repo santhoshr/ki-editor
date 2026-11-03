@@ -270,6 +270,10 @@
         <li><a href="#momentary-space">12. Space/Enter in Layers</a></li>
         <li><a href="#small-window-clamp">13. Small Window Resize Guard</a></li>
         <li><a href="#doc-cleanup">14. Documentation Overhaul</a></li>
+        <li><a href="#keymap-unifications">15. Keymap Unification: Swap (x), Cut (Shift+R), Search (/)</a></li>
+        <li><a href="#pipe-to-shell">16. Pipe to Shell Execution (|)</a></li>
+        <li><a href="#alt-slash-fallback">17. Fallback Alt+/ to Buffer Picker</a></li>
+        <li><a href="#picker-multi-batch">18. Multi-Open, Batch Close &amp; Reveal Navigation</a></li>
       </ul>
     </nav>
   </aside>
@@ -629,6 +633,121 @@
             <li>Documented Git dual-reference diffs (<code>@</code> vs <code>^</code>), blame, hunk reverts, and status pickers.</li>
             <li>Provided configuration file paths for Linux, macOS, and Windows with full JSON schema reference.</li>
             <li>Streamlined tone to factual, neutral Vim-style reference without promotional filler.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 15 -->
+    <article class="change-entry" id="keymap-unifications">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">15. Keymap Unification: Swap (x), Cut (Shift+R), Search (/)</span>
+        </div>
+        <span class="commit-hash">246de5e0c</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Unify inconsistent layer keys and provide familiar modal text-editing ergonomics. <kbd>x</kbd> was previously fragmented across submodes; search required navigating menus instead of standard <kbd>/</kbd> and <kbd>?</kbd>; and cut clashed with other multi-cursor operations.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Unified Swap layer switching strictly to <kbd>x</kbd> across momentary layers (Eat $\leftrightarrow$ Delete).</li>
+            <li>Rebound <strong>Cut</strong> to <kbd>Shift+R</kbd> (<kbd>R</kbd>) to free up single-key ergonomics.</li>
+            <li>Bound forward and backward search directly to <kbd>/</kbd> and <kbd>?</kbd> in Normal mode.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 16 -->
+    <article class="change-entry" id="pipe-to-shell">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">16. Pipe Buffer / Selection to Shell Command (|)</span>
+        </div>
+        <span class="commit-hash">b07007359</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Provide UNIX-style filter and transform capabilities directly from the editor without switching out to an external terminal multiplexer.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Bound <kbd>|</kbd> to prompt for a shell command string.</li>
+            <li>Pipes the selected text (or entire buffer if no selection) into the command's <code>stdin</code> and replaces the selection/buffer with <code>stdout</code>.</li>
+            <li>Documented usage and examples in Section 15 of <code>newdoc/index.html</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 17 -->
+    <article class="change-entry" id="alt-slash-fallback">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">17. Fallback Alt+/ to Buffer Picker</span>
+        </div>
+        <span class="commit-hash">cb5bfa4d8</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>In Ki, <kbd>Alt+/</kbd> acts as a universal cycle key across open split panels, file tree explorers, or auxiliary views. When no auxiliary views are open, pressing <kbd>Alt+/</kbd> did nothing, leaving a dead key chord.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>In <code>src/app.rs</code> and <code>src/layout.rs</code>, added a check on <kbd>Alt+/</kbd>: if there is only one view component active, it automatically falls back to opening the Buffer Picker (<code>FilePickerKind::Opened</code>).</li>
+            <li>Enables fast single-chord buffer jumping without needing to open the Space menu.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 18 -->
+    <article class="change-entry" id="picker-multi-batch">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">18. Picker Multi-Open, Batch Buffer Closure &amp; Reveal Navigation</span>
+        </div>
+        <span class="commit-hash">8d02d443a</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>When searching for files or managing open buffers, users frequently need to open all matching search results into marked tabs at once or close multiple buffers matching a query filter. In addition, opening multiple files previously leaked unmarked ghost buffers into memory, causing them to linger after running <code>Unmark Others</code>. Ergonomic quick keys were also needed for file picker and explorer reveal.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li><strong>Batch Open:</strong> Added <kbd>Ctrl+o</kbd> and <kbd>Alt+g</kbd> in file/buffer prompts to open all filtered items simultaneously and mark them in the tab bar.</li>
+            <li><strong>Batch Close:</strong> Added <kbd>Ctrl+k</kbd> and <kbd>Alt+c</kbd> in buffer prompts to close all filtered buffers in one step (avoiding conflict with <kbd>Alt+i</kbd>/<kbd>Alt+k</kbd> page scrolling).</li>
+            <li><strong>Ghost Buffer Purge:</strong> Fixed <code>unmark_all_others</code> to explicitly remove backing editors from <code>layout.background_suggestive_editors</code> and sync file watchers so unmarked files do not linger.</li>
+            <li><strong>Navigation Shortcuts:</strong>
+              <ul>
+                <li>Bound <kbd>Space</kbd> &rarr; <kbd>;</kbd> directly to the fuzzy file picker (<code>FilePickerKind::NonGitIgnored</code>).</li>
+                <li>Bound <kbd>-</kbd> in Normal mode to reveal the current buffer's file or directory in the file explorer.</li>
+              </ul>
+            </li>
+            <li><strong>Filter Query Syntax:</strong> Documented selection filter modes (<code>l </code>, <code>c </code>, <code>w </code>, <code>s </code>, <code>r </code>, <code>rc </code>, <code>rw </code>, <code>n </code>) and Nucleo fuzzy tokens (<code>^prefix</code>, <code>suffix$</code>, <code>'exact</code>, <code>!inverse</code>).</li>
           </ul>
         </div>
       </div>

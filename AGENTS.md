@@ -422,6 +422,15 @@ Confirmed and documented:
 2. File/buffer pickers support Nucleo tokens (`'pattern` for exact match, `^prefix`, `suffix$`, `!invert`, space for AND).
 Added dedicated tables and explanations in `newdoc/index.html` under Section 8.4 (`≡ Multi-Cursor`) and Section 12 (`Prompts & Nucleo Fuzzy Pickers`).
 
+### Request 66
+> "update newdoc kustom ki with latest changes from last time"
+**Response:**
+Updated `newdoc/kustom-ki.html` with entries 15 through 18 covering recent commits:
+- Entry 15: Keymap unification for Swap (`x`), Cut (`Shift+R`), and direct Search (`/` and `?`).
+- Entry 16: Pipe buffer or selection to external shell command (`|`).
+- Entry 17: Fallback `Alt+/` to Buffer Picker when single view is active.
+- Entry 18: Picker batch open (`Ctrl+o`/`Alt+g`), batch buffer close (`Ctrl+k`/`Alt+c`), ghost buffer leak fixes, `Space ;` file picker, and `-` file explorer reveal navigation.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

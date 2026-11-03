@@ -385,7 +385,7 @@
       KI EDITOR <span>Manual</span>
     </div>
     <div class="sidebar-desc">
-      A fast, clear, jargon-free reference for every concept, command, and keybinding in Ki.
+      Reference manual for commands, selection modes, and keybindings in Ki.
     </div>
     <input type="text" id="filterInput" class="search-box" placeholder="Filter sections or keys...">
 
@@ -418,7 +418,7 @@
         <li class="section-header">Configuration &amp; Extension</li>
         <li><a href="#config-reference">Configuration Files &amp; Locations</a></li>
         <li><a href="#leader-custom-scripts">Leader Keymap &amp; Shell Scripts</a></li>
-        <li><a href="#full-cheatsheet">Master Cheat Sheet</a></li>
+        <li><a href="#full-cheatsheet">Quick Reference</a></li>
       </ul>
     </nav>
   </aside>
@@ -426,22 +426,22 @@
   <!-- Main Content Area -->
   <main>
     <header>
-      <h1>Ki Editor: Functional Documentation &amp; Keybindings</h1>
-      <p>Clean, concise, and complete technical reference covering the entire ki editor interface without fluff.</p>
+      <h1>Ki Editor Reference Manual</h1>
+      <p>Technical reference for editor modes, keybindings, and configuration.</p>
     </header>
 
     <!-- SECTION 1: THE CORE MODEL -->
     <section id="core-model">
-      <h2>1. The Core Mental Model</h2>
+      <h2>1. The Core Model</h2>
       <div class="callout tip">
-        <strong>The Rule:</strong> <code>Selection Mode</code> &rarr; <code>Movement</code> &rarr; <code>Action</code>
+        <strong>Structure:</strong> <code>Selection Mode</code> &rarr; <code>Movement</code> &rarr; <code>Action</code>
       </div>
-      <p>Traditional modal editors (like Vim) couple the action and movement into inconsistent bindings (e.g. <code>w</code> for word, <code>j</code> for line, <code>]d</code> for diagnostics, <code>]c</code> for git hunks). Ki completely decouples them:</p>
+      <p>Ki separates selection mode from movement:</p>
       <ul>
-        <li><strong>Left Hand:</strong> Selects the <em>Mode</em> (what text object to target: Word, Line, Syntax Node, Char, etc.) or holds an <em>Action Layer</em>.</li>
-        <li><strong>Right Hand:</strong> Always performs the <em>Movement</em> using the same predictable directional cluster (<code>u</code>/<code>o</code>, <code>j</code>/<code>l</code>, <code>i</code>/<code>k</code>, <code>y</code>/<code>p</code>).</li>
+        <li><strong>Left Hand:</strong> Selects the target unit (Word, Line, Syntax Node, Char) or holds an action layer.</li>
+        <li><strong>Right Hand:</strong> Executes movement (<code>u</code>/<code>o</code>, <code>j</code>/<code>l</code>, <code>i</code>/<code>k</code>, <code>y</code>/<code>p</code>).</li>
       </ul>
-      <p>Once you learn the movement cluster on the right hand, you can navigate any text unit identically.</p>
+      <p>Movement keys behave consistently across all selection modes.</p>
     </section>
 
     <!-- SECTION 2: ESCAPE & DISMISSAL -->
@@ -556,12 +556,17 @@
           <tr>
             <td><kbd>.</kbd></td>
             <td><code>Parent Line</code></td>
-            <td>Jumps up to the nearest dedented line above (great for navigating code blocks and file tree hierarchy).</td>
+            <td>Jumps to the nearest dedented line above.</td>
           </tr>
           <tr>
             <td><kbd>/</kbd></td>
-            <td><code>&harr; Curs</code></td>
-            <td>Swaps the primary cursor with the secondary anchor cursor, reversing action direction.</td>
+            <td><code>⇋ Curs</code></td>
+            <td>Swaps cursor between the start and end of the current target selection (<code>SwapCursor</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>?</kbd> (Shift+<code>/</code>)</td>
+            <td><code>⇋ Anchor</code></td>
+            <td>Swaps the extended selection anchor with the active head (<code>SwapExtensionAnchor</code>). Allows extending selection from opposite direction in Extend mode (<kbd>f</kbd>).</td>
           </tr>
         </tbody>
       </table>
@@ -591,7 +596,7 @@
             <td><kbd>Shift+d</kbd></td>
             <td><code>Syntax*</code></td>
             <td>Fine Syntax Node</td>
-            <td>Selects the smallest node at cursor. Great for expanding expressions step by step.</td>
+            <td>Selects the smallest AST node at cursor.</td>
           </tr>
           <tr>
             <td><kbd>a</kbd></td>
@@ -1087,7 +1092,7 @@
     <!-- SECTION 9: INSERT MODE -->
     <section id="insert-mode">
       <h2>9. Insert Mode &amp; Autocompletion</h2>
-      <p>Insert mode edits text like any modern editor with powerful embedded navigation:</p>
+      <p>Insert mode handles text entry and inline navigation:</p>
       <table>
         <thead>
           <tr>
@@ -1236,7 +1241,7 @@
           <p>Ki supports comparing and jumping against two distinct references:</p>
           <ul>
             <li><strong><code>@</code> (Current Branch):</strong> Unstaged / uncommitted changes compared against <code>HEAD</code> of your current branch.</li>
-            <li><strong><code>^</code> (Main Branch):</strong> Changes compared against the primary/trunk branch (<code>main</code> or <code>master</code>). Extremely useful on feature branches to see everything modified in the PR.</li>
+            <li><strong><code>^</code> (Main Branch):</strong> Changes compared against the repository trunk branch (<code>main</code> or <code>master</code>).</li>
           </ul>
         </div>
         <div class="card">
@@ -1587,9 +1592,9 @@
       <p>If your script outputs JSON back on <strong>STDOUT</strong>, Ki executes instructions returned (e.g. replacing selections or showing notification dialogs).</p>
     </section>
 
-    <!-- SECTION 18: MASTER CHEATSHEET -->
+    <!-- SECTION 18: QUICK REFERENCE -->
     <section id="full-cheatsheet">
-      <h2>18. Master Quick Reference Summary</h2>
+      <h2>18. Quick Reference Summary</h2>
       <div class="grid">
         <div class="card">
           <h4><span>Movements (Right Hand)</span> <span class="badge badge-universal">Core</span></h4>
@@ -1624,7 +1629,7 @@
         <div class="card">
           <h4><span>Core Actions</span> <span class="badge badge-action">Edit</span></h4>
           <p><code>Enter</code> &rarr; Save &amp; Format</p>
-          <p><code>Space</code> &rarr; Master HUD Menu</p>
+          <p><code>Space</code> &rarr; HUD Menu</p>
           <p><code>h</code> / <code>;</code> &rarr; Insert Start / End</p>
           <p><code>g</code> / <code>G</code> &rarr; Change / Change X</p>
           <p><code>c</code> / <code>v</code> &rarr; Copy / Paste</p>

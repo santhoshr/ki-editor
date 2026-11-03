@@ -24,14 +24,19 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
             Dispatch::CloseKeymapLegend,
             Dispatch::ToEditor(DispatchEditor::SetKeymapOverride(None)),
         ]);
-        if key_event.original == key!("esc") || key_event.original == key!("space") {
+        if key_event.original == key!("esc") {
             return Ok(close_dispatches);
         }
 
-        Ok(match self.config.keymap.get(&key_event) {
-            Some(binding) => close_dispatches.chain(binding.get_dispatches()),
-            None => Dispatches::default(),
-        })
+        if let Some(binding) = self.config.keymap.get(&key_event) {
+            return Ok(close_dispatches.chain(binding.get_dispatches()));
+        }
+
+        if key_event.original == key!("space") {
+            return Ok(close_dispatches);
+        }
+
+        Ok(Dispatches::default())
     }
 }
 

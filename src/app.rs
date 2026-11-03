@@ -3985,6 +3985,10 @@ impl Dispatches {
     pub fn empty() -> Dispatches {
         Dispatches(Vec::default())
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

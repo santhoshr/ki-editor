@@ -326,6 +326,12 @@ Fixed in `src/components/render_editor.rs`:
 - If `max_allowed_lines == 1`, only the focused tab line is rendered (without the bottom indicator line).
 - When `max_allowed_lines >= 2`, tab rows and indicator row are bounded by `max_allowed_lines`, ensuring `result.lines().count() <= dimension.height.saturating_sub(1)` is never violated.
 
+### Request 52
+> "in menus where space goes one level higher now bugs out because of 'space' closing the hud; when layer lock is available, space should allow going into higher level/menu, and space in that level should close it"
+**Response:**
+1. In `src/keymap_override/menu.rs`, checked `self.config.keymap.get(&key_event)` before the fallback `space` close check, so menus that define a `Space` keybinding (e.g. multi-cursor menu) dispatch to their higher level instead of closing immediately.
+2. In `src/keymap_override/momentary_layer/mod.rs`, forwarded key events to `self.base.inner().handle_press(key_event)` before the fallback `space` close check, preserving layer swaps (such as `space` swapping between Delete and Eat). Added `Dispatches::is_empty` in `src/app.rs`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -353,6 +353,29 @@ Updated `MomentaryLayerKeymapOverride::handle_press` in `src/keymap_override/mom
 5. Made `MomentaryLayerKeymapOverride::handle_release` case-insensitive for character release events so uppercase momentary layers like `Shift+R` release cleanly regardless of physical Shift key release order.
 6. Updated `newdoc/index.html`.
 
+### Request 56
+> "why g+o pastes/duplicates texts?"
+**Response:**
+Explained that `g` is the `≡ Open` momentary layer in Normal mode. When held, `o` is mapped to `DispatchEditor::OpenBelow` (open new line below and enter insert mode). In Ki's design, when multiple selections exist, opening new lines mirrors the selections across every cursor.
+
+### Request 57
+> "what is the difference between repeat and repeat search?"
+**Response:**
+Explained that `Repeat` (<kbd>n</kbd> &rarr; <kbd>n</kbd>) re-executes the last modification action/edit command across selections, whereas `Repeat Search` (<kbd>n</kbd> &rarr; <kbd>u</kbd>/<kbd>o</kbd> or <kbd>/</kbd>/<kbd>?</kbd>) jumps to the next/previous occurrence of the search regex/string without modifying text.
+
+### Request 58
+> "why you haven't added all momentary keys in newdoc index? do it. cover local, space and other concept wise covered stuff in momentary layer as well, cover all keys, for e.g. n -> n is missing"
+**Response:**
+Updated `newdoc/index.html`:
+- Added comprehensive table of all 12 momentary layers across Normal and Insert modes.
+- Added Section 8.7 dedicated to Movement History (`q`).
+- Added <kbd>n</kbd> &rarr; <kbd>n</kbd> (`Repeat`) and uppercase secondary modes in Section 5.
+
+### Request 59
+> "explain how to use pipe. add it to newdoc html"
+**Response:**
+Explained Pipe to Shell: select text, trigger via <kbd>Space</kbd> &rarr; <kbd>l</kbd> (Context) &rarr; <kbd>e</kbd> (`OpenPipeToShellPrompt`), enter the command (run as `bash -c "<cmd>"`), and Ki pipes the selection to `STDIN` and in-place replaces it with `STDOUT`. Added Section 11 ("Pipe to Shell") with step-by-step usage and common examples (`sort`, `jq .`, `column -t`) to `newdoc/index.html`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

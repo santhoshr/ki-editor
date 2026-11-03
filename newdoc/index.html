@@ -401,15 +401,18 @@
         <li><a href="#space-menu">Space Menu</a></li>
         <li class="section-header">Momentary Layers (MoL)</li>
         <li><a href="#mol-concept">How MoL Works (≡)</a></li>
+        <li><a href="#mol-summary">All Momentary Layers Summary</a></li>
         <li><a href="#mol-open">≡ Open (Insert)</a></li>
         <li><a href="#mol-delete-cut-eat">≡ Delete, Cut &amp; Eat</a></li>
         <li><a href="#mol-buffer">≡ Buffer &amp; Tabs</a></li>
         <li><a href="#mol-multicursor">≡ Multi-Cursor</a></li>
         <li><a href="#mol-paste-dup">≡ Paste &amp; Duplicate</a></li>
         <li><a href="#mol-swap-undo">≡ Swap &amp; Undo/Redo</a></li>
+        <li><a href="#mol-move-hist">≡ Movement History</a></li>
         <li class="section-header">Editing &amp; Tools</li>
         <li><a href="#insert-mode">Insert Mode &amp; Completion</a></li>
         <li><a href="#surround-transform">Surround &amp; Transform</a></li>
+        <li><a href="#pipe-to-shell">Pipe to Shell</a></li>
         <li><a href="#prompt-picker">Prompts &amp; Pickers</a></li>
         <li><a href="#file-explorer">File Explorer</a></li>
         <li><a href="#git-integration">Git Integration &amp; Workflow</a></li>
@@ -646,8 +649,8 @@
 
     <!-- SECTION 5: SECONDARY SELECTION MODES -->
     <section id="secondary-modes">
-      <h2>5. Secondary Selection Modes (Non-Contiguous Search &amp; LSP)</h2>
-      <p>Secondary selection modes target scattered occurrences across the file (<strong>Local</strong> via <kbd>n</kbd>) or across the workspace (<strong>Global</strong> via <kbd>Space</kbd>). Once active, the right-hand movement cluster navigates between occurrences:</p>
+      <h2>5. Secondary Selection Modes (Non-Contiguous Search, LSP &amp; Git)</h2>
+      <p>Secondary selection modes target non-contiguous items across the buffer (<strong>Local</strong> via <kbd>n</kbd>) or across the entire project (<strong>Global</strong> via <kbd>Space</kbd>). Once activated, the standard right-hand movement cluster (<kbd>u</kbd>/<kbd>o</kbd>, <kbd>j</kbd>/<kbd>l</kbd>) navigates between occurrences:</p>
 
       <table>
         <thead>
@@ -659,9 +662,14 @@
         </thead>
         <tbody>
           <tr>
+            <td><kbd>n</kbd></td>
+            <td><code>Repeat</code></td>
+            <td><strong>Re-activates last non-contiguous mode:</strong> pressing <kbd>n</kbd> then <kbd>n</kbd> instantly returns to your last used secondary mode (Search, Git Hunks, Diagnostics, or Mark) without re-typing.</td>
+          </tr>
+          <tr>
             <td><kbd>d</kbd></td>
             <td><code>Search</code></td>
-            <td>Opens search prompt. (<kbd>Shift+d</kbd>: pre-fills with current selection).</td>
+            <td>Opens document search prompt (<kbd>Shift+d</kbd>: pre-fills search with current selection).</td>
           </tr>
           <tr>
             <td><kbd>f</kbd></td>
@@ -671,12 +679,37 @@
           <tr>
             <td><kbd>r</kbd></td>
             <td><code>Repeat Search</code></td>
-            <td>Re-runs the most recent search.</td>
+            <td>Re-runs the most recent text search query directly in the direction of the cursor.</td>
           </tr>
           <tr>
-            <td><kbd>y</kbd> / <kbd>Shift+y</kbd></td>
-            <td><code>One</code> / <code>Int</code> (Local)</td>
-            <td>Jump to single character (like Vim <code>f</code>) or integer digits.</td>
+            <td><kbd>y</kbd></td>
+            <td><code>One</code></td>
+            <td>Jump to single character (Local only; prompts for 1 character, like Vim <code>f</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+y</kbd></td>
+            <td><code>Int</code></td>
+            <td>Selects integer digit sequences (regex <code>\d+</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd></td>
+            <td><code>Mark</code></td>
+            <td>Selects user-marked selections/files.</td>
+          </tr>
+          <tr>
+            <td><kbd>t</kbd></td>
+            <td><code>Quickfix</code></td>
+            <td>Navigates items in the quickfix list.</td>
+          </tr>
+          <tr>
+            <td><kbd>g</kbd></td>
+            <td><code>Hunk@</code></td>
+            <td>Git diff hunks relative to current branch (<code>HEAD</code>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+g</kbd></td>
+            <td><code>Hunk^</code></td>
+            <td>Git diff hunks relative to main/master trunk branch.</td>
           </tr>
           <tr>
             <td><kbd>a</kbd></td>
@@ -694,24 +727,39 @@
             <td>Navigate warning diagnostics only.</td>
           </tr>
           <tr>
-            <td><kbd>q</kbd> / <kbd>Shift+q</kbd></td>
-            <td><code>Hint</code> / <code>Info</code></td>
-            <td>Navigate hints or info items.</td>
+            <td><kbd>q</kbd></td>
+            <td><code>Hint</code></td>
+            <td>Navigate LSP hint diagnostics.</td>
           </tr>
           <tr>
-            <td><kbd>x</kbd> / <kbd>Shift+x</kbd></td>
-            <td><code>Def</code> / <code>Decl</code></td>
-            <td>LSP Definition / Declaration.</td>
+            <td><kbd>Shift+q</kbd></td>
+            <td><code>Info</code></td>
+            <td>Navigate LSP information diagnostics.</td>
+          </tr>
+          <tr>
+            <td><kbd>x</kbd></td>
+            <td><code>Def</code></td>
+            <td>LSP Definitions across scope.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+x</kbd></td>
+            <td><code>Decl</code></td>
+            <td>LSP Declarations across scope.</td>
           </tr>
           <tr>
             <td><kbd>c</kbd></td>
             <td><code>Type</code></td>
-            <td>LSP Type Definition.</td>
+            <td>LSP Type Definitions.</td>
           </tr>
           <tr>
-            <td><kbd>v</kbd> / <kbd>Shift+v</kbd></td>
-            <td><code>Ref-</code> / <code>Ref+</code></td>
-            <td>LSP References (excluding or including original declaration).</td>
+            <td><kbd>v</kbd></td>
+            <td><code>Ref-</code></td>
+            <td>LSP References (excluding definition).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+v</kbd></td>
+            <td><code>Ref+</code></td>
+            <td>LSP References (including declaration).</td>
           </tr>
           <tr>
             <td><kbd>b</kbd></td>
@@ -719,13 +767,15 @@
             <td>LSP Implementations.</td>
           </tr>
           <tr>
-            <td><kbd>g</kbd> / <kbd>Shift+g</kbd></td>
-            <td><code>Hunk@</code> / <code>Hunk^</code></td>
-            <td>Git diff hunks vs. current branch or vs. main/master branch.</td>
+            <td><kbd>z</kbd></td>
+            <td><code>In Calls</code></td>
+            <td>LSP Incoming call hierarchy.</td>
           </tr>
           <tr>
-            <td><kbd>t</kbd></td>
-            <td><code>Quickfix</code></td>
+            <td><kbd>Shift+z</kbd></td>
+            <td><code>Out Calls</code></td>
+            <td>LSP Outgoing call hierarchy.</td>
+          </tr>
             <td>Navigates current Quickfix list entries.</td>
           </tr>
           <tr>
@@ -885,9 +935,111 @@
     <section id="mol-concept">
       <h2>8. Momentary Layers (MoL) Explained</h2>
       <div class="callout">
-        <strong>What is a MoL?</strong> Marked with <code>≡</code>, a Momentary Layer activates <em>while holding down a key</em>, and immediately releases on key release (using the Kitty Keyboard Protocol). If your terminal doesn't support KKP, simply tap the key and press <kbd>Esc</kbd> when done.
+        <strong>What is a MoL?</strong> Marked with <code>≡</code>, a Momentary Layer activates <em>while holding down a key</em>, and immediately releases on key release (using the Kitty Keyboard Protocol). In terminals that lack release events, simply tap the key and press <kbd>Esc</kbd>, <kbd>Space</kbd>, or <kbd>Enter</kbd> to close.
       </div>
-      <p>While holding the layer key, the right-hand movement cluster applies the layer's verb across the movement distance:</p>
+      <p>While holding the layer key, right-hand movement keys apply the layer's verb across the target movement distance.</p>
+    </section>
+
+    <!-- SECTION 8.1: COMPLETE LIST OF MOMENTARY LAYERS -->
+    <section id="mol-summary">
+      <h3>All Momentary Layers Summary</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Key (Hold)</th>
+            <th>Layer Name</th>
+            <th>Mode Scope</th>
+            <th>Tap Action (Single Press)</th>
+            <th>Held Operation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>g</kbd></td>
+            <td><code>≡ Open</code></td>
+            <td>Normal</td>
+            <td><code>Change</code> (delete selection &amp; insert)</td>
+            <td>Opens syntactically padded gap / new line and enters Insert mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>r</kbd></td>
+            <td><code>≡ Delete/Eat</code></td>
+            <td>Normal</td>
+            <td><code>Delete One</code> (delete selection without copy)</td>
+            <td>Directional deletion. Press <kbd>Space</kbd> while held to swap to <strong>≡ Eat</strong>.</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+r</kbd></td>
+            <td><code>≡ Cut</code></td>
+            <td>Normal</td>
+            <td><code>Cut One</code> (copy selection &amp; delete)</td>
+            <td>Directional deletion with clipboard copy.</td>
+          </tr>
+          <tr>
+            <td><kbd>e</kbd></td>
+            <td><code>≡ Buffer</code></td>
+            <td>Normal</td>
+            <td><code>Toggle Selection Mark</code></td>
+            <td>Tab and buffer switching (<kbd>j</kbd>/<kbd>l</kbd> next/prev, <kbd>u</kbd>/<kbd>o</kbd> marked).</td>
+          </tr>
+          <tr>
+            <td><kbd>q</kbd></td>
+            <td><code>≡ Move Hist</code></td>
+            <td>Normal</td>
+            <td>None</td>
+            <td>Navigates jump history (<kbd>j</kbd>/<kbd>l</kbd> coarse across files, <kbd>u</kbd>/<kbd>o</kbd> fine).</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd></td>
+            <td><code>≡ Multi-cursor</code></td>
+            <td>Normal</td>
+            <td>None</td>
+            <td>Spawns additional cursors directionally (<kbd>j</kbd>/<kbd>l</kbd>, <kbd>i</kbd>/<kbd>k</kbd>, <kbd>m</kbd> jump).</td>
+          </tr>
+          <tr>
+            <td><kbd>v</kbd></td>
+            <td><code>≡ Paste</code></td>
+            <td>Normal</td>
+            <td>None</td>
+            <td>Directional paste (<kbd>j</kbd>/<kbd>l</kbd> gap paste, <kbd>h</kbd>/<kbd>;</kbd> exact paste).</td>
+          </tr>
+          <tr>
+            <td><kbd>c</kbd></td>
+            <td><code>≡ Duplicate</code></td>
+            <td>Normal</td>
+            <td><code>Copy</code> (copy to clipboard)</td>
+            <td>Duplicates selection directionally (<kbd>h</kbd>/<kbd>;</kbd> before/after, <kbd>i</kbd>/<kbd>k</kbd> vert).</td>
+          </tr>
+          <tr>
+            <td><kbd>t</kbd></td>
+            <td><code>≡ Swap</code></td>
+            <td>Normal</td>
+            <td>None</td>
+            <td>Swaps selection with adjacent units of current mode (<kbd>j</kbd>/<kbd>l</kbd>, <kbd>m</kbd> jump swap).</td>
+          </tr>
+          <tr>
+            <td><kbd>z</kbd></td>
+            <td><code>≡ Undo/Redo</code></td>
+            <td>Normal</td>
+            <td>None</td>
+            <td>Coarse undo/redo (<kbd>j</kbd>/<kbd>l</kbd>) or fine undo/redo (<kbd>u</kbd>/<kbd>o</kbd>).</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+e</kbd></td>
+            <td><code>≡ Buffer</code></td>
+            <td>Insert</td>
+            <td><code>Toggle Selection Mark</code></td>
+            <td>Switch tabs/buffers directly while staying in Insert mode.</td>
+          </tr>
+          <tr>
+            <td><kbd>Alt+v</kbd></td>
+            <td><code>≡ Delete</code></td>
+            <td>Insert</td>
+            <td>None</td>
+            <td>Delete adjacent text directionally without leaving Insert mode.</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section id="mol-open">
@@ -1094,6 +1246,42 @@
       </table>
     </section>
 
+    <section id="mol-move-hist">
+      <h3>≡ Movement History (<kbd>q</kbd>)</h3>
+      <p>Hold <kbd>q</kbd> to traverse cursor jump locations and file navigation history:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key Combo</th>
+            <th>Movement</th>
+            <th>Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>q</kbd> + <kbd>j</kbd></td>
+            <td><code>&lt;&lt; Move Hist</code></td>
+            <td>Coarse History Back: jumps to previous file or coarse jump point.</td>
+          </tr>
+          <tr>
+            <td><kbd>q</kbd> + <kbd>l</kbd></td>
+            <td><code>Move Hist &gt;&gt;</code></td>
+            <td>Coarse History Forward: jumps forward to next file or coarse jump point.</td>
+          </tr>
+          <tr>
+            <td><kbd>q</kbd> + <kbd>u</kbd></td>
+            <td><code>&lt; Move Hist</code></td>
+            <td>Fine History Back: intra-file granular jump back.</td>
+          </tr>
+          <tr>
+            <td><kbd>q</kbd> + <kbd>o</kbd></td>
+            <td><code>Move Hist &gt;</code></td>
+            <td>Fine History Forward: intra-file granular jump forward.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
     <!-- SECTION 9: INSERT MODE -->
     <section id="insert-mode">
       <h2>9. Insert Mode &amp; Autocompletion</h2>
@@ -1178,9 +1366,68 @@
       </div>
     </section>
 
-    <!-- SECTION 11: PROMPT & PICKER -->
+    <!-- SECTION 11: PIPE TO SHELL -->
+    <section id="pipe-to-shell">
+      <h2>11. Pipe to Shell (<kbd>Space</kbd> &rarr; <kbd>l</kbd> &rarr; <kbd>e</kbd>)</h2>
+      <p>Pipes the current selection into an external shell command via <code>STDIN</code>, replacing the selection in-place with the process's <code>STDOUT</code> (similar to Vim's <code>!</code>):</p>
+
+      <ol>
+        <li>Select the target text (e.g. <kbd>a</kbd> for Line, <kbd>d</kbd> for AST Node, or extend range with <kbd>f</kbd>).</li>
+        <li>Open the prompt: press <kbd>Space</kbd> &rarr; <kbd>l</kbd> (Context) &rarr; <kbd>e</kbd> (<code>Pipe</code>).</li>
+        <li>Enter the shell command (executed through <code>bash -c "&lt;cmd&gt;"</code>) and press <kbd>Enter</kbd>.</li>
+      </ol>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Workflow</th>
+            <th>Selection</th>
+            <th>Command</th>
+            <th>Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Sort lines</td>
+            <td>Extend line range (<kbd>f</kbd>)</td>
+            <td><code>sort</code> / <code>sort -u</code></td>
+            <td>Replaces selected lines with sorted lines.</td>
+          </tr>
+          <tr>
+            <td>Format JSON snippet</td>
+            <td>AST Node (<kbd>d</kbd>) or range</td>
+            <td><code>jq .</code></td>
+            <td>Pretty-prints JSON in-place.</td>
+          </tr>
+          <tr>
+            <td>Align columns</td>
+            <td>Multi-line block</td>
+            <td><code>column -t</code></td>
+            <td>Formats tabular text into aligned columns.</td>
+          </tr>
+          <tr>
+            <td>Base64 encode/decode</td>
+            <td>Word (<kbd>s</kbd>)</td>
+            <td><code>base64</code> / <code>base64 -d</code></td>
+            <td>Encodes or decodes selection.</td>
+          </tr>
+          <tr>
+            <td>Custom Python filter</td>
+            <td>Any selection</td>
+            <td><code>python3 -c "import sys; ..."</code></td>
+            <td>Transforms text using inline Python script.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout tip">
+        <strong>Multi-Cursor Support:</strong> When multiple selections or cursors are active, each selection is piped through the shell command independently. Transformations are fully undoable with <kbd>z</kbd> &rarr; <kbd>u</kbd>.
+      </div>
+    </section>
+
+    <!-- SECTION 12: PROMPT & PICKER -->
     <section id="prompt-picker">
-      <h2>11. Prompts &amp; Nucleo Fuzzy Pickers</h2>
+      <h2>12. Prompts &amp; Nucleo Fuzzy Pickers</h2>
       <p>All picker dialogs in Ki share fuzzy matching powered by Nucleo:</p>
       <ul>
         <li><strong>Substrings:</strong> Type characters anywhere in filename or path (e.g. <code>ekl</code> matches <code>editor_keymap_legend.rs</code>).</li>
@@ -1191,9 +1438,9 @@
       </ul>
     </section>
 
-    <!-- SECTION 12: FILE EXPLORER -->
+    <!-- SECTION 13: FILE EXPLORER -->
     <section id="file-explorer">
-      <h2>12. File Explorer (<kbd>Space</kbd> + <kbd>;</kbd>)</h2>
+      <h2>13. File Explorer (<kbd>Space</kbd> + <kbd>;</kbd>)</h2>
       <p>The file tree is presented as an editable YAML structure:</p>
       <table>
         <thead>
@@ -1235,9 +1482,9 @@
       </table>
     </section>
 
-    <!-- SECTION 13: GIT INTEGRATION -->
+    <!-- SECTION 14: GIT INTEGRATION -->
     <section id="git-integration">
-      <h2>13. Git Integration &amp; Workflow</h2>
+      <h2>14. Git Integration &amp; Workflow</h2>
       <p>Ki embeds native Git operations powered directly by <code>libgit2</code>. Git is not an afterthought or third-party plugin—hunks, branches, and statuses are first-class editor primitives.</p>
 
       <div class="grid">
@@ -1335,9 +1582,9 @@
       </table>
     </section>
 
-    <!-- SECTION 14: REVEALS -->
+    <!-- SECTION 15: REVEALS -->
     <section id="reveals">
-      <h2>14. Reveals (Automated Multi-Viewports)</h2>
+      <h2>15. Reveals (Automated Multi-Viewports)</h2>
       <p>Instead of manually splitting, sizing, and closing splits, Ki provides three dynamic Reveal modes:</p>
       <table>
         <thead>
@@ -1367,9 +1614,9 @@
       </table>
     </section>
 
-    <!-- SECTION 15: UNIVERSAL KEYBINDINGS -->
+    <!-- SECTION 16: UNIVERSAL KEYBINDINGS -->
     <section id="universal-keys">
-      <h2>15. Universal Keybindings</h2>
+      <h2>16. Universal Keybindings</h2>
       <p>These keybindings operate globally across all modes and components:</p>
       <table>
         <thead>
@@ -1404,9 +1651,9 @@
       </table>
     </section>
 
-    <!-- SECTION 16: CONFIGURATION FILES & LOCATIONS -->
+    <!-- SECTION 17: CONFIGURATION FILES & LOCATIONS -->
     <section id="config-reference">
-      <h2>16. Configuration Reference &amp; File Locations</h2>
+      <h2>17. Configuration Reference &amp; File Locations</h2>
       <p>Ki supports dual-level hierarchical configuration with full fallback. Global user settings apply everywhere, while workspace settings override on a per-project basis.</p>
 
       <div class="grid">
@@ -1554,9 +1801,9 @@
       </table>
     </section>
 
-    <!-- SECTION 17: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->
+    <!-- SECTION 18: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->
     <section id="leader-custom-scripts">
-      <h2>17. Leader Keymap (<kbd>\</kbd>) &amp; Custom Shell Scripts</h2>
+      <h2>18. Leader Keymap (<kbd>\</kbd>) &amp; Custom Shell Scripts</h2>
       <p>Ki includes a built-in Leader key mechanism invoked via <kbd>\</kbd> (Backslash in Normal mode). It maps a 3&times;10 matrix corresponding to the 3 main keyboard rows directly to custom shell scripts stored in your <code>scripts/</code> directory.</p>
 
       <div class="callout tip">
@@ -1597,9 +1844,9 @@
       <p>If your script outputs JSON back on <strong>STDOUT</strong>, Ki executes instructions returned (e.g. replacing selections or showing notification dialogs).</p>
     </section>
 
-    <!-- SECTION 18: QUICK REFERENCE -->
+    <!-- SECTION 19: QUICK REFERENCE -->
     <section id="full-cheatsheet">
-      <h2>18. Quick Reference Summary</h2>
+      <h2>19. Quick Reference Summary</h2>
       <div class="grid">
         <div class="card">
           <h4><span>Movements (Right Hand)</span> <span class="badge badge-universal">Core</span></h4>
@@ -1609,7 +1856,7 @@
           <p><code>y</code>/<code>p</code> &rarr; First / Last</p>
           <p><code>m</code> &rarr; EasyMotion Jump</p>
           <p><code>.</code> &rarr; Parent Line</p>
-          <p><code>/</code> &rarr; Flip Cursor Direction</p>
+          <p><code>/</code> / <code>?</code> &rarr; Forward / Backward Search</p>
         </div>
         <div class="card">
           <h4><span>Primary Modes (Left Hand)</span> <span class="badge badge-mode">Objects</span></h4>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kustom Ki — Modifications & Release Notes</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #161b22;
+      --card-border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-bright: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --code-bg: #21262d;
+      --key-bg: #2d333b;
+      --key-border: #444c56;
+      --tag-fix: #f85149;
+      --tag-feat: #3fb950;
+      --tag-perf: #a371f7;
+      --tag-docs: #d29922;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    aside {
+      width: var(--sidebar-width);
+      background: #11141a;
+      border-right: 1px solid var(--card-border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      padding: 24px 16px;
+      z-index: 100;
+    }
+
+    .brand {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand span {
+      background: var(--accent);
+      color: #0b0e14;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
+
+    .nav-back {
+      display: inline-block;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .nav-back:hover {
+      text-decoration: underline;
+    }
+
+    nav ul {
+      list-style: none;
+    }
+
+    nav li {
+      margin-bottom: 4px;
+    }
+
+    nav a {
+      display: block;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    nav a:hover {
+      color: var(--text-bright);
+      background: var(--code-bg);
+    }
+
+    main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 48px 80px 48px;
+      max-width: 1100px;
+    }
+
+    header {
+      margin-bottom: 36px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .change-entry {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .change-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 10px;
+    }
+
+    .change-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-bright);
+    }
+
+    .commit-hash {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--accent);
+      border: 1px solid var(--card-border);
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-feat { background: rgba(63, 185, 80, 0.2); color: var(--tag-feat); border: 1px solid rgba(63, 185, 80, 0.4); }
+    .badge-fix { background: rgba(248, 81, 73, 0.2); color: var(--tag-fix); border: 1px solid rgba(248, 81, 73, 0.4); }
+    .badge-perf { background: rgba(163, 113, 247, 0.2); color: var(--tag-perf); border: 1px solid rgba(163, 113, 247, 0.4); }
+    .badge-docs { background: rgba(210, 153, 34, 0.2); color: var(--tag-docs); border: 1px solid rgba(210, 153, 34, 0.4); }
+
+    .field-block {
+      margin-top: 10px;
+    }
+
+    .field-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .field-body {
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    .field-body p {
+      margin-bottom: 8px;
+    }
+    .field-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--code-bg);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+
+    kbd {
+      background: var(--key-bg);
+      border: 1px solid var(--key-border);
+      border-radius: 4px;
+      color: var(--text-bright);
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.85em;
+      padding: 1px 5px;
+    }
+
+    ul {
+      margin-left: 20px;
+      margin-top: 6px;
+      margin-bottom: 6px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <div class="brand">
+      KUSTOM KI <span>Notes</span>
+    </div>
+    <div class="sidebar-desc">
+      Changelog and rationale for modifications on the <code>kustom_ki</code> branch relative to upstream <code>latest</code>.
+    </div>
+    <a href="index.html" class="nav-back">&larr; Return to Ki Manual</a>
+
+    <nav>
+      <ul>
+        <li><a href="#universal-esc">1. Universal Esc: Ctrl+G &amp; Ctrl+[</a></li>
+        <li><a href="#jk-escape">2. Insert Mode Exit via jk</a></li>
+        <li><a href="#jk-undo-rewind">3. Clean Undo Rewind on jk</a></li>
+        <li><a href="#perf-screen-regex">4. Rendering &amp; Diff Performance</a></li>
+        <li><a href="#hunk-panic">5. Git Hunk Diff Fix</a></li>
+        <li><a href="#file-reload">6. Reliable Buffer Reload</a></li>
+        <li><a href="#cli-mark">7. CLI Multi-File &amp; Dirty Auto-Mark</a></li>
+        <li><a href="#picker-swap">8. Swap Pickers (f: File, d: Buffer)</a></li>
+        <li><a href="#tabbar-grid">9. Tabbar Grid &amp; Row Indicators</a></li>
+        <li><a href="#buffer-picker-complete">10. Complete Buffer Picker Listing</a></li>
+        <li><a href="#theme-preview">11. Live Tab Bar Theme Preview</a></li>
+        <li><a href="#momentary-space">12. Space/Enter in Layers</a></li>
+        <li><a href="#small-window-clamp">13. Small Window Resize Guard</a></li>
+        <li><a href="#doc-cleanup">14. Documentation Overhaul</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main>
+    <header>
+      <h1>Kustom Ki: Modifications &amp; Rationale</h1>
+      <p>Log of architectural changes, bug fixes, keybinding customizations, and performance optimizations implemented on the <code>kustom_ki</code> branch.</p>
+    </header>
+
+    <!-- ENTRY 1 -->
+    <article class="change-entry" id="universal-esc">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">1. Universal Escape Alternatives (<kbd>Ctrl+G</kbd> &amp; <kbd>Ctrl+[</kbd>)</span>
+        </div>
+        <span class="commit-hash">285bc19df, b559a87a2</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Reaching for physical <kbd>Esc</kbd> interrupts home-row typing ergonomics. Modals, input prompts, dropdowns, and file pickers bypass mode keymaps, so standard keymap overrides failed to dismiss modals reliably.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>Intercepted <kbd>Ctrl+G</kbd> and <kbd>Ctrl+[</kbd> at top-level event dispatch (<code>App::handle_event</code> in <code>src/app.rs</code>) and translated them directly to <code>KeyCode::Esc</code> before any component or mode handles the key event. Works across Normal mode, Insert mode, menus, prompts, dropdowns, and pickers.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 2 -->
+    <article class="change-entry" id="jk-escape">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">2. Insert Mode Exit via <kbd>j</kbd><kbd>k</kbd> Chord</span>
+        </div>
+        <span class="commit-hash">3a5a57003</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Provides a standard home-row chord to exit Insert mode without requiring JSON configuration shell-outs or external remaps.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>Added a 500ms timeout state (<code>last_insert_j_press</code>) in <code>App::handle_event</code>. When <kbd>k</kbd> is pressed within 500ms of <kbd>j</kbd> in Insert mode, the chord triggers mode exit, closes active dropdowns/info panels, and returns to Normal mode.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 3 -->
+    <article class="change-entry" id="jk-undo-rewind">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">3. Clean Undo Rewind on <kbd>j</kbd><kbd>k</kbd> Exit</span>
+        </div>
+        <span class="commit-hash">c32fd0c51</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>The initial <kbd>j</kbd><kbd>k</kbd> implementation issued a <code>Backspace</code> dispatch. In Ki, <code>Backspace</code> is recorded as a coarse edit transaction that pushed an entry onto the undo stack and cleared redo history. In sticky terminal emulators or on undo traversal, the inserted and deleted <code>j</code> lingered in the edit history.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>Replaced <code>Backspace</code> with a dedicated <code>DispatchEditor::RevertLastInsertChar</code>. It rolls back the fine insert edit that inserted <code>j</code> via <code>undo(true)</code> and discards the inverted record from <code>redo_stack</code> (<code>Buffer::pop_redo_stack</code>), leaving no trace of the typed <kbd>j</kbd> in either undo or redo rings.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 4 -->
+    <article class="change-entry" id="perf-screen-regex">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-perf">Performance</span>
+          <span class="change-title">4. Screen Diff &amp; Visible-Range Regex Optimizations</span>
+        </div>
+        <span class="commit-hash">cc4b10b3f, 77728bcff</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Scrolling performance felt noticeably sluggish compared to terminal editors like Vim or Kakoune. Profiling identified two bottlenecks: (1) <code>Screen::diff</code> rebuilt a hash-based <code>IndexSet</code> for every cell every frame; (2) syntax highlighting converted the entire buffer to a <code>String</code> and ran regex evaluations across whole files during render.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Added a direct index-by-index equality fast-path in <code>src/screen.rs</code> when terminal buffer cell counts match, bypassing <code>IndexSet</code> hashing.</li>
+            <li>Restricted editor syntax regex rendering in <code>src/components/render_editor.rs</code> to visible viewport line slices while preserving full matching on title tabs to avoid truncating zero-width delimiters.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 5 -->
+    <article class="change-entry" id="hunk-panic">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">5. Git Hunk Multi-Op Diff Panic</span>
+        </div>
+        <span class="commit-hash">cc4b10b3f</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Viewing or reverting multi-operation Git diff hunks crashed the editor with <code>thread '&lt;unnamed&gt;' panicked at src/git/hunk.rs:102:9: assertion failed: diff_ops.len() &lt;= 1</code>.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>Removed the single-op assertion in <code>src/git/hunk.rs</code> and iterated over all inline change operations with <code>diff.iter_inline_changes(op)</code>, supporting compound Git diff changes cleanly.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 6 -->
+    <article class="change-entry" id="file-reload">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">6. Reliable Manual and External File Reload</span>
+        </div>
+        <span class="commit-hash">7cb7f1f21</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Manual "Reload File" (<kbd>Space</kbd> <kbd>j</kbd> <kbd>d</kbd>) and external disk changes failed to update the buffer when timestamps matched or atomic write rename events were omitted by the file watcher.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>In <code>src/buffer.rs</code>, respected the <code>force: true</code> flag in <code>Buffer::reload</code> to bypass cached modification timestamp checks.</li>
+            <li>In <code>src/file_watcher/mod.rs</code>, broadened event filtering to handle atomic replace renames and create events in addition to raw data modification.</li>
+            <li>Set <code>force: true</code> on manual reload in <code>src/keymap.rs</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 7 -->
+    <article class="change-entry" id="cli-mark">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">7. CLI Multi-File Opening &amp; Dirty Auto-Marking</span>
+        </div>
+        <span class="commit-hash">77728bcff</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Ki opened CLI arguments in preview mode, replacing the current buffer when opening subsequent files. Multi-file command line arguments were unsupported, and editing preview files did not persist them as pinned tabs.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Updated CLI arguments (<code>src/cli.rs</code>) to accept multiple paths (<code>Vec&lt;String&gt;</code>).</li>
+            <li>Files passed on the command line are opened in the background and automatically pinned into <code>marked_files</code> (<code>[-]</code>), focusing the first file.</li>
+            <li>When a buffer becomes dirty (<code>SetFileDirtyStatus(true)</code>), it is automatically added to <code>context.mark_file(...)</code> so modified previews convert to pinned tabs.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 8 -->
+    <article class="change-entry" id="picker-swap">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">8. Swapped Picker Keys (<kbd>f</kbd> for File, <kbd>d</kbd> for Buffer)</span>
+        </div>
+        <span class="commit-hash">77728bcff</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>In the Space Pick menu (<kbd>Space</kbd> <kbd>k</kbd>), <kbd>d</kbd> was mapped to File and <kbd>f</kbd> was mapped to Buffer. Mapping <kbd>f</kbd> &rarr; File and <kbd>d</kbd> &rarr; Buffer (Document) matches intuitive mnemonics.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>Swapped bindings in <code>space_pick_keymap_legend_config</code> (<code>src/keymap.rs</code>): <kbd>f</kbd> now opens <code>FilePickerKind::NonGitIgnored</code> and <kbd>d</kbd> opens <code>FilePickerKind::Opened</code>.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 9 -->
+    <article class="change-entry" id="tabbar-grid">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">9. Dynamic Tabbar Column Grid &amp; Aligned Indicators</span>
+        </div>
+        <span class="commit-hash">fec00941f</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Opening numerous files caused the tab list to grow into hundreds of wrapped lines, obscuring the buffer. Navigating across tabs caused row elements to shift unpredictably, and tab indicator brackets <code>[-]</code> were misaligned across rows.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Capped tab bar height between 1 and 5 rows (bounded by 20% of terminal height).</li>
+            <li>Implemented a dynamic column-grid layout in <code>src/components/render_editor.rs</code>: caps cell text to 25 characters without ellipsis and aligns tab brackets <code>[-]</code> vertically column by column.</li>
+            <li>Added zero-padded line numbering (<code>01│</code>) on the left and a dedicated indicator row showing row count on the left and <code>[filename]</code> right-aligned.</li>
+            <li>Silently unmarks deleted/invalid non-file paths (such as symlinked directories) on tab cycling without popup error dialogs.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 10 -->
+    <article class="change-entry" id="buffer-picker-complete">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">10. Complete Tab &amp; Buffer Picker Listing</span>
+        </div>
+        <span class="commit-hash">fec00941f</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>The Buffer Picker (<kbd>Space</kbd> <kbd>k</kbd> <kbd>d</kbd>) previously only queried in-memory buffers in <code>layout.get_opened_files()</code>, omitting persisted and marked tabs that had not yet been paged into RAM.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>In <code>src/app.rs</code> (<code>open_file_picker</code>), merged <code>context.get_marked_files()</code> and <code>layout.get_opened_files()</code> into an ordered <code>IndexSet</code>, ensuring all open tabs and resident buffers appear in the picker.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 11 -->
+    <article class="change-entry" id="theme-preview">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">11. Real-Time Tab Bar Theme Preview</span>
+        </div>
+        <span class="commit-hash">fec00941f</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>When previewing themes via the Theme Picker prompt, the prompt component had focus, treating the background editor as unfocused. As a result, the tab bar fell back to inactive styles and did not update foreground/background colors during theme selection.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>In <code>src/app.rs</code> (<code>render_component_window</code>), treated <code>SuggestiveEditor</code> as focused while a prompt modal is active so tab bar styles update live as themes are previewed.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 12 -->
+    <article class="change-entry" id="momentary-space">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">12. Space and Enter Handling in Momentary Layers &amp; Menus</span>
+        </div>
+        <span class="commit-hash">f126af7fe, 718a37cb4, 6b9447f83</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Certain terminal emulators and remote consoles drop key release events, leaving momentary layers "stuck" open without triggering their tap actions (e.g. Delete One). Unconditionally closing on <kbd>Space</kbd> broke multi-cursor sub-menus and joint layers (such as <kbd>r</kbd> Delete swapping to Eat).</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>In <code>src/keymap_override/menu.rs</code>, checked explicit menu keybindings for <kbd>Space</kbd> before falling back to closing the menu.</li>
+            <li>In <code>src/keymap_override/momentary_layer/mod.rs</code>, forwarded key events to inner layers first to preserve layer swaps (Delete $\leftrightarrow$ Eat).</li>
+            <li>Allowed both <kbd>Space</kbd> and <kbd>Enter</kbd> to close momentary layers and execute the single-tap action when no intermediate keys have been pressed.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 13 -->
+    <article class="change-entry" id="small-window-clamp">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-fix">Bug Fix</span>
+          <span class="change-title">13. Small Window Resize Assertion Panic Guard</span>
+        </div>
+        <span class="commit-hash">4d48b6a10</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Splitting terminal windows in a tiling window manager to extreme small heights ($height \le 2$) triggered a panic: <code>assertion failed: result.lines().count() &lt;= dimension.height.saturating_sub(1)</code> in <code>render_editor.rs:411</code>.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <p>In <code>src/components/render_editor.rs</code>, calculated <code>max_allowed_lines = dimension.height.saturating_sub(1)</code>:</p>
+          <ul>
+            <li>If <code>max_allowed_lines == 0</code>, tab bar rendering is suppressed (returns <code>None</code>).</li>
+            <li>If <code>max_allowed_lines == 1</code>, renders only the single active tab line without the indicator row.</li>
+            <li>When <code>max_allowed_lines &ge; 2</code>, clamps total tab rows and indicator row to <code>max_allowed_lines</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 14 -->
+    <article class="change-entry" id="doc-cleanup">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-docs">Documentation</span>
+          <span class="change-title">14. Documentation Overhaul &amp; Reference Guide</span>
+        </div>
+        <span class="commit-hash">c34a5584c, e62d9ace4, 4d8ae4df5, b28416ce5</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Upstream documentation was verbose and philosophical rather than functional. A clean, single-page reference was needed covering all actual keybindings, configuration schemas, and Git workflows.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li>Created <code>newdoc/index.html</code> with searchable, responsive documentation.</li>
+            <li>Documented all escape mechanisms (<kbd>jk</kbd>, <kbd>Ctrl+G</kbd>, <kbd>Ctrl+[</kbd>).</li>
+            <li>Documented Git dual-reference diffs (<code>@</code> vs <code>^</code>), blame, hunk reverts, and status pickers.</li>
+            <li>Provided configuration file paths for Linux, macOS, and Windows with full JSON schema reference.</li>
+            <li>Streamlined tone to factual, neutral Vim-style reference without promotional filler.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+  </main>
+</body>
+</html>

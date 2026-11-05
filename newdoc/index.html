@@ -994,7 +994,7 @@
             <td><code>≡ Multi-cursor</code></td>
             <td>Normal</td>
             <td>None</td>
-            <td>Spawns additional cursors directionally (<kbd>j</kbd>/<kbd>l</kbd>, <kbd>i</kbd>/<kbd>k</kbd>, <kbd>m</kbd> jump).</td>
+            <td>Spawns / cycles cursors (<kbd>;</kbd>/<kbd>h</kbd> cycle, <kbd>j</kbd>/<kbd>l</kbd>/<kbd>i</kbd>/<kbd>k</kbd> add, <kbd>n</kbd> delete, <kbd>m</kbd> jump).</td>
           </tr>
           <tr>
             <td><kbd>v</kbd></td>
@@ -1149,7 +1149,7 @@
 
     <section id="mol-multicursor">
       <h3>≡ Multi-Cursor (<kbd>b</kbd>)</h3>
-      <p>Hold <kbd>b</kbd> to spawn additional cursors directionally:</p>
+      <p>Hold <kbd>b</kbd> to spawn, navigate, and manage multiple cursors:</p>
       <table>
         <thead>
           <tr>
@@ -1159,6 +1159,14 @@
         </thead>
         <tbody>
           <tr>
+            <td><kbd>b</kbd> + <kbd>;</kbd></td>
+            <td><strong>Cycle Forward (<kbd>Curs →</kbd>)</strong>: Move the primary/active cursor to the next cursor.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>h</kbd></td>
+            <td><strong>Cycle Backward (<kbd>← Curs</kbd>)</strong>: Move the primary/active cursor to the previous cursor.</td>
+          </tr>
+          <tr>
             <td><kbd>b</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
             <td>Add cursor at previous / next selection match.</td>
           </tr>
@@ -1167,16 +1175,32 @@
             <td>Add cursor directly above / below.</td>
           </tr>
           <tr>
+            <td><kbd>b</kbd> + <kbd>u</kbd> / <kbd>o</kbd></td>
+            <td>Add cursor at fine previous / next match.</td>
+          </tr>
+          <tr>
+            <td><kbd>b</kbd> + <kbd>y</kbd> / <kbd>p</kbd></td>
+            <td>Add cursor at first (<kbd>|&lt;</kbd>) / last (<kbd>&gt;|</kbd>) match.</td>
+          </tr>
+          <tr>
             <td><kbd>b</kbd> + <kbd>m</kbd></td>
-            <td>Jump Add Cursor: use Jump visual letters to place a cursor anywhere.</td>
+            <td><strong>Jump Add Cursor</strong>: use Jump visual letters to place a cursor anywhere.</td>
           </tr>
           <tr>
             <td><kbd>b</kbd> + <kbd>n</kbd></td>
-            <td>Delete current cursor from selection set.</td>
+            <td><strong>Delete Cursor</strong>: Remove the current primary cursor from the selection set.</td>
           </tr>
           <tr>
-            <td><kbd>b</kbd> (tap)</td>
-            <td>Enters multi-cursor submode menu (select all matches via <kbd>j</kbd>, remove match via <kbd>k</kbd>).</td>
+            <td><kbd>b</kbd> + <kbd>Space</kbd> (or tap <kbd>b</kbd>)</td>
+            <td>
+              <strong>Multi-cursor Menu</strong>:
+              <ul>
+                <li><kbd>l</kbd>: <strong>Keep Primary Cursor Only</strong> (dismiss all other cursors).</li>
+                <li><kbd>j</kbd>: <strong>Curs All</strong> (add cursors to all selection matches).</li>
+                <li><kbd>i</kbd>: <strong>Keep Match</strong> (filter prompt to keep matching cursors).</li>
+                <li><kbd>k</kbd>: <strong>Remove Match</strong> (filter prompt to discard matching cursors).</li>
+              </ul>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -1232,6 +1256,58 @@
             <td><code>n </code></td>
             <td><strong>Naming Agnostic</strong></td>
             <td>Matches across conventions: camelCase, PascalCase, snake_case, kebab-case (e.g. <code>n parse_config</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Workflow Transitions &amp; Multi-Step Modal Flows</h4>
+      <p>Because Ki organizes operations into distinct modal sub-menus (MoL legends and momentary layers), performing compound multi-step tasks involves explicit modal transitions. Common scenarios and optimal transition sequences include:</p>
+
+      <div class="callout">
+        <strong>1. Spreading Cursors Across All Marked Lines / Items:</strong>
+        <p>To spawn cursors on all marked locations or lines, switch the active selection target to <em>Mark</em> mode first, then trigger <em>Curs All</em>:</p>
+        <ol>
+          <li>Open the Multi-Cursor menu: hold <kbd>b</kbd> and tap <kbd>Space</kbd> (or tap <kbd>b</kbd>).</li>
+          <li>Press <kbd>n</kbd> (<strong>⚲ Local</strong> submenu), then press <kbd>e</kbd> (<strong>Mark</strong>). This sets the selection mode to marks and transitions back to editor mode.</li>
+          <li>Re-open the Multi-Cursor menu: press <kbd>b</kbd> &rarr; <kbd>Space</kbd>.</li>
+          <li>Press <kbd>j</kbd> (<strong>Curs All</strong>). A cursor is now placed across all marked lines.</li>
+        </ol>
+      </div>
+
+      <div class="callout">
+        <strong>2. Scope-Switching and Mode Redefinition:</strong>
+        <ul>
+          <li><strong>AST Node to Multi-Word Cursors</strong>: While in AST Node mode (<kbd>d</kbd>), switching to edit all instances of a symbol requires switching mode to Word (<kbd>s</kbd>), re-entering <kbd>b</kbd> &rarr; <kbd>Space</kbd>, and pressing <kbd>j</kbd> (Curs All).</li>
+          <li><strong>Filtering Selections After Broad Selection</strong>: When creating cursors across an entire block or file, use <kbd>b</kbd> &rarr; <kbd>Space</kbd> &rarr; <kbd>i</kbd> (Keep Match) or <kbd>k</kbd> (Remove Match) with search prefixes (e.g. <code>w variable_name</code>) to narrow down cursor placements before entering Insert mode.</li>
+          <li><strong>Surround Enclosure on Multi-Cursors</strong>: Once multiple cursors are placed, press <kbd>,</kbd> (Surround Menu) &rarr; <kbd>s</kbd> (Surround) / <kbd>f</kbd> (Change Surround) &rarr; <em>delimiter</em> to apply enclosure changes across all cursors simultaneously.</li>
+        </ul>
+      </div>
+
+      <h4>Removing Multi-Cursors &amp; Returning to Single Cursor</h4>
+      <p>Ki provides three distinct ways to remove extra cursors or return to a single cursor:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Keys</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Keep Primary Only</strong></td>
+            <td><kbd>b</kbd> &rarr; <kbd>Space</kbd> &rarr; <kbd>l</kbd></td>
+            <td>Instantly dismisses all secondary cursors and returns directly to the active primary cursor in Normal mode.</td>
+          </tr>
+          <tr>
+            <td><strong>Delete Current Cursor</strong></td>
+            <td><kbd>b</kbd> + <kbd>n</kbd></td>
+            <td>Removes only the currently active (primary) cursor and steps focus to the next remaining cursor. Can be combined with cycling (<kbd>b</kbd> + <kbd>;</kbd> / <kbd>h</kbd>) to selectively cull cursors.</td>
+          </tr>
+          <tr>
+            <td><strong>Pattern Filtering</strong></td>
+            <td><kbd>b</kbd> &rarr; <kbd>Space</kbd> &rarr; <kbd>k</kbd> / <kbd>i</kbd></td>
+            <td><kbd>k</kbd> (<strong>Remove Match</strong>) prompts for a search query to prune matching cursors; <kbd>i</kbd> (<strong>Keep Match</strong>) keeps only cursors whose selection text matches the query, dropping all others.</td>
           </tr>
         </tbody>
       </table>
@@ -1395,7 +1471,7 @@
       <div class="grid">
         <div class="card">
           <h4><span>Surround Menu (<kbd>,</kbd>)</span></h4>
-          <p>Operates on brackets <code>()</code>, <code>{}</code>, <code>[]</code>, quotes <code>''</code>, <code>""</code>, <code>``</code>, and XML/HTML tags:</p>
+          <p>Operates on brackets <code>()</code>, <code>{}</code>, <code>[]</code>, quotes <code>''</code>, <code>""</code>, <code>``</code>, and angular brackets <code>&lt;&gt;</code>:</p>
           <ul>
             <li><kbd>s</kbd> + <em>delimiter</em> &rarr; Surround selection with delimiter</li>
             <li><kbd>d</kbd> + <em>delimiter</em> &rarr; Select inside delimiter</li>
@@ -1418,6 +1494,62 @@
             <li><kbd>l</kbd> &rarr; Toggle Block Comment</li>
           </ul>
         </div>
+      </div>
+
+      <h4>Surround Enclosure Delimiter Mappings</h4>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Delimiter Pair</th>
+            <th>Key</th>
+            <th>Delimiter Pair</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>m</kbd></td>
+            <td><code>( )</code> Parentheses</td>
+            <td><kbd>j</kbd></td>
+            <td><code>' '</code> Single Quotes</td>
+          </tr>
+          <tr>
+            <td><kbd>,</kbd></td>
+            <td><code>[ ]</code> Square Brackets</td>
+            <td><kbd>k</kbd></td>
+            <td><code>" "</code> Double Quotes</td>
+          </tr>
+          <tr>
+            <td><kbd>.</kbd></td>
+            <td><code>{ }</code> Curly Braces</td>
+            <td><kbd>l</kbd></td>
+            <td><code>` `</code> Backticks</td>
+          </tr>
+          <tr>
+            <td><kbd>/</kbd></td>
+            <td><code>&lt; &gt;</code> Angle Brackets</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Surround Walkthrough Examples</h4>
+      <div class="callout">
+        <strong>1. Surround Selection:</strong>
+        <p>Select target token (e.g. <kbd>s</kbd> for Word, or extend with <kbd>f</kbd>) &rarr; press <kbd>,</kbd> (Surround Menu) &rarr; press <kbd>s</kbd> (Surround) &rarr; press delimiter key (e.g. <kbd>k</kbd> for <code>" "</code> or <kbd>m</kbd> for <code>( )</code>).</p>
+      </div>
+      <div class="callout">
+        <strong>2. Change Surround (e.g. <code>"hello"</code> &rarr; <code>'hello'</code>):</strong>
+        <p>Place cursor inside the existing quotes &rarr; press <kbd>,</kbd> &rarr; press <kbd>f</kbd> (Change Surround) &rarr; press <kbd>k</kbd> (old delimiter: <code>"</code>) &rarr; press <kbd>j</kbd> (new delimiter: <code>'</code>).</p>
+      </div>
+      <div class="callout">
+        <strong>3. Delete Surround (e.g. <code>[items]</code> &rarr; <code>items</code>):</strong>
+        <p>Place cursor inside brackets &rarr; press <kbd>,</kbd> &rarr; press <kbd>r</kbd> (Delete Surround) &rarr; press <kbd>,</kbd> (Square Brackets).</p>
+      </div>
+      <div class="callout">
+        <strong>4. Select Inside / Around:</strong>
+        <p>Press <kbd>,</kbd> &rarr; <kbd>d</kbd> &rarr; <kbd>m</kbd> to select text inside parentheses, or <kbd>,</kbd> &rarr; <kbd>e</kbd> &rarr; <kbd>m</kbd> to select including the parentheses.</p>
       </div>
     </section>
 

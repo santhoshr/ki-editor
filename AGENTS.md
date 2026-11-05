@@ -431,6 +431,41 @@ Updated `newdoc/kustom-ki.html` with entries 15 through 18 covering recent commi
 - Entry 17: Fallback `Alt+/` to Buffer Picker when single view is active.
 - Entry 18: Picker batch open (`Ctrl+o`/`Alt+g`), batch buffer close (`Ctrl+k`/`Alt+c`), ghost buffer leak fixes, `Space ;` file picker, and `-` file explorer reveal navigation.
 
+### Request 67
+> "how do I move between multi cursor selection"
+**Response:**
+Explained how to cycle the primary selection / active cursor in the multi-cursor momentary layer (`b`):
+- `b` + `;` : Cycle forward (`Curs →`)
+- `b` + `h` : Cycle backward (`← Curs`)
+- Also detailed `b` + `n` (delete active cursor), `b` + `m` (jump add cursor), and `b` + `Space` (keep primary only `l`, filter `i`/`k`, add to all `j`).
+
+### Request 68
+> "add this info to newdoc/html"
+**Response:**
+Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.html) under Section 8.4 (`≡ Multi-Cursor`) and Section 8.2 (`Summary Table`) to include cycling forward (`b` + `;`), cycling backward (`b` + `h`), fine/edge additions (`u`, `o`, `y`, `p`), deleting cursors (`n`), and keeping primary cursor only (`l`).
+
+### Request 69
+> "b + space menu, pressing n then e again going to b then space menu then adding j add cursors to all marked lines, record this back and forth dance in newdoc/index with professional tone, also other such back and forth situations"
+**Response:**
+Documented workflow transitions and modal sequences in [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.html) under Section 8.4 ("Workflow Transitions & Multi-Step Modal Flows"):
+- Step-by-step procedure for spreading cursors across marked lines (`b` &rarr; `Space` &rarr; `n` &rarr; `e` &rarr; `b` &rarr; `Space` &rarr; `j`).
+- Documented other multi-step modal workflows: AST Node to Multi-Word Cursors (`d` &rarr; `s` &rarr; `b Space j`), filter narrowing (`b Space i/k`), and surround operations across active selections.
+
+### Request 70
+> "Surround enclosure, give walkthrough; also add removing multi cursor, b space l (is there any other method?)"
+**Response:**
+Provided walkthrough of surround enclosure operations (`s`, `f`, `r`, `d`, `e`) with full delimiter key mappings (`m`, `,`, `.`, `/`, `j`, `k`, `l`). Detailed multi-cursor removal methods:
+1. `b` + `Space` + `l` (Keep Primary Cursor Only)
+2. `b` + `n` (Delete current cursor, stepping to next)
+3. `b` + `Space` + `k`/`i` (Filter cursors by regex/word/exact match)
+
+### Request 71
+> "add this to newdoc/index"
+**Response:**
+Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.html):
+- Section 8.4: Added "Removing Multi-Cursors & Returning to Single Cursor" table detailing `Keep Primary Only` (`b Space l`), `Delete Current Cursor` (`b + n`), and `Pattern Filtering` (`b Space k/i`).
+- Section 10: Expanded "Surround & Transform" with the full enclosure delimiter mappings table and concrete walkthroughs for Surround, Change Surround, Delete Surround, and Select Inside/Around.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

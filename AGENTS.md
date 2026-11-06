@@ -587,6 +587,18 @@ Diagnosed and resolved the arrow navigation issue when starting from an unselect
 **Response:**
 Committed changes as `fix(prompt): resolve path components, suppress directory auto-selection and enable arrow navigation`.
 
+### Request 89
+> "no need of populating open buffers, history is saved across sessions? also it seems directory invoked from basis/startup"
+**Response:**
+1. Confirmed persistence architecture: Ki saves workspace sessions (including `prompt_histories`, marks, and open files) keyed by the startup working directory (`WorkspaceSession` stored under `current_working_directory`).
+2. Removed the `marked_files` fallback in `Context::get_prompt_history` (`src/context.rs`), so prompt history strictly contains entered commands/paths without injecting open buffers.
+3. Added auto-persistence to `App::push_history_prompt` (`src/app.rs`) to immediately flush history updates to disk on entry submission. Verified with `cargo build`.
+
+### Request 90
+> "commitit"
+**Response:**
+Committed changes as `fix(prompt): isolate prompt history from open buffers and auto-persist entries`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

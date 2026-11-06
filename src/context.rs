@@ -496,23 +496,12 @@ impl Context {
     }
 
     pub fn get_prompt_history(&self, key: PromptHistoryKey) -> Vec<String> {
-        let history = self
-            .prompt_histories
+        self.prompt_histories
             .get(&key)
             .cloned()
             .unwrap_or_default()
             .into_iter()
-            .collect_vec();
-
-        if history.is_empty() && key == PromptHistoryKey::OpenFile {
-            return self
-                .marked_files
-                .iter()
-                .map(|p| p.display_relative_to_home().unwrap_or_else(|_| p.display_absolute()))
-                .collect_vec();
-        }
-
-        history
+            .collect_vec()
     }
 
     pub fn set_last_non_contiguous_selection_mode(

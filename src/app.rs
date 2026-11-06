@@ -3118,6 +3118,7 @@ impl<T: Frontend> App<T> {
 
     fn push_history_prompt(&mut self, key: PromptHistoryKey, line: String) {
         self.context.push_history_prompt(key, line);
+        self.context.persist_data();
     }
 
     fn open_git_branch_picker(&mut self) -> anyhow::Result<()> {

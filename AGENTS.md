@@ -466,6 +466,15 @@ Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.
 - Section 8.4: Added "Removing Multi-Cursors & Returning to Single Cursor" table detailing `Keep Primary Only` (`b Space l`), `Delete Current Cursor` (`b + n`), and `Pattern Filtering` (`b Space k/i`).
 - Section 10: Expanded "Surround & Transform" with the full enclosure delimiter mappings table and concrete walkthroughs for Surround, Change Surround, Delete Surround, and Select Inside/Around.
 
+### Request 72
+> "closing filetree closes tabstrip"
+> "current file"
+> "now closing the fileexplorer becomes split view"
+**Response:**
+1. Identified that `replace_and_focus_current_suggestive_editor` only removes existing children of kind `SuggestiveEditor`. When `FileExplorer` was open, calling `replace_and_focus_current_suggestive_editor` directly appended the restored `SuggestiveEditor` alongside `FileExplorer`, creating a split view tiled across two components.
+2. In `Layout::remove_current_component`, called `self.tree.remove_all_root_children()` before restoring `fallback_editor`, ensuring `FileExplorer` is completely cleared and the restored editor occupies the full screen as a single window.
+3. Compiled successfully via `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

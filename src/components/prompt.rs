@@ -49,6 +49,7 @@ pub struct Prompt {
     on_enter: PromptOnEnter,
     on_change: Option<PromptOnChangeDispatch>,
     on_cancelled: Option<Dispatches>,
+    last_line: std::cell::RefCell<Option<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -449,12 +450,17 @@ impl Prompt {
             task.to_owned().execute(editor.injector());
         }
 
+        if matches!(config.on_enter, PromptOnEnter::ParseCurrentLine { .. }) {
+            editor.set_auto_select_at_dir(false);
+        }
+
         (
             Prompt {
                 editor,
                 on_enter: config.on_enter,
                 on_cancelled: config.on_cancelled,
                 on_change: config.on_change,
+                last_line: std::cell::RefCell::new(None),
             },
             dispatches,
         )
@@ -482,6 +488,7 @@ impl Prompt {
     }
 
     pub fn clear_and_update_matcher_items(&mut self, items: Vec<DropdownItem>) {
+        *self.last_line.borrow_mut() = None;
         self.editor.set_completion(Completion {
             items,
             trigger_characters: vec![" ".to_string()],
@@ -489,11 +496,16 @@ impl Prompt {
     }
 
     pub fn get_on_change_dispatches(&self) -> Dispatches {
+        let current_line = self.editor().current_line().unwrap_or_default();
+        if self.last_line.borrow().as_deref() == Some(&current_line) {
+            return Dispatches::default();
+        }
+        *self.last_line.borrow_mut() = Some(current_line.clone());
         self.on_change
             .as_ref()
             .map(|on_change| {
                 on_change.to_dispatches(&PromptContext {
-                    current_line: self.editor().current_line().unwrap_or_default(),
+                    current_line,
                 })
             })
             .unwrap_or_default()
@@ -591,12 +603,8 @@ impl Component for Prompt {
                         history_key: prompt_history_key,
                         ..
                     } => {
-                        let entry = if self.editor.completion_dropdown_opened() {
-                            if let Some(item) = self.editor.completion_dropdown_current_item() {
-                                item.display()
-                            } else {
-                                self.editor().current_line()?
-                            }
+                        let entry = if let Some(item) = self.editor.completion_dropdown_current_item() {
+                            item.display()
                         } else {
                             self.editor().current_line()?
                         };

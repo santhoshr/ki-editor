@@ -214,7 +214,7 @@ impl DropdownSync {
         self.change_index(self.current_item_index.saturating_sub(1));
     }
 
-    pub(crate) fn last_item(&mut self) {
+    pub fn last_item(&mut self) {
         if let Some(index) = self
             .filtered_item_groups
             .last()
@@ -225,7 +225,7 @@ impl DropdownSync {
         }
     }
 
-    pub(crate) fn first_item(&mut self) {
+    pub fn first_item(&mut self) {
         self.change_index(0);
     }
 
@@ -485,7 +485,7 @@ impl DropdownSync {
                 .into_iter()
                 .chain(self.fuzzy_match_decorations())
                 .collect(),
-            highlight_line_index: self.current_item_line_index(),
+            highlight_line_index: Some(self.current_item_line_index()),
             info: self.current_item().and_then(|item| item.info),
         }
     }
@@ -603,7 +603,7 @@ impl DropdownSync {
     #[cfg(test)]
     pub(crate) fn assert_highlighted_content(&self, label: &str) {
         let render = self.render();
-        let index = render.highlight_line_index;
+        let index = render.highlight_line_index.unwrap_or(0);
         let highlighed_content = render.content.lines().collect_vec()[index];
         assert_eq!(highlighed_content, label);
     }
@@ -732,7 +732,7 @@ pub struct DropdownRender {
     pub content: String,
     pub decorations: Vec<Decoration>,
     pub title: String,
-    pub highlight_line_index: usize,
+    pub highlight_line_index: Option<usize>,
     pub info: Option<Info>,
 }
 

@@ -112,6 +112,10 @@ impl DropdownAsync {
     pub fn next_item(&mut self) {
         self.inner.next_item();
     }
+
+    pub fn last_item(&mut self) {
+        self.inner.last_item();
+    }
 }
 
 struct BackgroundFuzzyMatcher {

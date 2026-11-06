@@ -45,6 +45,28 @@ impl TryFrom<&Path> for AbsolutePath {
     }
 }
 
+pub fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut components = Vec::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => match components.last() {
+                Some(Component::Normal(_)) => {
+                    components.pop();
+                }
+                Some(Component::RootDir) => {}
+                _ => {
+                    components.push(component);
+                }
+            },
+            c => components.push(c),
+        }
+    }
+    components.into_iter().collect()
+}
+
 impl TryFrom<PathBuf> for AbsolutePath {
     type Error = anyhow::Error;
 
@@ -71,7 +93,7 @@ impl TryFrom<PathBuf> for AbsolutePath {
             path
         };
 
-        let normalized = full.components().as_path().to_path_buf();
+        let normalized = normalize_path(&full);
         Ok(Self(normalized))
     }
 }
@@ -155,7 +177,13 @@ impl AbsolutePath {
         };
 
         match self.0.strip_prefix(&home_dir.0) {
-            Ok(path) => Ok(format!("~{}{}", std::path::MAIN_SEPARATOR, path.display())),
+            Ok(path) => {
+                if path.as_os_str().is_empty() {
+                    Ok("~".to_string())
+                } else {
+                    Ok(format!("~{}{}", std::path::MAIN_SEPARATOR, path.display()))
+                }
+            }
             _ => Ok(self.display_absolute()),
         }
     }

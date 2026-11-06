@@ -32,6 +32,8 @@ pub struct SuggestiveEditor {
     completion_dropdown: Dropdown,
     trigger_characters: Vec<String>,
     filter: SuggestiveEditorFilter,
+    has_arrow_navigated_completion: bool,
+    auto_select_at_dir: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -96,6 +98,9 @@ impl Component for SuggestiveEditor {
 
         // Every other character typed in Insert mode should update the dropdown to show
         // relevant completions.
+        if self.editor.mode == Mode::Insert && event.kind != KeyEventKind::Release {
+            self.has_arrow_navigated_completion = false;
+        }
         Ok(self
             .editor
             .handle_key_event(context, event)?
@@ -147,7 +152,13 @@ impl SuggestiveEditor {
             }),
             trigger_characters: vec![],
             filter,
+            has_arrow_navigated_completion: false,
+            auto_select_at_dir: true,
         }
+    }
+
+    pub fn set_auto_select_at_dir(&mut self, auto_select_at_dir: bool) {
+        self.auto_select_at_dir = auto_select_at_dir;
     }
 
     pub fn handle_dispatch(
@@ -182,8 +193,27 @@ impl SuggestiveEditor {
         }
     }
 
+    pub fn is_completion_selected(&self) -> bool {
+        if self.auto_select_at_dir {
+            return true;
+        }
+        if self.has_arrow_navigated_completion {
+            return true;
+        }
+        let line = self.editor().current_line().unwrap_or_default();
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.ends_with('/') || trimmed.ends_with('\\') {
+            return false;
+        }
+        true
+    }
+
     pub fn completion_dropdown_current_item(&mut self) -> Option<DropdownItem> {
-        self.completion_dropdown.current_item()
+        if !self.is_completion_selected() {
+            None
+        } else {
+            self.completion_dropdown.current_item()
+        }
     }
 
     pub fn completion_dropdown_all_filtered_items(&mut self) -> Vec<DropdownItem> {
@@ -198,6 +228,7 @@ impl SuggestiveEditor {
         self.completion_dropdown.inject_items(completion.items);
         self.completion_dropdown.handle_nucleo_notify();
         self.trigger_characters = completion.trigger_characters;
+        self.has_arrow_navigated_completion = false;
     }
 
     pub fn render_completion_dropdown(&self, ignore_insert_mode: bool) -> Dispatches {
@@ -210,21 +241,26 @@ impl SuggestiveEditor {
         {
             Dispatches::one(Dispatch::CloseDropdown)
         } else {
-            let on_focused = self
-                .completion_dropdown
-                .current_item()
-                .map(|item| {
-                    if item.resolved() {
-                        Dispatches::default()
-                    } else {
-                        item.on_focused()
-                    }
-                })
-                .unwrap_or_default();
-            Dispatches::one(Dispatch::RenderDropdown {
-                render: self.completion_dropdown.render(),
-            })
-            .chain(on_focused)
+            let on_focused = if self.is_completion_selected() {
+                self.completion_dropdown
+                    .current_item()
+                    .map(|item| {
+                        if item.resolved() {
+                            Dispatches::default()
+                        } else {
+                            item.on_focused()
+                        }
+                    })
+                    .unwrap_or_default()
+            } else {
+                Dispatches::default()
+            };
+            let mut render = self.completion_dropdown.render();
+            if !self.is_completion_selected() {
+                render.highlight_line_index = None;
+            }
+            Dispatches::one(Dispatch::RenderDropdown { render })
+                .chain(on_focused)
         }
     }
 
@@ -267,12 +303,22 @@ impl SuggestiveEditor {
     }
 
     fn previous_completion_item(&mut self) -> Result<Dispatches, anyhow::Error> {
-        self.completion_dropdown.previous_item();
+        let was_selected = self.is_completion_selected();
+        self.has_arrow_navigated_completion = true;
+        if was_selected {
+            self.completion_dropdown.previous_item();
+        } else {
+            self.completion_dropdown.last_item();
+        }
         Ok(self.render_completion_dropdown(false))
     }
 
     fn next_completion_item(&mut self) -> Result<Dispatches, anyhow::Error> {
-        self.completion_dropdown.next_item();
+        let was_selected = self.is_completion_selected();
+        self.has_arrow_navigated_completion = true;
+        if was_selected {
+            self.completion_dropdown.next_item();
+        }
         Ok(self.render_completion_dropdown(false))
     }
 
@@ -295,9 +341,11 @@ impl SuggestiveEditor {
     }
 
     pub fn handle_nucleo_notify(&mut self) -> Dispatches {
-        Dispatches::one(Dispatch::RenderDropdown {
-            render: self.completion_dropdown.handle_nucleo_notify(),
-        })
+        let mut render = self.completion_dropdown.handle_nucleo_notify();
+        if !self.is_completion_selected() {
+            render.highlight_line_index = None;
+        }
+        Dispatches::one(Dispatch::RenderDropdown { render })
     }
 
     pub fn injector(&mut self) -> Callback<DropdownItem> {

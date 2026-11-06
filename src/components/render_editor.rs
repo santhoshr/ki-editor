@@ -76,7 +76,7 @@ impl Editor {
             self.dimension(),
             &self.reveal.clone(),
             &RenderTitleMode::Tabline,
-            true,
+            self.show_cursors,
         )
     }
 

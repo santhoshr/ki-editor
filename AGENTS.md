@@ -554,6 +554,39 @@ Persisted the most recent global info in `last_global_info: Option<Info>` (`src/
 **Response:**
 Committed changes implementing error auto-dismiss on user navigation/action and `Space Shift+T` ("Last Error") recall in Space HUD.
 
+### Request 84
+> "there is a bug, when shift ; f -> select directory happens, even though completion window is not displayed, it gets selected and first/child file is opened or first/child directory is made current directory"
+**Response:**
+In `PromptOnEnter::ParseCurrentLine` (`src/components/prompt.rs`), removed dropdown-item hijacking that was replacing the typed/selected line with the first candidate in the completion list. Prompt line submission now evaluates `self.editor().current_line()?` directly, allowing directories and paths to be selected as entered. Verified with `cargo build`.
+
+### Request 85
+> "currently the ./../../ are supported which is great, at the same time, once it is entered, resolve to path instead of keep it as it is as working directory, because the current directory status windows shows it as ~/path/to/../. as well as when save happens or at file picker everywhere the path displayed is ~/path/to/../../whatever/.. so once user action completes and received selected path, resolve to actual path and use it everywhere, there is no issue with this, but it will be cleaner with actual path"
+**Response:**
+Implemented `normalize_path` in `shared/src/absolute_path.rs` to logically resolve all `.` and `..` segments during `AbsolutePath::try_from(PathBuf)`. All selected paths for working directory, saved files, opened buffers, file pickers, and status line representations now resolve to clean, normalized absolute paths without leftover `./` or `../`. Verified with `cargo build`.
+
+### Request 86
+> "making completion window selection invalid, has side effect of losing partial match hit, if I type half, and I see the file I want to click enter, now it says partial file does not exist, instead make completion window not auto select first item without user input, so if new directory is entered child items are available but not selected, on navigation (arrows) or typing should select, this is regarding how directory child is selected, when new path is added for e.g. /path/to this should have to highlighted in completion, on enter /path/to should be sselected, if user further navigates /path/to/ on / the completion window can populate child items but should not select any, arrow functionality are already present no changes there, only auto selection, and choosing to pick file/dir from completion window again, as we previously changed to type window only"
+**Response:**
+Updated completion dropdown and prompt selection behavior:
+1. Converted `DropdownRender.highlight_line_index` from `usize` to `Option<usize>` and added `show_cursors: bool` to `Editor` so dropdowns can render items without highlighting any line or cursor.
+2. In `SuggestiveEditor`, implemented `is_completion_selected()`:
+   - When at a directory boundary (ending in `/` or `\`) or empty, child items populate the completion dropdown without auto-selecting or highlighting any item (`highlight_line_index = None`).
+   - If the user explicitly navigates (Up/Down arrows) or types a non-directory filter (e.g. `/path/to`), matching items are selected and highlighted.
+3. In `PromptOnEnter::ParseCurrentLine` (`src/components/prompt.rs`), restored selecting the completion item when an item is selected, falling back to the typed line (`self.editor().current_line()?`) when no completion item is selected. Verified with `cargo build`.
+
+### Request 87
+> "found the issue arrows work normally when selection is there, when there is no selection, arrows doesn't work"
+**Response:**
+Diagnosed and resolved the arrow navigation issue when starting from an unselected completion state:
+1. In `Prompt` (`src/components/prompt.rs`), tracked `last_line: RefCell<Option<String>>` in `get_on_change_dispatches()`. Previously, `post_handle_event` dispatched `GetAndHandlePromptOnChangeDispatches` on every single key press (including arrow keys), which re-called `set_completion`, clearing nucleo and resetting `has_arrow_navigated_completion = false`, immediately stripping the highlight. Caching the line prevents redundant on-change executions when the prompt text has not changed.
+2. In `SuggestiveEditor::next_completion_item()` and `previous_completion_item()`, checked `was_selected = self.is_completion_selected()`. If `was_selected` is false, Down arrow highlights the first item (index 0) rather than skipping to index 1, and Up arrow highlights the last item (`last_item()`).
+3. Added `auto_select_at_dir: bool` to `SuggestiveEditor` (defaults to true; set to false only for `PromptOnEnter::ParseCurrentLine`) to ensure standard pickers (e.g. file, buffer, theme) remain unaffected. Verified with `cargo build`.
+
+### Request 88
+> "works well commit it"
+**Response:**
+Committed changes as `fix(prompt): resolve path components, suppress directory auto-selection and enable arrow navigation`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

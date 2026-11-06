@@ -583,7 +583,11 @@ impl Layout {
             let dispatches = editor.set_content(&render.content, context);
             editor.set_decorations(&render.decorations);
             editor.set_title("Quickfix list".to_string());
-            dispatches?.chain(editor.select_line_at(render.highlight_line_index, context)?)
+            let select_dispatch = render
+                .highlight_line_index
+                .map(|idx| editor.select_line_at(idx, context))
+                .transpose()?;
+            dispatches?.chain(select_dispatch.unwrap_or_default())
         };
 
         // If the QuickfixList is the only component in the layout,

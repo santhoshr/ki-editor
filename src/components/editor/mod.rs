@@ -502,6 +502,7 @@ pub struct Editor {
     /// does not permanently forget the original column. Reset to `None` by any
     /// other dispatch. See [`DispatchEditor::MoveCursorVertically`].
     insert_mode_sticky_column: Option<usize>,
+    pub show_cursors: bool,
 }
 
 #[derive(Clone, Default)]
@@ -725,14 +726,21 @@ impl Editor {
         context: &Context,
         render: &DropdownRender,
     ) -> anyhow::Result<Dispatches> {
+        let (select_dispatch, show_cursors) = if let Some(line_index) = render.highlight_line_index {
+            (vec![SelectLineAt(line_index)], true)
+        } else {
+            (vec![], false)
+        };
+        self.show_cursors = show_cursors;
         self.apply_dispatches(
             context,
             [
                 SetContent(render.content.clone()),
                 SetDecorations(render.decorations.clone()),
-                SelectLineAt(render.highlight_line_index),
             ]
-            .to_vec(),
+            .into_iter()
+            .chain(select_dispatch)
+            .collect(),
         )
     }
 
@@ -757,6 +765,7 @@ impl Editor {
             incremental_search_matches: None,
             insert_session: InsertSession::next(),
             insert_mode_sticky_column: None,
+            show_cursors: true,
         }
     }
 
@@ -805,6 +814,7 @@ impl Editor {
             incremental_search_matches: None,
             insert_session: InsertSession::next(),
             insert_mode_sticky_column: None,
+            show_cursors: true,
         }
     }
 

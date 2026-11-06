@@ -126,6 +126,8 @@ pub struct App<T: Frontend> {
     debounce_lsp_request_completion: Callback<()>,
     pub multibuffer: Option<Multibuffer>,
     last_insert_j_press: Option<std::time::Instant>,
+    auto_hide_global_info: bool,
+    last_global_info: Option<Info>,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -268,6 +270,8 @@ impl<T: Frontend> App<T> {
             file_watcher_input_sender,
             multibuffer: None,
             last_insert_j_press: None,
+            auto_hide_global_info: false,
+            last_global_info: None,
         };
 
         app.restore_session();
@@ -461,6 +465,17 @@ impl<T: Frontend> App<T> {
             } else if *key_event == key!("release-ctrl+g") || *key_event == key!("release-ctrl+[") {
                 *key_event = key!("release-esc");
             }
+        }
+
+        let is_user_action = match &event {
+            Event::Key(key_event) => key_event.kind == KeyEventKind::Press,
+            Event::Mouse(_) | Event::Paste(_) => true,
+            _ => false,
+        };
+
+        if is_user_action && self.auto_hide_global_info {
+            self.auto_hide_global_info = false;
+            self.layout.close_global_info();
         }
 
         // Pass event to focused window
@@ -1272,7 +1287,10 @@ impl<T: Frontend> App<T> {
             Dispatch::HandleKeyEvents(key_events) => self.handle_key_events(key_events)?,
             Dispatch::CloseDropdown => self.layout.close_dropdown(),
             Dispatch::CloseEditorInfo => self.layout.close_editor_info(),
-            Dispatch::CloseGlobalInfo => self.layout.close_global_info(),
+            Dispatch::CloseGlobalInfo => {
+                self.auto_hide_global_info = false;
+                self.layout.close_global_info();
+            }
             Dispatch::CloseKeymapLegend => {
                 self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
                 self.layout.close_keymap_legend();
@@ -1406,6 +1424,7 @@ impl<T: Frontend> App<T> {
                 self.open_arbitrary_file_prompt()?;
             }
             Dispatch::OpenQuickfixItemsPicker => self.open_quickfix_item_picker()?,
+            Dispatch::ShowLastError => self.show_last_error(),
             Dispatch::RaiseFormatterNotExist(formatter_error) => {
                 self.raise_formatter_error(formatter_error)?;
             }
@@ -2068,6 +2087,7 @@ impl<T: Frontend> App<T> {
     }
 
     fn show_global_info(&mut self, info: Info) {
+        self.last_global_info = Some(info.clone());
         if self.is_running_as_embedded() {
             self.integration_event_sender.emit_event(
                 crate::integration_event::IntegrationEvent::ShowInfo {
@@ -2080,6 +2100,18 @@ impl<T: Frontend> App<T> {
             .unwrap_or_else(|err| {
                 log::error!("Error showing info: {err:?}");
             });
+        self.auto_hide_global_info = true;
+    }
+
+    fn show_last_error(&mut self) {
+        if let Some(info) = self.last_global_info.clone() {
+            self.show_global_info(info);
+        } else {
+            self.show_global_info(Info::new(
+                "Last Error".to_string(),
+                "No error has occurred in this session.".to_string(),
+            ));
+        }
     }
 
     fn go_to_location(
@@ -4332,6 +4364,7 @@ pub enum Dispatch {
     OpenChangeWorkingDirectoryPrompt,
     OpenArbitraryFilePrompt,
     OpenQuickfixItemsPicker,
+    ShowLastError,
     RaiseFormatterNotExist(FormatterCommand),
     OpenFileExplorer,
     OpenSaveAsPrompt,

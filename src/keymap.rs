@@ -466,6 +466,11 @@ pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> Keymap
                     "Help",
                     Dispatch::ToEditor(DispatchEditor::ShowHelp),
                 ),
+                Keybinding::new_undocumented(
+                    key!("T"),
+                    "Last Error",
+                    Dispatch::ShowLastError,
+                ),
             ]
             .into_iter()
             .chain(

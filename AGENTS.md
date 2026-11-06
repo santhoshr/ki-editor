@@ -539,6 +539,21 @@ Removed uppercase binding duplicates (`F`, `Q`, `V`) from `command_keymap()` in 
 **Response:**
 Committed all changes implementing the Command menu (`:`), "Open File (or CD)" prompt with `~` path autocomplete, and directory CD action support.
 
+### Request 81
+> "on file save when formatter is not available show the error but when user navigates does anything, auto hide it"
+**Response:**
+Added `auto_hide_global_info: bool` to `App` (`src/app.rs`). When a global info message is shown (such as on save when formatter is not available), `auto_hide_global_info` is set to `true`. On the next user action (`KeyEventKind::Press` navigation/keystroke, mouse click/scroll, or paste), `App::handle_event` automatically closes the global info overlay while executing the user's action. Verified with `cargo build`.
+
+### Request 82
+> "when user press, space then shift+t show last error, the dismissed window, also add this to HUD info, Last Error"
+**Response:**
+Persisted the most recent global info in `last_global_info: Option<Info>` (`src/app.rs`). Added `Dispatch::ShowLastError` and bound `key!("T")` ("Last Error") in `space_keymap_legend_config` (`src/keymap.rs`). Pressing `Space` then `Shift+t` redisplays the last dismissed error window, and the Space menu HUD displays `T  Last Error`. Verified with `cargo build`.
+
+### Request 83
+> "commit it"
+**Response:**
+Committed changes implementing error auto-dismiss on user navigation/action and `Space Shift+T` ("Last Error") recall in Space HUD.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

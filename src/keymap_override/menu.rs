@@ -32,6 +32,20 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
             return Ok(close_dispatches.chain(binding.get_dispatches()));
         }
 
+        if let Some(binding) = self.config.keymap.iter().find(|b| {
+            b.event() == &key_event.original
+                || (key_event.original.modifiers.shift
+                    && match (b.event().code, key_event.original.code) {
+                        (
+                            crossterm::event::KeyCode::Char(b_c),
+                            crossterm::event::KeyCode::Char(k_c),
+                        ) => b_c.to_ascii_uppercase() == k_c.to_ascii_uppercase(),
+                        _ => false,
+                    })
+        }) {
+            return Ok(close_dispatches.chain(binding.get_dispatches()));
+        }
+
         if key_event.original == key!("space") {
             return Ok(close_dispatches);
         }

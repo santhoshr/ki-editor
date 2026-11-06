@@ -286,4 +286,9 @@ impl Frontend for Crossterm {
         queue!(self.stdout, CopyToClipboard::to_clipboard_from(content))?;
         Ok(())
     }
+
+    fn set_title(&mut self, title: &str) -> anyhow::Result<()> {
+        execute!(self.stdout, terminal::SetTitle(title))?;
+        Ok(())
+    }
 }

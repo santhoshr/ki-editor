@@ -128,6 +128,7 @@ pub struct App<T: Frontend> {
     last_insert_j_press: Option<std::time::Instant>,
     auto_hide_global_info: bool,
     last_global_info: Option<Info>,
+    last_terminal_title: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -272,6 +273,7 @@ impl<T: Frontend> App<T> {
             last_insert_j_press: None,
             auto_hide_global_info: false,
             last_global_info: None,
+            last_terminal_title: None,
         };
 
         app.restore_session();
@@ -805,8 +807,32 @@ impl<T: Frontend> App<T> {
         Some(branch.to_string())
     }
 
+    pub fn get_active_buffer_title(&self) -> String {
+        let current_comp = self.current_component();
+        let path = if current_comp.borrow().is_untitled() {
+            None
+        } else {
+            current_comp.borrow().path()
+        };
+        let path = path.or_else(|| {
+            let root_comp = self.layout.get_root_component();
+            if root_comp.borrow().is_untitled() {
+                None
+            } else {
+                root_comp.borrow().path()
+            }
+        });
+        path.map(|p| p.display_absolute())
+            .unwrap_or_else(|| "[Untitled]".to_string())
+    }
+
     fn render_screen(&mut self, screen: Screen) -> Result<(), anyhow::Error> {
+        let title = self.get_active_buffer_title();
         let mut frontend = self.frontend.lock().unwrap();
+        if self.last_terminal_title.as_deref() != Some(&title) {
+            self.last_terminal_title = Some(title.clone());
+            let _ = frontend.set_title(&title);
+        }
         frontend.hide_cursor()?;
         let cursor = screen.cursor();
         frontend.render_screen(screen)?;

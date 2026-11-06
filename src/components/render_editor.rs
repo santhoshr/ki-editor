@@ -3,7 +3,7 @@ use std::ops::Range;
 use itertools::Itertools;
 use lazy_regex::Lazy;
 use lsp_types::DiagnosticSeverity;
-use shared::absolute_path::AbsolutePath;
+use shared::{absolute_path::AbsolutePath, get_minimal_unique_paths::get_minimal_unique_paths};
 
 use crate::{
     app::Dimension,
@@ -15,7 +15,6 @@ use crate::{
     },
     context::Context,
     divide_viewport::{calculate_window_position, divide_viewport},
-    format_path_list::get_formatted_paths,
     git::hunk::SimpleHunk,
     grid::{get_string_width, CellUpdate, Grid, RenderContentLineNumber, StyleKey},
     position::Position,
@@ -40,32 +39,41 @@ pub fn markup_focused_tab(path: &str) -> String {
     format!("\u{200B}{path}\u{200B}")
 }
 
-/// Truncates a tab item string to a maximum visual display width (ignoring zero-width spaces `\u{200b}`).
-fn truncate_tab_item(tab: &str, max_width: usize) -> String {
-    let has_zero_width_wrap = tab.starts_with('\u{200B}') && tab.ends_with('\u{200B}');
-    let inner = if has_zero_width_wrap {
-        &tab['\u{200B}'.len_utf8()..tab.len() - '\u{200B}'.len_utf8()]
-    } else {
-        tab
-    };
-
-    let mut current_width = 0;
-    let mut truncated_chars = Vec::new();
-    for c in inner.chars() {
-        let cw = crate::grid::get_char_width(c);
-        if current_width + cw > max_width {
-            break;
+/// Shorten directory path components keeping only the first character per directory piece,
+/// while keeping the final filename tail in full (Vim's shorten_dir behavior).
+#[allow(dead_code)]
+pub fn shorten_dir(path_str: &str) -> String {
+    if path_str.is_empty() || path_str == "[Untitled]" || path_str == "Untitled" {
+        return path_str.to_string();
+    }
+    let normalized = path_str.replace('\\', "/");
+    let parts: Vec<&str> = normalized.split('/').collect();
+    if parts.len() <= 1 {
+        return path_str.to_string();
+    }
+    let num_parts = parts.len();
+    let mut shortened = Vec::new();
+    for (i, part) in parts.into_iter().enumerate() {
+        if i == num_parts - 1 {
+            shortened.push(part.to_string());
+        } else if part.is_empty() {
+            shortened.push("".to_string());
+        } else if let Some(ch) = part.chars().next() {
+            shortened.push(ch.to_string());
         }
-        current_width += cw;
-        truncated_chars.push(c);
     }
-    let truncated_inner: String = truncated_chars.into_iter().collect();
+    shortened.join("/")
+}
 
-    if has_zero_width_wrap {
-        format!("\u{200B}{truncated_inner}\u{200B}")
-    } else {
-        truncated_inner
+/// Truncate characters from the left until the display width is <= max_width (Vim's tabline label truncation).
+pub fn truncate_from_left(s: &str, max_width: usize) -> String {
+    let mut chars: Vec<char> = s.chars().collect();
+    let mut current_width: usize = chars.iter().map(|c| crate::grid::get_char_width(*c)).sum();
+    while current_width > max_width && !chars.is_empty() {
+        let removed = chars.remove(0);
+        current_width -= crate::grid::get_char_width(removed);
     }
+    chars.into_iter().collect()
 }
 
 impl Editor {
@@ -235,7 +243,7 @@ impl Editor {
         dimension: &Dimension,
         render_title_mode: &RenderTitleMode,
     ) -> Option<String> {
-        let result = if dimension.height <= 1 {
+        let result = if dimension.height <= 2 {
             vec![]
         } else {
             match render_title_mode {
@@ -245,178 +253,227 @@ impl Editor {
                     .unwrap_or_else(|| "[Untitled]".to_string())]
                 .to_vec(),
                 RenderTitleMode::Tabline => {
-                    let formatted_paths = get_formatted_paths(
-                        &context.get_marked_files(),
-                        &context.get_dirty_files(),
-                        &self.path()?,
-                        context.current_working_directory(),
-                    );
-
+                    // Reduce width by 1 because soft_wrap wraps at width.saturating_sub(1)
                     let available_width = dimension.width.saturating_sub(1);
-                    let total_files_count = formatted_paths.len();
-                    let row_num_digits = total_files_count.to_string().len().max(2);
-                    let line_number_prefix_width = row_num_digits + 1; // "01│"
-                    let tab_content_width = available_width.saturating_sub(line_number_prefix_width);
-
-                    // Clean formatted paths: strip leading padding space so brackets align flush
-                    let raw_items = formatted_paths
-                        .into_iter()
-                        .map(|item| {
-                            if let Some(rest) = item.strip_prefix(' ') {
-                                rest.to_string()
-                            } else if let Some(rest) = item.strip_prefix("\u{200b} ") {
-                                format!("\u{200b}{rest}")
-                            } else {
-                                item
-                            }
-                        })
-                        .collect_vec();
-
-                    // Pre-cap items to max 25 display width
-                    let capped_items = raw_items
-                        .iter()
-                        .map(|item| truncate_tab_item(item, 25))
-                        .collect_vec();
-
-                    // Determine column widths and partition items into rows.
-                    // If a row below can accommodate more columns than the current row,
-                    // that better column configuration dictates all subsequent rows.
-                    let mut all_wrapped_rows: Vec<String> = Vec::new();
-                    let mut item_index = 0;
-                    let mut active_cols: Vec<usize> = Vec::new();
-
-                    while item_index < capped_items.len() {
-                        let remaining = &capped_items[item_index..];
-
-                        // Attempt to pack greedily from `remaining` to see how many items fit in one row
-                        let mut trial_widths: Vec<usize> = Vec::new();
-                        let mut trial_used = 0;
-                        for item in remaining {
-                            let w = get_string_width(item);
-                            let gap = if trial_widths.is_empty() { 0 } else { 1 };
-                            if trial_used + gap + w <= tab_content_width {
-                                trial_used += gap + w;
-                                trial_widths.push(w);
-                            } else {
-                                break;
-                            }
-                        }
-                        if trial_widths.is_empty() {
-                            trial_widths.push(tab_content_width.max(1));
-                        }
-
-                        // If this row can accommodate more columns than active_cols, update active_cols
-                        if trial_widths.len() > active_cols.len() {
-                            active_cols = trial_widths;
-                        }
-
-                        // Now format this row using active_cols
-                        let num_cols = active_cols.len().max(1);
-                        let count_in_row = num_cols.min(capped_items.len() - item_index);
-                        let mut row_str = String::new();
-
-                        for c in 0..count_in_row {
-                            let item = &capped_items[item_index + c];
-                            let col_w = active_cols.get(c).copied().unwrap_or(25);
-                            let truncated = truncate_tab_item(item, col_w);
-                            let trunc_w = get_string_width(&truncated);
-                            let pad = col_w.saturating_sub(trunc_w);
-
-                            let has_zero_width_end = truncated.ends_with('\u{200B}');
-                            let cell_text = if has_zero_width_end {
-                                let before_zwsp = &truncated[..truncated.len() - '\u{200B}'.len_utf8()];
-                                format!("{before_zwsp}{}\u{200B}", " ".repeat(pad))
-                            } else {
-                                format!("{truncated}{}", " ".repeat(pad))
-                            };
-
-                            if c > 0 {
-                                row_str.push(' ');
-                            }
-                            row_str.push_str(&cell_text);
-                        }
-
-                        all_wrapped_rows.push(row_str);
-                        item_index += count_in_row;
-                    }
-
-                    let total_rows = all_wrapped_rows.len();
-                    let max_allowed_lines = dimension.height.saturating_sub(1);
-
-                    if max_allowed_lines == 0 {
+                    if available_width == 0 {
                         return None;
                     }
 
-                    if max_allowed_lines == 1 {
-                        // Only 1 line allowed total: show the focused row or first row without indicator
-                        let focused_row = all_wrapped_rows
-                            .iter()
-                            .position(|row| row.contains('\u{200B}'))
-                            .unwrap_or(0);
-                        let row = all_wrapped_rows.get(focused_row).or_else(|| all_wrapped_rows.first());
-                        return row.map(|r| format!("{:0width$}│{r}", focused_row + 1, width = row_num_digits));
+                    let marked_files = context.get_marked_files();
+                    let dirty_files = context.get_dirty_files();
+                    let current_path = self.path();
+
+                    // Collect all paths for minimal unique paths calculation
+                    let mut all_paths: Vec<&AbsolutePath> = marked_files.clone();
+                    if let Some(cp) = &current_path {
+                        if !all_paths.contains(&cp) {
+                            all_paths.push(cp);
+                        }
                     }
 
-                    // Maximum of 5 rows total, capped by 20% of screen height, and between 2 and max_allowed_lines
-                    let max_total_lines = ((dimension.height * 20) / 100)
-                        .min(5)
-                        .max(2)
-                        .min(max_allowed_lines);
-
-                    // Reserve 1 row for the bottom indicator row "[filename]" / "(tab rows)"
-                    let tab_rows_capacity = max_total_lines.saturating_sub(1).max(1);
-
-                    let focused_row = all_wrapped_rows
+                    let path_bufs: Vec<std::path::PathBuf> = all_paths
                         .iter()
-                        .position(|row| row.contains('\u{200B}'))
-                        .unwrap_or(0);
+                        .map(|p| p.to_path_buf().clone())
+                        .collect();
+                    let minimal_map = get_minimal_unique_paths(&path_bufs);
 
-                    // Window tab rows stably around the focused tab's row
-                    let (start_row, end_row) = if total_rows <= tab_rows_capacity {
-                        (0, total_rows)
-                    } else {
-                        let half = tab_rows_capacity / 2;
-                        let start = if focused_row <= half {
-                            0
-                        } else if focused_row + (tab_rows_capacity - half) > total_rows {
-                            total_rows.saturating_sub(tab_rows_capacity)
-                        } else {
-                            focused_row - half
+                    struct TabInfo {
+                        display_name: String,
+                        is_current: bool,
+                        indicator: &'static str,
+                    }
+
+                    let mut tabs: Vec<TabInfo> = Vec::new();
+                    let mut contains_current = false;
+
+                    for path in &marked_files {
+                        let is_current = current_path.as_ref() == Some(path);
+                        if is_current {
+                            contains_current = true;
+                        }
+                        let is_dirty = dirty_files.contains(path);
+                        let indicator = match (true, is_dirty) {
+                            (true, false) => "[-]",
+                            (true, true) => "[÷]",
+                            (false, false) => "[ ]",
+                            (false, true) => "[:]",
                         };
-                        (start, start + tab_rows_capacity)
+                        let display_name = minimal_map
+                            .get(path.to_path_buf())
+                            .cloned()
+                            .unwrap_or_else(|| {
+                                path.file_name()
+                                    .unwrap_or_else(|| "[Untitled]".to_string())
+                            });
+                        tabs.push(TabInfo {
+                            display_name,
+                            is_current,
+                            indicator,
+                        });
+                    }
+
+                    if !contains_current {
+                        if let Some(cp) = &current_path {
+                            let is_dirty = dirty_files.iter().any(|d| *d == cp);
+                            let indicator = if is_dirty { "[:]" } else { "[ ]" };
+                            let display_name = minimal_map
+                                .get(cp.to_path_buf())
+                                .cloned()
+                                .unwrap_or_else(|| {
+                                    cp.file_name()
+                                        .unwrap_or_else(|| "[Untitled]".to_string())
+                                });
+                            tabs.push(TabInfo {
+                                display_name,
+                                is_current: true,
+                                indicator,
+                            });
+                        } else {
+                            tabs.push(TabInfo {
+                                display_name: "[Untitled]".to_string(),
+                                is_current: true,
+                                indicator: "[-]",
+                            });
+                        }
+                    }
+
+                    let tabcount = tabs.len();
+                    if tabcount == 0 {
+                        return None;
+                    }
+
+                    // Minimum threshold for tab width so filenames don't shrink to single letters
+                    let min_tab_width = 16;
+                    let mut tabwidth = (available_width.saturating_sub(1) + tabcount / 2) / tabcount;
+                    if tabwidth < min_tab_width {
+                        tabwidth = min_tab_width;
+                    }
+
+                    let focused_idx = tabs.iter().position(|t| t.is_current).unwrap_or(0);
+                    let max_visible_tabs = (available_width / tabwidth).max(1);
+
+                    let start_idx = if tabcount <= max_visible_tabs {
+                        0
+                    } else {
+                        let half = max_visible_tabs / 2;
+                        if focused_idx <= half {
+                            0
+                        } else if focused_idx + (max_visible_tabs - half) >= tabcount {
+                            tabcount.saturating_sub(max_visible_tabs)
+                        } else {
+                            focused_idx - half
+                        }
                     };
 
-                    let mut visible_lines = all_wrapped_rows[start_row..end_row]
-                        .iter()
-                        .enumerate()
-                        .map(|(offset, row)| {
-                            let current_row_num = start_row + offset + 1;
-                            format!("{current_row_num:0width$}│{row}", width = row_num_digits)
-                        })
-                        .collect_vec();
+                    let mut line_str = String::new();
+                    let mut col = 0;
 
-                    let file_name = self
-                        .path()
-                        .map(|path| path.try_display_relative_to(context.current_working_directory()))
-                        .unwrap_or_else(|| "[Untitled]".to_string());
-                    let right_text = format!("[{file_name}]");
-
-                    let left_prefix = format!("{total_rows:0width$}│ (tab rows)", width = row_num_digits);
-                    let left_width = get_string_width(&left_prefix);
-                    let right_width = get_string_width(&right_text);
-
-                    if left_width + 1 + right_width <= available_width {
-                        let pad_spaces = available_width.saturating_sub(left_width + right_width);
-                        visible_lines.push(format!("{left_prefix}{}{right_text}", " ".repeat(pad_spaces)));
-                    } else {
-                        // If terminal is too narrow, truncate right_text to fit
-                        let remaining_w = available_width.saturating_sub(left_width + 1);
-                        let truncated_right = truncate_tab_item(&right_text, remaining_w);
-                        let pad_spaces = available_width.saturating_sub(left_width + get_string_width(&truncated_right));
-                        visible_lines.push(format!("{left_prefix}{}{truncated_right}", " ".repeat(pad_spaces)));
+                    let has_left_overflow = start_idx > 0;
+                    if has_left_overflow && available_width > 4 {
+                        line_str.push_str("< ");
+                        col += 2;
                     }
 
-                    visible_lines
+                    let mut last_drawn_index = start_idx;
+                    for (offset, tab) in tabs[start_idx..].iter().enumerate() {
+                        let current_tab_index = start_idx + offset;
+                        let is_last_tab = current_tab_index + 1 == tabcount;
+
+                        // Reserve 2 columns for " >" if this isn't the last tab in the buffer list
+                        let reserved_right = if is_last_tab { 0 } else { 2 };
+
+                        let scol = col;
+                        let separator = if scol == 0 || (has_left_overflow && offset == 0) {
+                            ""
+                        } else {
+                            "|"
+                        };
+
+                        let sep_width = get_string_width(separator);
+                        // Overhead: " " + indicator (3) + " " + label + " " = 6 chars
+                        let overhead = 6;
+                        let min_tab_space = sep_width + overhead + 1;
+
+                        // Check if there is enough space to render at least a partial tab
+                        if col + min_tab_space + reserved_right > available_width {
+                            break;
+                        }
+
+                        // room = scol - col + tabwidth - 1
+                        let room = (tabwidth as isize)
+                            .saturating_sub(sep_width as isize)
+                            .saturating_sub(overhead as isize);
+
+                        let label = &tab.display_name;
+                        let label_width = get_string_width(label);
+
+                        let fitted_label = if room > 0 && label_width > room as usize {
+                            truncate_from_left(label, room as usize)
+                        } else {
+                            label.clone()
+                        };
+
+                        // Screen edge limit: available_width - col - sep_width - overhead - reserved_right
+                        let remaining_on_screen = available_width
+                            .saturating_sub(col + sep_width + overhead + reserved_right);
+                        let final_label = if get_string_width(&fitted_label) > remaining_on_screen {
+                            truncate_from_left(&fitted_label, remaining_on_screen)
+                        } else {
+                            fitted_label
+                        };
+
+                        let tab_inner = format!(" {} {final_label} ", tab.indicator);
+                        let tab_inner_width = get_string_width(&tab_inner);
+
+                        if !separator.is_empty() {
+                            line_str.push_str(separator);
+                            col += sep_width;
+                        }
+
+                        if tab.is_current {
+                            line_str.push_str(&markup_focused_tab(&tab_inner));
+                        } else {
+                            line_str.push_str(&tab_inner);
+                        }
+                        col += tab_inner_width;
+                        last_drawn_index = current_tab_index;
+
+                        if !is_last_tab && col + min_tab_space + 2 > available_width {
+                            break;
+                        }
+                    }
+
+                    let has_right_overflow = last_drawn_index + 1 < tabcount;
+
+                    if has_right_overflow && available_width >= 2 {
+                        let pad = available_width.saturating_sub(col + 2);
+                        line_str.push_str(&" ".repeat(pad));
+                        line_str.push_str(" >");
+                    } else if col < available_width {
+                        let pad = available_width - col;
+                        line_str.push_str(&" ".repeat(pad));
+                    }
+
+                    // Title bar line displaying the full path filename
+                    let full_path = self
+                        .path()
+                        .map(|p| {
+                            if self.buffer().is_untitled() {
+                                "[Untitled]".to_string()
+                            } else {
+                                p.display_absolute()
+                            }
+                        })
+                        .unwrap_or_else(|| "[Untitled]".to_string());
+                    let full_path_text = format!("[{full_path}]");
+                    let title_bar_str = if get_string_width(&full_path_text) > available_width {
+                        truncate_from_left(&full_path_text, available_width)
+                    } else {
+                        let pad = available_width.saturating_sub(get_string_width(&full_path_text));
+                        format!("{}{full_path_text}", " ".repeat(pad))
+                    };
+
+                    vec![line_str, title_bar_str]
                 }
             }
         };

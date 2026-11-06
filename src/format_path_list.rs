@@ -21,6 +21,7 @@ fn format_path_list(
     formatted_paths.join("")
 }
 
+#[allow(dead_code)]
 pub fn get_formatted_paths(
     marked_paths: &[&AbsolutePath],
     dirty_paths: &[&AbsolutePath],

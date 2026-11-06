@@ -26,6 +26,9 @@ pub trait Frontend {
     fn previous_screen(&mut self) -> Screen;
     fn set_previous_screen(&mut self, previous_screen: Screen);
     fn set_clipboard_with_osc52(&mut self, content: &str) -> anyhow::Result<()>;
+    fn set_title(&mut self, _title: &str) -> anyhow::Result<()> {
+        Ok(())
+    }
     fn render_screen(&mut self, mut screen: Screen) -> anyhow::Result<()> {
         let cells = {
             // Only perform diff if the dimension is the same

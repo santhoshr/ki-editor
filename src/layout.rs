@@ -88,6 +88,10 @@ impl Layout {
             .unwrap_or_else(|| self.tree.root().data().component().clone())
     }
 
+    pub fn get_root_component(&self) -> Rc<RefCell<dyn Component>> {
+        self.tree.root().data().component().clone()
+    }
+
     pub fn remove_current_component(&mut self, context: &Context) -> Option<AbsolutePath> {
         let node = self.tree.get_current_node();
         let removed_path = node.data().component().borrow().path();

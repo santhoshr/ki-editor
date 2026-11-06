@@ -663,6 +663,64 @@ Verified with `cargo build`.
 **Response:**
 Committed all changes: untitled buffer creation/lifecycle with unsaved edits protection, tab order preservation, Command menu `:o`, `:b`, `:w`, picker auto-marking, and alternate file navigation.
 
+### Request 101
+> "the tab strip is not very profesional, let us make it like vim, I queried vim repo, this is what I got, let us create simple (without icon) but vim like horizontal tab strip; no need of title/count row; keep the mark/unmark indicator; before the change does the project support limited tab pages like vim and keep buffers without one to one tabs?"
+**Response:**
+1. **Architectural Answer:** Confirmed that Ki does *not* support Vim-like tab pages. In Vim, tab pages are decoupled from buffers (a tab page holds a layout of window splits, while buffers exist independently in the background). In Ki, tabs are strictly 1-to-1 with file buffers tracked in `context.marked_files` (plus any active preview buffer).
+2. **Vim-like Tabline Implementation:** In `src/components/render_editor.rs`:
+   - Replaced multi-row grid, row number prefixes (`01│`), and bottom summary indicator row (`(tab rows) [filename]`) with a single-line horizontal tabline.
+   - Removed file icons completely as requested.
+   - Preserved Ki's mark/unmark indicators: `[-]` (marked), `[÷]` (marked dirty), `[ ]` (preview), `[:]` (preview dirty).
+   - Implemented Vim's `tabwidth = (available_width - 1 + tabcount / 2) / tabcount` formula with minimum width clamp.
+   - Implemented Vim's `shorten_dir()` algorithm (keeping full filename tail, shortening each directory piece to its first character, e.g. `s/c/render_editor.rs`).
+   - Implemented Vim's left-truncation algorithm (`truncate_from_left`) when labels exceed allotted room.
+   - Windowed horizontal tab scrolling around the active tab with `< ` and ` >` overflow indicators when tabs exceed terminal columns.
+Verified with `cargo build`.
+
+### Request 102
+> "since we don't have limited tab condition, why do we need to shorten it, other than to be reasonable, as well as to be reasonable with full directory name in status bar file name?"
+> "I like disambiguated filenames"
+**Response:**
+Switched the tabline in `src/components/render_editor.rs` from aggressive directory shortening (`s/c/file.rs`) to clean **disambiguated filenames** via `shared::get_minimal_unique_paths`:
+1. Open tabs display their bare filenames by default (e.g. `main.rs`, `render_editor.rs`), maximizing visible tabs and eliminating redundant path fragments that are already visible in the status bar.
+2. Only when multiple open tabs share the same filename (e.g. `client/mod.rs` and `server/mod.rs`) does it prepend the minimal necessary parent directory components to disambiguate.
+3. Retained Vim-style target width distribution, overflow indicators, and `truncate_from_left` protection for tight screens.
+Verified with `cargo build`.
+
+### Request 103
+> "only < is shown right side did not appear, also if I open 40 files, then the tabs become single letter, there should be some minimum threshold to reduce"
+**Response:**
+Fixed both tabline issues in `src/components/render_editor.rs`:
+1. **Minimum Tab Width Threshold:** Raised minimum clamped `tabwidth` from 8 to 16 columns (`min_tab_width = 16`). This guarantees at least 9–10 characters for the filename even when 40+ files are open, preventing tabs from shrinking down to single letters.
+2. **Right Overflow Indicator (` >`):**
+   - In the tab rendering loop, reserved 2 columns (`reserved_right = 2`) whenever more tabs remain to the right, ensuring space for `" >"` is never consumed by the last rendered tab.
+   - Evaluated `has_right_overflow = last_drawn_index + 1 < tabcount`, guaranteeing that `" >"` is padded to the right margin and drawn whenever tabs overflow off the right edge.
+Verified with `cargo build`.
+
+### Request 104
+> "for some reason right indicator is not visible probably overlapped by last tab; provide title bar with full path filename"
+**Response:**
+1. **Right Indicator Soft-Wrap Fix:** Diagnosed that `soft_wrap` wraps text at `dimension.width.saturating_sub(1)`. When the tabline string was constructed using `dimension.width`, the trailing spaces and `" >"` exceeded the wrap limit by 1 column, causing `soft_wrap` to push `" >"` onto an invisible line 2. Switched `available_width = dimension.width.saturating_sub(1)` so the tabline never soft-wraps and `" >"` remains fixed at the right edge of row 1.
+2. **Title Bar with Full Path Filename:** Added a dedicated second row below the tab strip displaying the active buffer's full path filename (`path.display_absolute()`, e.g. `[/home/user/project/src/main.rs]`), padded to terminal width and styled with window title colors.
+Verified with `cargo build`.
+
+### Request 105
+> "okey move the file name from left edge to right edge; also display full title in terminal window title bar"
+**Response:**
+1. **Right-align File Name:** In `src/components/render_editor.rs`, updated the second row of the title to right-align `[{full_path}]` flush against the right margin (`format!("{}{full_path_text}", " ".repeat(pad))`).
+2. **Terminal Window Title Bar:** Added `set_title(&mut self, title: &str)` to the `Frontend` trait (`src/frontend/mod.rs`) and implemented it in `Crossterm` (`src/frontend/crossterm.rs`) using `crossterm::terminal::SetTitle`. In `src/app.rs` (`render_screen`), dynamically retrieved the active buffer's full title path (falling back to root editor or `[Untitled]`), cached in `App::last_terminal_title`, and emitted `frontend.set_title(&title)` whenever switching files.
+Verified with `cargo build`.
+
+### Request 106
+> "you there?"
+**Response:**
+Confirmed presence and reported completion of the right-aligned title bar filename and terminal window title bar integration.
+
+### Request 107
+> "commit it"
+**Response:**
+Committed changes: horizontal Vim-like tabstrip with disambiguated filenames, right-aligned full path filename title bar row, and terminal window title bar synchronization.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

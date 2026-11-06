@@ -505,8 +505,8 @@ pub fn space_editor_keymap_legend_config() -> KeymapLegendConfig {
                 Dispatch::ToEditor(DispatchEditor::ForceSave),
             ),
             Keybinding::new_undocumented(key!("c"), "Save All", Dispatch::SaveAll),
-            Keybinding::new_undocumented(key!("q"), "Quit No Save", Dispatch::QuitNoSave),
-            Keybinding::new_undocumented(key!("v"), "Quit", Dispatch::SafeQuit),
+            Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
+            Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
             Keybinding::new_undocumented(
                 key!("f"),
                 "Change Work Dir",
@@ -1076,8 +1076,8 @@ pub fn command_keymap() -> Keymap {
             "Open File (or CD)",
             Dispatch::OpenArbitraryFilePrompt,
         ),
-        Keybinding::new_undocumented(key!("q"), "Quit No Save", Dispatch::QuitNoSave),
-        Keybinding::new_undocumented(key!("v"), "Quit", Dispatch::SafeQuit),
+        Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
+        Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
     ])
 }
 

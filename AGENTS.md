@@ -599,6 +599,19 @@ Committed changes as `fix(prompt): resolve path components, suppress directory a
 **Response:**
 Committed changes as `fix(prompt): isolate prompt history from open buffers and auto-persist entries`.
 
+### Request 91
+> "swap Quit and Quit No Save from q to v and v to q"
+**Response:**
+Swapped bindings in `src/keymap.rs` for both Editor submenu (`Space j`) and Command menu (`:`):
+- `q`: Quit (`Dispatch::SafeQuit`)
+- `v`: Quit No Save (`Dispatch::QuitNoSave`)
+Updated `newdoc/index.html`. Verified with `cargo build`.
+
+### Request 92
+> "commit it"
+**Response:**
+Committed changes as `feat(keymap): swap q and v for Quit and Quit No Save`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

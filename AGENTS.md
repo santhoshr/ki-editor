@@ -612,6 +612,57 @@ Updated `newdoc/index.html`. Verified with `cargo build`.
 **Response:**
 Committed changes as `feat(keymap): swap q and v for Quit and Quit No Save`.
 
+### Request 93
+> "map h and ; in e menu to open Untitled file either side of current tab"
+**Response:**
+Added `Dispatch::OpenUntitledFile(TabSide)` with `TabSide::Left` bound to `h` (`< Untitled`) and `TabSide::Right` bound to `;` (`Untitled >`) in `buffer_keymap` (`src/keymap.rs`). In `src/app.rs`, implemented `open_untitled_file` which creates an in-memory untitled buffer (`Buffer::new_untitled`), inserts it at the current tab index (for `h`) or current index + 1 (for `;`) in `context.marked_files` via `shift_insert`, and switches focus to it. Also updated `open_file` to switch immediately to in-memory editors, and updated `save_current_buffer_content_to` so saving an untitled buffer replaces the untitled tab in place. Verified with `cargo build`.
+
+### Request 94
+> "after opening multiple tabs either side, editing the file cause tab to jump/move to right"
+> "it is resorting itself among other tab buttons in strip, don't sort these files keep them in place, also when closing all files or quiting, tab strips are empty but these unititled buffers are throwing error to be saved, never unmark untitled file needed saving"
+**Response:**
+1. **Prevent Tab Re-sorting:** Replaced `self.marked_files.insert_sorted` with `self.marked_files.insert_full` in `Context::mark_file` (`src/context.rs`), and updated `set_file_dirty_status` (`src/app.rs`) to only mark if not already marked. Tabs now preserve their exact insertion order and never re-sort when edited.
+2. **Protect Dirty Untitled Files:** Added `untitled_files: HashSet<AbsolutePath>` tracking and `is_dirty_untitled` in `Context`. Protected dirty untitled files from being unmarked or closed in `Context::unmark_path`, `Context::toggle_path_mark`, `Layout::remove_current_component`, `App::close_current_window`, `App::close_buffers`, and `App::unmark_all_others`. They remain pinned in the tab strip as long as they have unsaved changes. Verified with `cargo build`.
+
+### Request 95
+> "files that are opened with space ; remains unmarked on open"
+**Response:**
+In `Dispatch::OpenFileFromPathBuf` in `src/app.rs` (the action triggered when opening files from the fuzzy file picker via `Space ;`), added `self.context.mark_file(canonicalized_path.clone())` before `open_file`. Files opened through the file picker are now automatically marked as tabs on open. Verified with `cargo build`.
+
+### Request 96
+> "e -> m alternate file is not working, particularly among Untitled edits as well"
+**Response:**
+Diagnosed two bugs in `open_alternate_file` (`src/app.rs`):
+1. It used `if previous_path.exists()` which rejected in-memory Untitled buffers.
+2. It took `location_history_backward.last()` which often pointed to the current buffer itself (resulting in a no-op).
+Fixed by adding explicit `alternate_file: Option<AbsolutePath>` tracking in `Context`, updating it whenever focused file changes (in `open_file` and `open_untitled_file`), and toggling between the active file and alternate file in `open_alternate_file` with fallback to scanning `location_history_backward` in reverse for the nearest distinct file. Removed the `exists()` check so Untitled buffers switch seamlessly. Verified with `cargo build`.
+
+### Request 97
+> "command menu : w should close single buffer without sving, title Close No Save"
+**Response:**
+Added `Dispatch::CloseNoSave` and mapped `w` to `"Close No Save"` in `command_keymap()` (`src/keymap.rs`). Implemented `App::close_no_save` in `src/app.rs` which clears the dirty status and unregisters the untitled buffer before closing, allowing single buffers (including dirty untitled buffers) to be discarded and closed immediately without saving, focusing the nearest remaining tab. Verified with `cargo build`.
+
+### Request 98
+> "move command + f to command + o; command + b shows buffer list (same as alt + / when no split open)"
+**Response:**
+In `command_keymap()` (`src/keymap.rs`):
+1. Moved `Dispatch::OpenArbitraryFilePrompt` ("Open File (or CD)") from `f` to `o`.
+2. Added `b` mapped to `"Buffer List"` (`Dispatch::OpenFilePicker(FilePickerKind::Opened)`), opening the opened buffer picker identical to `alt + /` without a split.
+Verified with `cargo build`.
+
+### Request 99
+> "very fist file called [Untitled] is not marked resulting in any changes to it to disappear, also same [Untitled] happens when all files are closed"
+**Response:**
+1. In `App::run` (`src/app.rs`), if Ki is launched without entry paths and no session files are restored (`opened_files_count() == 0`), automatically call `self.open_untitled_file(TabSide::Right)?` so the initial buffer is a full `SuggestiveEditor`, marked as a tab (`[-] [Untitled]`), tracked in `context.untitled_files`, and safe from edits disappearing.
+2. When closing files in `close_current_window`, `close_no_save`, `close_buffers`, and `toggle_file_mark`, if all open/marked files are closed (`self.opened_files_count() == 0`), automatically spawn a fresh marked `Untitled` buffer instead of falling back to an unmanaged bare root editor.
+3. In `Context::persist_data` (`src/context.rs`), excluded in-memory untitled paths (`!untitled_files.contains(*path)`) from session persistence so ephemeral untitled buffers don't pollute saved sessions.
+Verified with `cargo build`.
+
+### Request 100
+> "commit it"
+**Response:**
+Committed all changes: untitled buffer creation/lifecycle with unsaved edits protection, tab order preservation, Command menu `:o`, `:b`, `:w`, picker auto-marking, and alternate file navigation.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

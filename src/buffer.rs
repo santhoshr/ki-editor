@@ -50,6 +50,7 @@ pub struct Buffer {
     treesitter_language: Option<tree_sitter::Language>,
     language: Option<Language>,
     path: Option<AbsolutePath>,
+    is_untitled: bool,
     highlighted_spans: HighlightedSpans,
     diagnostics: Vec<Diagnostic>,
     decorations: Vec<Decoration>,
@@ -124,6 +125,7 @@ impl Buffer {
                 })
             },
             path: None,
+            is_untitled: false,
             highlighted_spans: HighlightedSpans::default(),
             decorations: Vec::new(),
             diagnostics: Vec::new(),
@@ -142,6 +144,22 @@ impl Buffer {
         }
     }
 
+    pub fn new_untitled(path: AbsolutePath) -> Self {
+        let mut buffer = Self::new(None, "");
+        buffer.path = Some(path);
+        buffer.owner = BufferOwner::User;
+        buffer.is_untitled = true;
+        buffer
+    }
+
+    pub fn is_untitled(&self) -> bool {
+        self.is_untitled
+    }
+
+    pub fn set_is_untitled(&mut self, is_untitled: bool) {
+        self.is_untitled = is_untitled;
+    }
+
     /// Refer `BufferOwner`
     pub fn set_owner(&mut self, owner: BufferOwner) {
         self.owner = owner;
@@ -153,6 +171,9 @@ impl Buffer {
     }
 
     pub fn reload(&mut self, context: &Context, force: bool) -> anyhow::Result<Dispatches> {
+        if self.is_untitled {
+            return Ok(Dispatches::default());
+        }
         if let Some(path) = self.path() {
             if let Ok(Some(dispatches)) = self.check_conflict(context, force, &path) {
                 return Ok(dispatches);
@@ -754,6 +775,10 @@ impl Buffer {
         context: &Context,
         force: bool,
     ) -> anyhow::Result<(Dispatches, Option<AbsolutePath>)> {
+        if self.is_untitled {
+            return Ok((Dispatches::default(), None));
+        }
+
         if !force && !self.dirty(context) {
             return Ok((Dispatches::default(), self.path()));
         }

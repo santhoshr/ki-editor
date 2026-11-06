@@ -1,5 +1,5 @@
 use crate::{
-    app::{Dispatch, FilePickerKind, HistoryNavigationMovement, Scope},
+    app::{Dispatch, FilePickerKind, HistoryNavigationMovement, Scope, TabSide},
     components::{
         editor::{
             Direction, DispatchEditor, Editor, IfCurrentNotFound, Movement, PriorChange, Reveal,
@@ -1072,12 +1072,18 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
 pub fn command_keymap() -> Keymap {
     Keymap::new(&[
         Keybinding::new_undocumented(
-            key!("f"),
+            key!("o"),
             "Open File (or CD)",
             Dispatch::OpenArbitraryFilePrompt,
         ),
+        Keybinding::new_undocumented(
+            key!("b"),
+            "Buffer List",
+            Dispatch::OpenFilePicker(FilePickerKind::Opened),
+        ),
         Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
         Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
+        Keybinding::new_undocumented(key!("w"), "Close No Save", Dispatch::CloseNoSave),
     ])
 }
 
@@ -1978,6 +1984,16 @@ pub fn buffer_keymap(is_alted: bool) -> Keymap {
             possibly_alted(key!("m"), is_alted),
             "Alternate",
             Dispatch::OpenAlternateFile,
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("h"), is_alted),
+            "< Untitled",
+            Dispatch::OpenUntitledFile(TabSide::Left),
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!(";"), is_alted),
+            "Untitled >",
+            Dispatch::OpenUntitledFile(TabSide::Right),
         )))
         .collect_vec(),
     )

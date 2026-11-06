@@ -335,6 +335,8 @@ impl<T: Frontend> App<T> {
                     self.context.mark_file(first.clone());
                 }
             }
+        } else if self.opened_files_count() == 0 {
+            self.open_untitled_file(TabSide::Right)?;
         }
 
         for dispatch in dispatches {
@@ -847,6 +849,9 @@ impl<T: Frontend> App<T> {
     pub fn handle_dispatch(&mut self, dispatch: Dispatch) -> Result<(), anyhow::Error> {
         log::info!("App::handle_dispatch = {}", dispatch.variant_name());
         match dispatch {
+            Dispatch::OpenUntitledFile(side) => {
+                self.open_untitled_file(side)?;
+            }
             Dispatch::Suspend => {
                 self.suspend()?;
             }
@@ -881,7 +886,8 @@ impl<T: Frontend> App<T> {
             }
             Dispatch::OpenNewFile { path } => self.open_new_file(&path)?,
             Dispatch::OpenFileFromPathBuf { path, owner, focus } => {
-                let canonicalized_path = path.try_into()?;
+                let canonicalized_path: AbsolutePath = path.try_into()?;
+                self.context.mark_file(canonicalized_path.clone());
                 self.open_file(&canonicalized_path, owner, true, focus)?;
             }
             Dispatch::OpenFilePicker(kind) => {
@@ -1196,6 +1202,7 @@ impl<T: Frontend> App<T> {
             }
             Dispatch::QuitNoSave => self.quit_all()?,
             Dispatch::SafeQuit => self.safe_quit()?,
+            Dispatch::CloseNoSave => self.close_no_save()?,
             Dispatch::RevealInExplorer(path) => self.reveal_path_in_explorer(&path)?,
             Dispatch::RevealCurrentInExplorer => {
                 let path = self
@@ -1476,7 +1483,26 @@ impl<T: Frontend> App<T> {
     }
 
     fn close_current_window(&mut self) -> anyhow::Result<()> {
+        let current_path = self.get_current_file_path();
+        if let Some(path) = &current_path {
+            if self.context.is_dirty_untitled(path) {
+                self.show_global_info(Info::new(
+                    "Cannot Close Untitled Buffer".to_string(),
+                    format!(
+                        "The buffer {:?} has unsaved changes. Please save it before closing.",
+                        path.display_relative_to(self.context.current_working_directory())
+                            .unwrap_or(path.display_absolute())
+                    ),
+                ));
+                return Ok(());
+            }
+        }
+
         if let Some(removed_path) = self.layout.close_current_window(&self.context) {
+            if self.context.get_alternate_file() == Some(&removed_path) {
+                self.context.clear_alternate_file();
+            }
+            self.context.unregister_untitled_file(&removed_path);
             self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
                 self.layout.get_opened_files(),
             ));
@@ -1489,15 +1515,56 @@ impl<T: Frontend> App<T> {
                     break;
                 }
             }
+            if self.opened_files_count() == 0 {
+                self.open_untitled_file(TabSide::Right)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn close_no_save(&mut self) -> anyhow::Result<()> {
+        let current_path = self.get_current_file_path();
+        if let Some(path) = current_path {
+            if self.context.get_alternate_file() == Some(&path) {
+                self.context.clear_alternate_file();
+            }
+            self.context.unregister_untitled_file(&path);
+            self.context.set_file_dirty_status(&path, false);
+
+            if let Some(removed_path) = self.layout.close_current_window(&self.context) {
+                self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+                    self.layout.get_opened_files(),
+                ));
+                let mut next_path = self.context.unmark_path(removed_path).cloned();
+                while let Some(path) = next_path {
+                    if let Err(_err) = self.open_file(&path, BufferOwner::User, true, true) {
+                        next_path = self.context.unmark_path(path).cloned();
+                    } else {
+                        break;
+                    }
+                }
+                if self.opened_files_count() == 0 {
+                    self.open_untitled_file(TabSide::Right)?;
+                }
+            }
         }
         Ok(())
     }
 
     fn close_buffers(&mut self, paths: Vec<AbsolutePath>) -> anyhow::Result<()> {
         let current_path = self.get_current_file_path();
-        let current_closed = current_path.as_ref().map_or(false, |cp| paths.contains(cp));
+        let current_closed = current_path
+            .as_ref()
+            .map_or(false, |cp| paths.contains(cp) && !self.context.is_dirty_untitled(cp));
 
         for path in &paths {
+            if self.context.is_dirty_untitled(path) {
+                continue;
+            }
+            if self.context.get_alternate_file() == Some(path) {
+                self.context.clear_alternate_file();
+            }
+            self.context.unregister_untitled_file(path);
             self.context.unmark_path(path.clone());
             self.layout.remove_suggestive_editor(path);
         }
@@ -1515,6 +1582,9 @@ impl<T: Frontend> App<T> {
                     break;
                 }
             }
+            if self.opened_files_count() == 0 {
+                self.open_untitled_file(TabSide::Right)?;
+            }
         }
         Ok(())
     }
@@ -1525,11 +1595,12 @@ impl<T: Frontend> App<T> {
                 .context
                 .get_marked_files()
                 .into_iter()
-                .filter(|&path| path.clone() != current_file_path)
+                .filter(|&path| path.clone() != current_file_path && !self.context.is_dirty_untitled(path))
                 .cloned() // Cloning allows us to mutate self.context below
                 .collect();
 
             for path in paths_to_unmark {
+                self.context.unregister_untitled_file(&path);
                 self.context.unmark_path(path.clone());
                 self.layout.remove_suggestive_editor(&path);
             }
@@ -1826,6 +1897,23 @@ impl<T: Frontend> App<T> {
         store_history: bool,
         focus: bool,
     ) -> anyhow::Result<Rc<RefCell<SuggestiveEditor>>> {
+        let current_path = self.get_current_file_path();
+        if focus {
+            if let Some(cp) = current_path {
+                if &cp != path {
+                    self.context.set_alternate_file(cp);
+                }
+            }
+        }
+
+        if let Some(matching_editor) = self.layout.open_file(path, focus) {
+            if store_history {
+                self.push_current_location_into_navigation_history(true);
+                self.context.clear_forward_history();
+            }
+            return Ok(matching_editor);
+        }
+
         if !path.exists() {
             return Err(anyhow::anyhow!(
                 "The path {:?} does not exist.",
@@ -2710,11 +2798,27 @@ impl<T: Frontend> App<T> {
     }
 
     fn open_alternate_file(&mut self) -> anyhow::Result<()> {
-        if let Some(previous_location) = self.context.get_last_visited_file() {
-            let previous_path = previous_location.path.clone();
-            if previous_path.exists() {
-                self.open_file(&previous_path.clone(), BufferOwner::User, true, true)?;
+        let current_path = self.get_current_file_path();
+        let target_path = self
+            .context
+            .get_alternate_file()
+            .cloned()
+            .filter(|alt| Some(alt) != current_path.as_ref())
+            .or_else(|| {
+                self.context
+                    .location_history_backward()
+                    .iter()
+                    .rev()
+                    .map(|loc| &loc.path)
+                    .find(|path| Some(*path) != current_path.as_ref())
+                    .cloned()
+            });
+
+        if let Some(target) = target_path {
+            if let Some(cp) = current_path {
+                self.context.set_alternate_file(cp);
             }
+            let _ = self.open_file(&target, BufferOwner::User, true, true);
         }
         Ok(())
     }
@@ -3340,6 +3444,9 @@ impl<T: Frontend> App<T> {
                     break;
                 }
             }
+            if self.opened_files_count() == 0 {
+                self.open_untitled_file(TabSide::Right)?;
+            }
         }
         Ok(())
     }
@@ -3347,7 +3454,7 @@ impl<T: Frontend> App<T> {
     fn set_file_dirty_status(&mut self, path: Option<AbsolutePath>, dirty_status: bool) {
         if let Some(path) = path {
             self.context.set_file_dirty_status(&path, dirty_status);
-            if dirty_status {
+            if dirty_status && !self.context.is_marked(&path) {
                 self.context.mark_file(path);
             }
         }
@@ -4022,8 +4129,89 @@ Please consider installing it.\n\
     }
 
     fn save_current_buffer_content_to(&mut self, path: AbsolutePath) -> anyhow::Result<()> {
+        let current_path = self.get_current_file_path();
+        let is_current_untitled = self.current_component().borrow().is_untitled();
+
         path.write(&self.current_component().borrow().content())?;
+
+        if is_current_untitled {
+            if let Some(old_path) = current_path {
+                if self.context.get_alternate_file() == Some(&old_path) {
+                    self.context.set_alternate_file(path.clone());
+                }
+                self.context.unregister_untitled_file(&old_path);
+                self.layout.remove_suggestive_editor(&old_path);
+                self.context
+                    .replace_marked_file_at_same_index(&old_path, path.clone());
+            }
+        }
+
         self.open_file(&path, BufferOwner::User, true, true)?;
+        Ok(())
+    }
+
+    fn open_untitled_file(&mut self, side: TabSide) -> anyhow::Result<()> {
+        let current_path = self.get_current_file_path();
+        if let Some(cp) = &current_path {
+            self.context.set_alternate_file(cp.clone());
+        }
+        let marked_files = self.context.get_marked_files();
+        let current_index = current_path
+            .as_ref()
+            .and_then(|path| marked_files.iter().position(|p| *p == path));
+
+        let target_index = match (current_index, side) {
+            (Some(idx), TabSide::Left) => idx,
+            (Some(idx), TabSide::Right) => idx + 1,
+            (None, TabSide::Left) => 0,
+            (None, TabSide::Right) => marked_files.len(),
+        };
+
+        let cwd = self.context.current_working_directory().clone();
+        let opened_files = self.layout.get_opened_files();
+
+        let mut count = 1;
+        let untitled_path = loop {
+            let candidate_name = if count == 1 {
+                "Untitled".to_string()
+            } else {
+                format!("Untitled {count}")
+            };
+            let candidate_buf = cwd.as_ref().join(&candidate_name);
+            if let Ok(candidate_abs) = AbsolutePath::try_from(candidate_buf) {
+                if !candidate_abs.as_ref().exists()
+                    && !self.context.is_marked(&candidate_abs)
+                    && !opened_files.contains(&candidate_abs)
+                {
+                    break candidate_abs;
+                }
+            }
+            count += 1;
+        };
+
+        let buffer = Buffer::new_untitled(untitled_path.clone());
+        let buffer = Rc::new(RefCell::new(buffer));
+        let editor = SuggestiveEditor::from_buffer(
+            buffer,
+            SuggestiveEditorFilter::CurrentWord,
+            self.on_nucleo_notify(NucleoSource::SuggestiveEditor),
+        );
+        let component = Rc::new(RefCell::new(editor));
+
+        self.push_current_location_into_navigation_history(true);
+        self.context.clear_forward_history();
+
+        self.context.register_untitled_file(untitled_path.clone());
+        self.layout.add_suggestive_editor(component.clone());
+        self.context
+            .insert_marked_file_at(target_index, untitled_path.clone());
+        self.layout
+            .replace_and_focus_current_suggestive_editor(component.clone());
+
+        self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+            self.layout.get_opened_files(),
+        ));
+
         Ok(())
     }
 }
@@ -4113,10 +4301,17 @@ pub enum HistoryNavigationMovement {
     FineForward,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TabSide {
+    Left,
+    Right,
+}
+
 #[must_use]
 #[derive(Clone, Debug, PartialEq, NamedVariant)]
 /// Dispatch are for child component to request action from the root node
 pub enum Dispatch {
+    OpenUntitledFile(TabSide),
     SetTheme(crate::themes::Theme),
     SetThemeFromDescriptor(crate::themes::theme_descriptor::ThemeDescriptor),
     CloseCurrentWindow,
@@ -4206,6 +4401,7 @@ pub enum Dispatch {
     OpenMoveToIndexPrompt(Option<PriorChange>),
     SafeQuit,
     QuitNoSave,
+    CloseNoSave,
     RevealInExplorer(AbsolutePath),
     RevealCurrentInExplorer,
     OpenMovePathsPrompt,

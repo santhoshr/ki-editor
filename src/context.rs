@@ -37,6 +37,8 @@ pub struct Context {
     location_history_forward: Vec<Location>,
 
     marked_files: IndexSet<AbsolutePath>,
+    untitled_files: HashSet<AbsolutePath>,
+    alternate_file: Option<AbsolutePath>,
 
     marks: HashMap<AbsolutePath, Vec<CharIndexRange>>,
 
@@ -93,12 +95,14 @@ impl Context {
     pub fn persist_data(&mut self) {
         if let Some(persistence) = self.persistence.as_mut() {
             let current_working_directory = self.current_working_directory.to_path_buf();
+            let untitled_files = &self.untitled_files;
             persistence.set_workspace_session(
                 current_working_directory,
                 WorkspaceSession {
                     marked_files: self
                         .marked_files
                         .iter()
+                        .filter(|path| !untitled_files.contains(*path))
                         .map(|path| path.to_path_buf().clone())
                         .collect_vec(),
                     marks: self
@@ -246,10 +250,6 @@ impl Context {
             .extend_items(items, &self.current_working_directory);
     }
 
-    pub(crate) fn get_last_visited_file(&self) -> Option<&Location> {
-        self.location_history_backward.last()
-    }
-
     pub(crate) fn indent_width(&self) -> usize {
         self.indent_width
     }
@@ -336,6 +336,8 @@ impl Context {
             location_history_backward: Vec::new(),
             location_history_forward: Vec::new(),
             marked_files,
+            untitled_files: HashSet::new(),
+            alternate_file: None,
             is_running_as_embedded,
             persistence,
             marks,
@@ -558,6 +560,10 @@ impl Context {
     /// then we return the nearest neighbor.
     pub fn toggle_path_mark(&mut self, path: AbsolutePath) -> Option<&AbsolutePath> {
         if let Some(index) = self.marked_files.get_index_of(&path) {
+            if self.is_dirty_untitled(&path) {
+                // Never unmark untitled file needed saving
+                return self.marked_files.get(&path);
+            }
             self.unmark_path_impl(index, path)
         } else {
             let _ = self.mark_file(path);
@@ -566,11 +572,15 @@ impl Context {
     }
 
     pub fn mark_file(&mut self, path: AbsolutePath) -> (usize, bool) {
-        self.marked_files.insert_sorted(path)
+        self.marked_files.insert_full(path)
     }
 
     /// Returns true if the path to be removed is in the list
     pub fn unmark_path(&mut self, path: AbsolutePath) -> Option<&AbsolutePath> {
+        if self.is_dirty_untitled(&path) {
+            // Never unmark untitled file needed saving
+            return self.marked_files.get(&path);
+        }
         if let Some(index) = self.marked_files.get_index_of(&path) {
             self.unmark_path_impl(index, path)
         } else {
@@ -588,13 +598,73 @@ impl Context {
             })
     }
 
+    pub fn get_alternate_file(&self) -> Option<&AbsolutePath> {
+        self.alternate_file.as_ref()
+    }
+
+    pub fn set_alternate_file(&mut self, path: AbsolutePath) {
+        self.alternate_file = Some(path);
+    }
+
+    pub fn clear_alternate_file(&mut self) {
+        self.alternate_file = None;
+    }
+
+    pub fn location_history_backward(&self) -> &Vec<Location> {
+        &self.location_history_backward
+    }
+
     pub fn is_running_as_embedded(&self) -> bool {
         self.is_running_as_embedded
     }
 
+    pub fn register_untitled_file(&mut self, path: AbsolutePath) {
+        self.untitled_files.insert(path);
+    }
+
+    pub fn unregister_untitled_file(&mut self, path: &AbsolutePath) {
+        self.untitled_files.remove(path);
+    }
+
+    pub fn is_untitled_file(&self, path: &AbsolutePath) -> bool {
+        self.untitled_files.contains(path)
+    }
+
+    pub fn is_dirty_untitled(&self, path: &AbsolutePath) -> bool {
+        self.untitled_files.contains(path)
+            && self
+                .get_file_dirty_status(path)
+                .copied()
+                .unwrap_or(false)
+    }
+
+    pub fn is_marked(&self, path: &AbsolutePath) -> bool {
+        self.marked_files.contains(path)
+    }
+
+    pub fn insert_marked_file_at(&mut self, index: usize, path: AbsolutePath) {
+        let index = index.min(self.marked_files.len());
+        self.marked_files.shift_insert(index, path);
+    }
+
+    pub fn replace_marked_file_at_same_index(&mut self, from: &AbsolutePath, to: AbsolutePath) {
+        if let Some(index) = self.marked_files.get_index_of(from) {
+            self.marked_files.shift_remove(from);
+            let index = index.min(self.marked_files.len());
+            self.marked_files.shift_insert(index, to);
+        } else {
+            self.marked_files.insert(to);
+        }
+    }
+
     pub fn rename_path_mark(&mut self, from: &AbsolutePath, to: &AbsolutePath) {
-        self.marked_files.shift_remove(from);
-        self.marked_files.insert_sorted(to.clone());
+        if let Some(index) = self.marked_files.get_index_of(from) {
+            self.marked_files.shift_remove(from);
+            let index = index.min(self.marked_files.len());
+            self.marked_files.shift_insert(index, to.clone());
+        } else {
+            self.marked_files.insert(to.clone());
+        }
     }
 }
 

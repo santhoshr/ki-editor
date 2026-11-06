@@ -107,6 +107,10 @@ pub trait Component: Any + AnyComponent {
         self.editor().buffer().path()
     }
 
+    fn is_untitled(&self) -> bool {
+        self.editor().buffer().is_untitled()
+    }
+
     #[cfg(test)]
     /// This is for writing tests for components.
     fn handle_events(&mut self, events: &[event::KeyEvent]) -> anyhow::Result<Dispatches> {

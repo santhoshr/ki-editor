@@ -482,6 +482,18 @@ Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.
 2. In `src/themes/theme_descriptor.rs`, made `THEMES` dynamically reloadable via `RwLock`, and added `reload_themes()` which rescans custom themes from both `~/.config/ki/themes/*.json` and `.ki/themes/*.json`.
 3. In `App::open_theme_picker` (`src/app.rs`), called `crate::themes::theme_descriptor::reload_themes()` whenever the theme picker opens.
 
+### Request 74
+> "create a new Momentary layer : (shift+;) called first command q Quit No Save v Quit (like Space -> f)"
+> "it is called Command not first command"
+> "Like * Pick Keyboard \ Leader  add shift+; (:) Command text to Space HUD info"
+**Response:**
+1. Added a new momentary layer bound to `:` (`key!(":")` / `shift+;`) in `keymap_others` (`src/keymap.rs`):
+   - Layer title / name: `"Command"`
+   - `q`: Quit No Save (`Dispatch::QuitNoSave`)
+   - `v`: Quit (`Dispatch::SafeQuit`)
+2. In `src/components/editor_keymap_printer.rs`, added `": Command"` to `exmatrix_keybindings` alongside `"* Pick Keyboard"` and `"\\ Leader"`, so it displays on the Space HUD footer info row.
+3. Compiled and verified via `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

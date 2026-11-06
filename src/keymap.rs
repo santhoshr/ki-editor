@@ -1064,8 +1064,28 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
     .to_vec()
 }
 
+pub fn command_keymap() -> Keymap {
+    Keymap::new(&[
+        Keybinding::new_undocumented(key!("q"), "Quit No Save", Dispatch::QuitNoSave),
+        Keybinding::new_undocumented(key!("v"), "Quit", Dispatch::SafeQuit),
+    ])
+}
+
+pub fn command_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "Command".to_string(),
+        keymap: command_keymap(),
+    }
+}
+
 pub fn keymap_others() -> Vec<Keybinding> {
     [
+        Keybinding::momentary_layer(MomentaryLayer {
+            event: key!(":"),
+            name: "Command".to_string(),
+            config: command_keymap_legend_config(),
+            on_tap: None,
+        }),
         Keybinding::new_undocumented(
             key!("space"),
             "Space",

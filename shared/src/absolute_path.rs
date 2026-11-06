@@ -49,11 +49,30 @@ impl TryFrom<PathBuf> for AbsolutePath {
     type Error = anyhow::Error;
 
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
-        Ok(Self(if value.is_relative() {
-            std::env::current_dir()?.join(value)
+        let path = if let Ok(stripped) = value.strip_prefix("~") {
+            if let Ok(home) = etcetera::home_dir() {
+                let stripped_str = stripped.to_string_lossy();
+                let clean = stripped_str.trim_start_matches('/').trim_start_matches('\\');
+                if clean.is_empty() {
+                    home
+                } else {
+                    home.join(clean)
+                }
+            } else {
+                value
+            }
         } else {
             value
-        }))
+        };
+
+        let full = if path.is_relative() {
+            std::env::current_dir()?.join(path)
+        } else {
+            path
+        };
+
+        let normalized = full.components().as_path().to_path_buf();
+        Ok(Self(normalized))
     }
 }
 
@@ -121,6 +140,10 @@ impl AbsolutePath {
     pub fn display_relative_to(&self, other: &AbsolutePath) -> anyhow::Result<String> {
         let relative = self.0.strip_prefix(&other.0)?;
         Ok(relative.display().to_string())
+    }
+
+    pub fn home_dir() -> anyhow::Result<PathBuf> {
+        Ok(etcetera::home_dir()?)
     }
 
     /// If the path is relative to home, format it relative to the home directory with

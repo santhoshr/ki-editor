@@ -1398,6 +1398,13 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenChangeWorkingDirectoryPrompt => {
                 self.open_change_working_directory_prompt()?;
             }
+            Dispatch::OpenArbitraryFilePrompt => {
+                self.layout.close_keymap_legend();
+                self.layout.close_app_keymap_legend();
+                self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
+                self.keymap_override = None;
+                self.open_arbitrary_file_prompt()?;
+            }
             Dispatch::OpenQuickfixItemsPicker => self.open_quickfix_item_picker()?,
             Dispatch::RaiseFormatterNotExist(formatter_error) => {
                 self.raise_formatter_error(formatter_error)?;
@@ -3900,6 +3907,23 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
         )
     }
 
+    fn open_arbitrary_file_prompt(&mut self) -> anyhow::Result<()> {
+        self.open_prompt(
+            PromptConfig::new(
+                "Open File (or CD)".to_string(),
+                PromptOnEnter::ParseCurrentLine {
+                    parser: DispatchParser::OpenArbitraryFile,
+                    history_key: PromptHistoryKey::OpenFile,
+                    current_line: None,
+                    suggested_items: Vec::new(),
+                },
+            )
+            .set_on_change(Some(
+                PromptOnChangeDispatch::UpdateSuggestedItemsWithChildPathsAndFiles,
+            )),
+        )
+    }
+
     fn working_directory(&self) -> &AbsolutePath {
         self.context.current_working_directory()
     }
@@ -4306,6 +4330,7 @@ pub enum Dispatch {
     ToggleOrOpenPaths,
     ChangeWorkingDirectory(AbsolutePath),
     OpenChangeWorkingDirectoryPrompt,
+    OpenArbitraryFilePrompt,
     OpenQuickfixItemsPicker,
     RaiseFormatterNotExist(FormatterCommand),
     OpenFileExplorer,
@@ -4481,6 +4506,7 @@ pub enum DispatchParser {
     Null,
     ChangeWorkingDirectory,
     SaveAs,
+    OpenArbitraryFile,
 }
 
 impl DispatchParser {
@@ -4586,6 +4612,20 @@ impl DispatchParser {
                 Ok(Dispatches::one(Dispatch::SaveCurrentBufferContentTo(
                     AbsolutePath::try_from(text)?,
                 )))
+            }
+            DispatchParser::OpenArbitraryFile => {
+                let text = text.trim();
+                if text.is_empty() {
+                    return Ok(Dispatches::default());
+                }
+                let path = AbsolutePath::try_from(text)?;
+                if std::path::PathBuf::from(path.display_absolute()).is_dir() {
+                    Ok(Dispatches::one(Dispatch::ChangeWorkingDirectory(path)))
+                } else {
+                    Ok(Dispatches::one(Dispatch::OpenAndMarkFiles(
+                        NonEmpty::new(path),
+                    )))
+                }
             }
         }
     }

@@ -1066,6 +1066,11 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
 
 pub fn command_keymap() -> Keymap {
     Keymap::new(&[
+        Keybinding::new_undocumented(
+            key!("f"),
+            "Open File (or CD)",
+            Dispatch::OpenArbitraryFilePrompt,
+        ),
         Keybinding::new_undocumented(key!("q"), "Quit No Save", Dispatch::QuitNoSave),
         Keybinding::new_undocumented(key!("v"), "Quit", Dispatch::SafeQuit),
     ])
@@ -1080,12 +1085,11 @@ pub fn command_keymap_legend_config() -> KeymapLegendConfig {
 
 pub fn keymap_others() -> Vec<Keybinding> {
     [
-        Keybinding::momentary_layer(MomentaryLayer {
-            event: key!(":"),
-            name: "Command".to_string(),
-            config: command_keymap_legend_config(),
-            on_tap: None,
-        }),
+        Keybinding::new_undocumented(
+            key!(":"),
+            "Command",
+            Dispatch::ShowMenu(command_keymap_legend_config()),
+        ),
         Keybinding::new_undocumented(
             key!("space"),
             "Space",

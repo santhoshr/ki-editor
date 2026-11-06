@@ -494,6 +494,51 @@ Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.
 2. In `src/components/editor_keymap_printer.rs`, added `": Command"` to `exmatrix_keybindings` alongside `"* Pick Keyboard"` and `"\\ Leader"`, so it displays on the Space HUD footer info row.
 3. Compiled and verified via `cargo build`.
 
+### Request 75
+> "in Command layer f should open arbitary files, remember history but text input should be new line, user can go back to previous (like existing search) show automcomplete (like existing change directory)"
+> "when I press f the HUD should close; there is error that says the path "" is not a file after selecting a file; giving ~ auto complete blanks out"
+**Response:**
+1. Bound `f` in `command_keymap()` (`src/keymap.rs`) to `[Dispatch::CloseKeymapLegend, Dispatch::OpenArbitraryFilePrompt]`, immediately dismissing the momentary HUD when opening the file prompt.
+2. Fixed `the path "" is not a file`: When a completion dropdown item is active, pressing `Enter` now takes the focused dropdown item's path rather than the empty query text buffer line.
+3. Fixed `~` path autocomplete and resolution: Expanded `AbsolutePath::try_from(PathBuf)` and `PromptOnChangeDispatch` to resolve `~` to `etcetera::home_dir()`, enabling full home directory autocompletion and path resolution.
+4. Verified and compiled with `cargo build`.
+
+### Request 76
+> "let us keep it momentary key, create a setting in config the default is empty, if it is configured to one of Command menu functionality like, 'f' or 'q' or 'v' then it should perform it on tap, otherwise on hold user can invoke other key functions, he can also do a space toggle to make it menu; btw still HUD is stuck on f press, also give ~/ the autocompletions starts to flash but nothing is shown"
+> "if it is directory make it Change Work Dir action just like if user did space j f, and call the action name from Open File to Open File (or CD)"
+**Response:**
+1. Kept `:` as a momentary layer in `src/keymap.rs`. Added `command_tap_action: Option<String>` in `src/config.rs`, `src/config/lenient.rs`, and `src/config_default.json`. If configured to `"f"`, `"q"`, or `"v"`, tapping `:` triggers that action; default is `null` (no tap action).
+2. Enabled Space-locking into Menu: In `MomentaryLayerKeymapOverride::handle_press` (`src/keymap_override/momentary_layer/mod.rs`), pressing `Space` converts the active momentary layer into a persistent menu via `Dispatch::ShowMenu`.
+3. Fixed stuck HUD on `f`: In `Dispatch::OpenArbitraryFilePrompt` (`src/app.rs`), explicitly closed keymap legend and cleared keymap override before opening the prompt.
+4. Fixed `~/` autocomplete blanking/flashing: In `src/components/prompt.rs`, formatted candidate items to match user query scope (`~/...` for home, relative paths for cwd, absolute paths for `/`), ensuring Nucleo fuzzy matching succeeds without dismissing the dropdown.
+5. Directory CD behavior: In `DispatchParser::OpenArbitraryFile` (`src/app.rs`), if the selected/entered path is a directory, it dispatches `Dispatch::ChangeWorkingDirectory(path)` (like `Space j f`). Renamed action to `"Open File (or CD)"` in `keymap.rs` and the prompt title.
+6. Compiled and verified with `cargo build`.
+
+### Request 77
+> "I have adeddd command tap action but still it is showing as menu not as momentary layer and executed the action on tap; in search picker I was able to escape inside to and choose mode for e.g. line mode and navigate history in this picker I'm not able to it"
+**Response:**
+1. Fixed momentary release matching for shifted punctuation: In `MomentaryLayerKeymapOverride::handle_release` (`src/keymap_override/momentary_layer/mod.rs`), terminals send the unshifted physical key release code `';'` for Shift+; (`:`). Added `is_matching_release_char` to match pairs like `(':', ';')`, allowing the release event to match and trigger `tap()` immediately instead of staying locked open as a menu.
+2. Seeded prompt history for `OpenFile`: In `src/context.rs`, if `get_prompt_history(PromptHistoryKey::OpenFile)` is empty, it returns the workspace's marked files, ensuring the buffer contains history lines right away. Escaping into Normal mode now allows selecting Line mode (`a`) and navigating up through previous files (`i`/`k`) and submitting on `Enter`.
+3. Compiled and verified with `cargo build`.
+
+### Request 78
+> "remove the single key mapping tapping let us keep it as menu, until better idea comes along, it doesn't fit well, remove config setting and tap action, make it menu by default and no need for space lock"
+**Response:**
+1. Reverted momentary layer tapping, release matching, and space lock changes in `src/keymap_override/momentary_layer/mod.rs`.
+2. Removed `command_tap_action` from `src/config.rs`, `src/config/lenient.rs`, and `src/config_default.json`.
+3. Bound `:` directly as a standard menu (`Keybinding::new_undocumented(key!(":"), "Command", Dispatch::ShowMenu(command_keymap_legend_config()))`) in `src/keymap.rs`. Pressing `:` opens the `: Command` menu by default, dismissible with `Space` or `Esc`.
+4. Verified clean compilation via `cargo build`.
+
+### Request 79
+> "in Command menu text are shown twice"
+**Response:**
+Removed uppercase binding duplicates (`F`, `Q`, `V`) from `command_keymap()` in `src/keymap.rs`. The Command menu now cleanly displays each item once (`f`: Open File (or CD), `q`: Quit No Save, `v`: Quit). Verified with `cargo build`.
+
+### Request 80
+> "commit it"
+**Response:**
+Committed all changes implementing the Command menu (`:`), "Open File (or CD)" prompt with `~` path autocomplete, and directory CD action support.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

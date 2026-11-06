@@ -56,6 +56,7 @@ pub enum PromptOnChangeDispatch {
     RequestWorkspaceSymbol(AbsolutePath),
     SetIncrementalSearchConfig { component_id: ComponentId },
     UpdateSuggestedItemsWithChildPaths,
+    UpdateSuggestedItemsWithChildPathsAndFiles,
 }
 
 impl PromptOnChangeDispatch {
@@ -81,11 +82,15 @@ impl PromptOnChangeDispatch {
                 })
             }
             PromptOnChangeDispatch::UpdateSuggestedItemsWithChildPaths => {
-                let path = PathBuf::from(&context.current_line);
-                let path = if path.is_dir() {
-                    Some(path.as_path())
+                let expanded_line = if let Ok(abs) = AbsolutePath::try_from(&context.current_line) {
+                    PathBuf::from(abs.display_absolute())
                 } else {
-                    path.parent()
+                    PathBuf::from(&context.current_line)
+                };
+                let path = if expanded_line.is_dir() {
+                    Some(expanded_line.as_path())
+                } else {
+                    expanded_line.parent()
                 };
                 if let Some(path) = path {
                     if let Ok(paths) = get_child_directories(path) {
@@ -105,8 +110,134 @@ impl PromptOnChangeDispatch {
                     Dispatches::default()
                 }
             }
+            PromptOnChangeDispatch::UpdateSuggestedItemsWithChildPathsAndFiles => {
+                let items = get_child_paths_and_files_for_prompt(&context.current_line);
+                if items.is_empty() {
+                    Dispatches::default()
+                } else {
+                    Dispatches::one(Dispatch::ToSuggestiveEditor(
+                        DispatchSuggestiveEditor::Completion(Completion {
+                            items,
+                            trigger_characters: Vec::new(),
+                        }),
+                    ))
+                }
+            }
         }
     }
+}
+
+fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
+    let line = line.trim();
+    let home_dir = AbsolutePath::home_dir().ok();
+
+    let (lookup_path, is_home_scoped) = if line.is_empty() {
+        (
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            false,
+        )
+    } else if line == "~" || line == "~/" {
+        let p = home_dir.clone().unwrap_or_else(|| PathBuf::from("."));
+        (p, true)
+    } else if let Some(rest) = line.strip_prefix("~/") {
+        let base = if let Some(home) = &home_dir {
+            home.join(rest)
+        } else {
+            PathBuf::from(line)
+        };
+        let dir = if line.ends_with('/') && base.is_dir() {
+            base
+        } else {
+            base.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("."))
+        };
+        (dir, true)
+    } else if line.starts_with('/') {
+        let base = PathBuf::from(line);
+        let dir = if line.ends_with('/') && base.is_dir() {
+            base
+        } else {
+            base.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
+        };
+        (dir, false)
+    } else {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let base = cwd.join(line);
+        let dir = if line.ends_with('/') && base.is_dir() {
+            base
+        } else {
+            base.parent().map(|p| p.to_path_buf()).unwrap_or(cwd)
+        };
+        (dir, false)
+    };
+
+    let Ok(entries) = std::fs::read_dir(&lookup_path) else {
+        return Vec::new();
+    };
+
+    let mut formatted_items = Vec::new();
+
+    for entry in entries.filter_map(|e| e.ok()) {
+        let path = entry.path();
+        let is_dir = path.is_dir();
+
+        let display_str = if is_home_scoped {
+            if let Some(home) = &home_dir {
+                if let Ok(rel) = path.strip_prefix(home) {
+                    if rel.as_os_str().is_empty() {
+                        "~/".to_string()
+                    } else if is_dir {
+                        format!("~/{}/", rel.display())
+                    } else {
+                        format!("~/{}", rel.display())
+                    }
+                } else if is_dir {
+                    format!("{}/", path.display())
+                } else {
+                    path.display().to_string()
+                }
+            } else if is_dir {
+                format!("{}/", path.display())
+            } else {
+                path.display().to_string()
+            }
+        } else if line.starts_with('/') {
+            if is_dir {
+                format!("{}/", path.display())
+            } else {
+                path.display().to_string()
+            }
+        } else {
+            // Relative
+            if let Ok(cwd) = std::env::current_dir() {
+                if let Ok(rel) = path.strip_prefix(&cwd) {
+                    if rel.as_os_str().is_empty() {
+                        "./".to_string()
+                    } else if is_dir {
+                        format!("{}/", rel.display())
+                    } else {
+                        rel.display().to_string()
+                    }
+                } else if is_dir {
+                    format!("{}/", path.display())
+                } else {
+                    path.display().to_string()
+                }
+            } else if is_dir {
+                format!("{}/", path.display())
+            } else {
+                path.display().to_string()
+            }
+        };
+
+        formatted_items.push(display_str);
+    }
+
+    formatted_items.sort();
+
+    formatted_items
+        .into_iter()
+        .map(DropdownItem::new)
+        .collect()
 }
 
 fn get_child_directories(path: &Path) -> anyhow::Result<Vec<AbsolutePath>> {
@@ -460,7 +591,15 @@ impl Component for Prompt {
                         history_key: prompt_history_key,
                         ..
                     } => {
-                        let entry = self.editor().current_line()?;
+                        let entry = if self.editor.completion_dropdown_opened() {
+                            if let Some(item) = self.editor.completion_dropdown_current_item() {
+                                item.display()
+                            } else {
+                                self.editor().current_line()?
+                            }
+                        } else {
+                            self.editor().current_line()?
+                        };
                         parser.parse(&entry)?.append(Dispatch::PushPromptHistory {
                             key: *prompt_history_key,
                             line: entry.clone(),

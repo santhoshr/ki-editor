@@ -3106,6 +3106,7 @@ impl<T: Frontend> App<T> {
     }
 
     fn open_theme_picker(&mut self) -> anyhow::Result<()> {
+        crate::themes::theme_descriptor::reload_themes();
         self.open_prompt(
             PromptConfig::new(
                 "Theme".to_string(),

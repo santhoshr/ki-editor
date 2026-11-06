@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::{
+    collections::HashMap,
+    sync::{LazyLock, RwLock},
+};
 
 use super::{from_zed_theme, very_dark, vscode_dark, vscode_light, Theme};
 use zed_theme::get_zed_themes;
@@ -12,7 +15,7 @@ impl ThemeDescriptor {
     }
 
     pub fn to_theme(&self) -> Theme {
-        let theme_map = &*THEMES;
+        let theme_map = THEMES.read().unwrap();
         theme_map
             .get(&self.0)
             .expect("Theme descriptor had no matching theme?")
@@ -26,7 +29,7 @@ impl Default for ThemeDescriptor {
     }
 }
 
-static THEMES: LazyLock<HashMap<String, Theme>> = LazyLock::new(|| {
+fn load_themes_from_disk() -> HashMap<String, Theme> {
     let mut themes = HashMap::new();
 
     // Non-zed builtin themes
@@ -46,37 +49,45 @@ static THEMES: LazyLock<HashMap<String, Theme>> = LazyLock::new(|| {
         let global_glob_os_string = crate::config::ki_global_directory()
             .join("themes/*.json")
             .into_os_string();
-        let global_glob = global_glob_os_string
-            .to_str()
-            .expect("Not able to convert global glob os string to str");
-
-        zed_theme::get_custom_themes(global_glob)
-            .into_iter()
-            .for_each(|(name, theme)| {
-                themes.insert(name, from_zed_theme::from_theme_content(theme));
-            });
+        if let Some(global_glob) = global_glob_os_string.to_str() {
+            zed_theme::get_custom_themes(global_glob)
+                .into_iter()
+                .for_each(|(name, theme)| {
+                    themes.insert(name, from_zed_theme::from_theme_content(theme));
+                });
+        }
 
         // Zed .ki/themes/ directory loaded themes
         let workspace_glob_os_string = crate::config::ki_workspace_directory()
             .map(|path| path.join("themes/*.json").into_os_string());
 
         if let Ok(workspace_glob_os_string) = workspace_glob_os_string {
-            let workspace_glob = workspace_glob_os_string
-                .to_str()
-                .expect("Not able to convert workspace glob os string to str");
-            zed_theme::get_custom_themes(workspace_glob)
-                .into_iter()
-                .for_each(|(name, theme)| {
-                    themes.insert(name, from_zed_theme::from_theme_content(theme));
-                });
+            if let Some(workspace_glob) = workspace_glob_os_string.to_str() {
+                zed_theme::get_custom_themes(workspace_glob)
+                    .into_iter()
+                    .for_each(|(name, theme)| {
+                        themes.insert(name, from_zed_theme::from_theme_content(theme));
+                    });
+            }
         };
     }
 
     themes
-});
+}
+
+static THEMES: LazyLock<RwLock<HashMap<String, Theme>>> =
+    LazyLock::new(|| RwLock::new(load_themes_from_disk()));
+
+pub fn reload_themes() {
+    let reloaded = load_themes_from_disk();
+    if let Ok(mut lock) = THEMES.write() {
+        *lock = reloaded;
+    }
+}
 
 pub fn all() -> Vec<ThemeDescriptor> {
-    THEMES.keys().cloned().map(ThemeDescriptor).collect()
+    let lock = THEMES.read().unwrap();
+    lock.keys().cloned().map(ThemeDescriptor).collect()
 }
 
 #[cfg(test)]

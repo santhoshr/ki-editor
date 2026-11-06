@@ -26,18 +26,18 @@ pub fn get_zed_themes() -> HashMap<String, ThemeContent> {
 }
 
 pub fn get_custom_themes(themes_glob: &str) -> HashMap<String, ThemeContent> {
-    let theme_families: Vec<ThemeFamilyContent> = glob::glob(themes_glob)
-        .expect("Failed to read glob pattern")
-        .map(|entry| match entry {
+    let glob_paths = match glob::glob(themes_glob) {
+        Ok(paths) => paths,
+        Err(_) => return HashMap::new(),
+    };
+
+    let theme_families: Vec<ThemeFamilyContent> = glob_paths
+        .filter_map(|entry| match entry {
             Ok(path) => {
-                let file = fs::File::open(&path)
-                    .unwrap_or_else(|error| panic!("Failed to read file {path:?}, error: {error:?}"));
-                match serde_json_lenient::from_reader(file) {
-                    Ok(content) => content,
-                    Err(error) =>panic!("Invalid JSON syntax in theme definition.\n\tPath: {path:?}\n\t Error: {error:?}"),
-                }
+                let file = fs::File::open(&path).ok()?;
+                serde_json_lenient::from_reader(file).ok()
             }
-            Err(error) => panic!("Failed to read glob entry path. Error: {error:?}"),
+            Err(_) => None,
         })
         .collect();
 

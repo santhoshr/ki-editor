@@ -475,6 +475,13 @@ Updated [newdoc/index.html](file:///home/santh/Developer/ki-editor/newdoc/index.
 2. In `Layout::remove_current_component`, called `self.tree.remove_all_root_children()` before restoring `fallback_editor`, ensuring `FileExplorer` is completely cleared and the restored editor occupies the full screen as a single window.
 3. Compiled successfully via `cargo build`.
 
+### Request 73
+> "make color picker to reload colors from disk everytime, incase of error/json issue, ignore silently it show up on next startup"
+**Response:**
+1. In `zed_theme/src/lib.rs` (`get_custom_themes`), removed the panic on invalid JSON/syntax and failed file opens; replaced with `filter_map` so corrupted, half-written, or invalid JSON files are ignored silently without crashing.
+2. In `src/themes/theme_descriptor.rs`, made `THEMES` dynamically reloadable via `RwLock`, and added `reload_themes()` which rescans custom themes from both `~/.config/ki/themes/*.json` and `.ki/themes/*.json`.
+3. In `App::open_theme_picker` (`src/app.rs`), called `crate::themes::theme_descriptor::reload_themes()` whenever the theme picker opens.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

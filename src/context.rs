@@ -560,8 +560,8 @@ impl Context {
     /// then we return the nearest neighbor.
     pub fn toggle_path_mark(&mut self, path: AbsolutePath) -> Option<&AbsolutePath> {
         if let Some(index) = self.marked_files.get_index_of(&path) {
-            if self.is_dirty_untitled(&path) {
-                // Never unmark untitled file needed saving
+            if self.is_dirty(&path) {
+                // Never unmark file needed saving
                 return self.marked_files.get(&path);
             }
             self.unmark_path_impl(index, path)
@@ -577,8 +577,8 @@ impl Context {
 
     /// Returns true if the path to be removed is in the list
     pub fn unmark_path(&mut self, path: AbsolutePath) -> Option<&AbsolutePath> {
-        if self.is_dirty_untitled(&path) {
-            // Never unmark untitled file needed saving
+        if self.is_dirty(&path) {
+            // Never unmark file needed saving
             return self.marked_files.get(&path);
         }
         if let Some(index) = self.marked_files.get_index_of(&path) {
@@ -630,12 +630,14 @@ impl Context {
         self.untitled_files.contains(path)
     }
 
+    pub fn is_dirty(&self, path: &AbsolutePath) -> bool {
+        self.get_file_dirty_status(path)
+            .copied()
+            .unwrap_or(false)
+    }
+
     pub fn is_dirty_untitled(&self, path: &AbsolutePath) -> bool {
-        self.untitled_files.contains(path)
-            && self
-                .get_file_dirty_status(path)
-                .copied()
-                .unwrap_or(false)
+        self.untitled_files.contains(path) && self.is_dirty(path)
     }
 
     pub fn is_marked(&self, path: &AbsolutePath) -> bool {

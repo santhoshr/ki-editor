@@ -721,6 +721,21 @@ Confirmed presence and reported completion of the right-aligned title bar filena
 **Response:**
 Committed changes: horizontal Vim-like tabstrip with disambiguated filenames, right-aligned full path filename title bar row, and terminal window title bar synchronization.
 
+### Request 108
+> "if file is modified e -> n close it"
+> "if file is modified e -> n close it for regular buffers, untitled work properly"
+**Response:**
+Diagnosed why `e -> n` (`Close` / `Dispatch::CloseCurrentWindow`) closed modified regular buffers: `close_current_window` only checked `context.is_dirty_untitled(path)` rather than any modified buffer (`context.is_dirty(path)`).
+1. Added `Context::is_dirty` in `src/context.rs` to inspect `file_dirty_status`.
+2. Updated `App::close_current_window` (`src/app.rs`) to check `context.is_dirty(path)` and block closing with an informative popup (`"Cannot Close Buffer: The buffer {:?} has unsaved changes. Please save it before closing."`).
+3. Updated `Layout::remove_current_component` (`src/layout.rs`), `Context::toggle_path_mark`, `Context::unmark_path`, `App::close_buffers`, and `App::unmark_all_others` to protect any dirty buffer from being inadvertently closed or unmarked. Force-closing without saving remains supported via `:w` (`close_no_save`).
+Verified with `cargo build`.
+
+### Request 109
+> "commit it"
+**Response:**
+Committed changes: protected all modified buffers from being closed or unmarked with unsaved edits via `e -> n` and mark toggling.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -96,7 +96,7 @@ impl Layout {
         let node = self.tree.get_current_node();
         let removed_path = node.data().component().borrow().path();
         if let Some(path) = &removed_path {
-            if context.is_dirty_untitled(path) {
+            if context.is_dirty(path) {
                 return None;
             }
             if let Some(last) = &self.last_focused_suggestive_editor {

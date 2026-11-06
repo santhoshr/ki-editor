@@ -1511,9 +1511,9 @@ impl<T: Frontend> App<T> {
     fn close_current_window(&mut self) -> anyhow::Result<()> {
         let current_path = self.get_current_file_path();
         if let Some(path) = &current_path {
-            if self.context.is_dirty_untitled(path) {
+            if self.context.is_dirty(path) {
                 self.show_global_info(Info::new(
-                    "Cannot Close Untitled Buffer".to_string(),
+                    "Cannot Close Buffer".to_string(),
                     format!(
                         "The buffer {:?} has unsaved changes. Please save it before closing.",
                         path.display_relative_to(self.context.current_working_directory())
@@ -1581,10 +1581,10 @@ impl<T: Frontend> App<T> {
         let current_path = self.get_current_file_path();
         let current_closed = current_path
             .as_ref()
-            .map_or(false, |cp| paths.contains(cp) && !self.context.is_dirty_untitled(cp));
+            .map_or(false, |cp| paths.contains(cp) && !self.context.is_dirty(cp));
 
         for path in &paths {
-            if self.context.is_dirty_untitled(path) {
+            if self.context.is_dirty(path) {
                 continue;
             }
             if self.context.get_alternate_file() == Some(path) {
@@ -1621,7 +1621,7 @@ impl<T: Frontend> App<T> {
                 .context
                 .get_marked_files()
                 .into_iter()
-                .filter(|&path| path.clone() != current_file_path && !self.context.is_dirty_untitled(path))
+                .filter(|&path| path.clone() != current_file_path && !self.context.is_dirty(path))
                 .cloned() // Cloning allows us to mutate self.context below
                 .collect();
 

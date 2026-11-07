@@ -17,8 +17,8 @@ use crate::{
     git::{hunk::SimpleHunkKind, DiffMode, GitOperation as _, GitRepo},
     grid::LINE_NUMBER_VERTICAL_BORDER,
     keymap::{
-        insert_mode_keymap_legend_config, normal_mode_keymap_legend_config,
-        space_keymap_legend_config,
+        command_keymap_legend_config, insert_mode_keymap_legend_config,
+        normal_mode_keymap_legend_config,
     },
     keymap_override::{
         find_one::FindOneCharKeymapOverride,
@@ -4813,7 +4813,7 @@ impl Editor {
 
     fn press_space(&self, context: &Context) -> Dispatches {
         match self.mode {
-            Mode::Normal => Dispatches::one(Dispatch::ShowMenu(space_keymap_legend_config(
+            Mode::Normal => Dispatches::one(Dispatch::ShowMenu(command_keymap_legend_config(
                 self, context,
             ))),
             Mode::Insert => Dispatches::default(),

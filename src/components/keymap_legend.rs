@@ -345,13 +345,30 @@ impl KeymapLegend {
             layout,
         );
 
-        // Show space keybinding, if any
+        // Show space and enter keybindings, if any
         let space_keybinding = self
             .config
             .keymap()
             .iter()
             .find(|keybinding| keybinding.event == key!("space"))
             .map(|keybinding| format!("Space: {}", keybinding.action.name));
+
+        let enter_keybinding = self
+            .config
+            .keymap()
+            .iter()
+            .find(|keybinding| keybinding.event == key!("enter"))
+            .map(|keybinding| format!("Enter: {}", keybinding.action.name));
+
+        let extra_keybindings = [space_keybinding, enter_keybinding]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        let extra_line = if extra_keybindings.is_empty() {
+            None
+        } else {
+            Some(extra_keybindings.join(&" ".repeat(4)))
+        };
 
         let on_tap = self.release_key.as_ref().and_then(|release_key| {
             let description = release_key.on_tap.as_ref()?.description;
@@ -360,7 +377,7 @@ impl KeymapLegend {
 
         Some(content)
             .into_iter()
-            .chain(space_keybinding)
+            .chain(extra_line)
             .chain(on_tap)
             .collect_vec()
             .join("\n")

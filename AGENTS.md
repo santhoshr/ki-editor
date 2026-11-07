@@ -736,6 +736,76 @@ Verified with `cargo build`.
 **Response:**
 Committed changes: protected all modified buffers from being closed or unmarked with unsaved edits via `e -> n` and mark toggling.
 
+### Request 110
+> "move space menu to space -> ; move shift + ; command menu to space"
+**Response:**
+1. Updated `Editor::press_space` in `src/components/editor/mod.rs` so pressing `space` in Normal mode directly opens the Command menu (`command_keymap_legend_config(self, context)`).
+2. Added `;` to `command_keymap` in `src/keymap.rs` bound to `"Space Menu"` (`Dispatch::ShowMenu(space_keymap_legend_config(editor, context))`), making the Space menu accessible via `Space -> ;`.
+3. Removed `key!(":")` (`shift+;`) from `keymap_others` in `src/keymap.rs` since the Command menu was moved to `Space`.
+4. Updated `src/components/editor_keymap_printer.rs` to include `command_keymap` in keymap print sections.
+5. Verified clean build with `cargo build`.
+
+### Request 111
+> "have / help in Command menu as well, show * Pick Keyboard \ Leader ; Space Menu"
+**Response:**
+1. Added `/` bound to `"Help"` (`Dispatch::ToEditor(DispatchEditor::ShowHelp)`) to `command_keymap` in `src/keymap.rs`.
+2. Updated `exmatrix_keybindings` in `src/components/editor_keymap_printer.rs` to display `* Pick Keyboard    \ Leader    ; Space Menu`.
+3. Verified clean compilation with `cargo build`.
+
+### Request 112
+> "call it Space not Space Menu"
+**Response:**
+1. Renamed `;` binding description in `command_keymap` (`src/keymap.rs`) from `"Space Menu"` to `"Space"`.
+2. Updated `exmatrix_keybindings` in `src/components/editor_keymap_printer.rs` from `"; Space Menu"` to `"; Space"`.
+3. Verified clean compilation with `cargo build`.
+
+### Request 113
+> "move Space menu from semicolon to space key, so in Command menu space will not close instead open Space menu, making double space to actually open Space menu"
+**Response:**
+1. Moved the `"Space"` menu binding in `command_keymap` (`src/keymap.rs`) from `key!(";")` to `key!("space")`.
+2. When the Command menu is open, pressing `Space` dispatches `Dispatch::ShowMenu(space_keymap_legend_config(editor, context))` rather than closing the menu. Pressing `Space` twice in Normal mode (`Space` -> `Space`) now opens the Space menu directly.
+3. In other menus without a `Space` keybinding (e.g. inside Space menu), pressing `Space` or `Esc` continues to dismiss the menu.
+4. Cleaned `"; Space"` from `exmatrix_keybindings` in `src/components/editor_keymap_printer.rs`.
+5. Verified clean build with `cargo build`.
+
+### Request 114
+> "add j/k previous/next file navigation to Command menu same as buffer menu e (hold) j/k navigation"
+**Response:**
+1. Added `j` mapped to `"Previous File"` (`Dispatch::CycleMarkedFile(Movement::Left)`) in `command_keymap` (`src/keymap.rs`).
+2. Added `k` mapped to `"Next File"` (`Dispatch::CycleMarkedFile(Movement::Right)`) in `command_keymap` (`src/keymap.rs`).
+3. Verified clean compilation with `cargo build`.
+
+### Request 115
+> "move command o to command f and bring entire e buffer menu right side to command menu right side"
+**Response:**
+1. In `command_keymap` (`src/keymap.rs`), moved "Open File (or CD)" from `o` to `f`.
+2. Extended `command_keymap` with all right-side keybindings from `buffer_keymap(false)`:
+   - `y`: `|< Marked File` (`Movement::First`)
+   - `u`: `Marked File >` (`Movement::Previous`)
+   - `i`: `Unmark Others` (`Dispatch::UnmarkAllOthers`)
+   - `o`: `< Marked File` (`Movement::Next`)
+   - `p`: `Marked File >|` (`Movement::Last`)
+   - `h`: `< Untitled` (`Dispatch::OpenUntitledFile(TabSide::Left)`)
+   - `j`: `<< Marked File` (`Movement::Left`)
+   - `k`: `Mark File` (`Dispatch::ToggleFileMark`)
+   - `l`: `Marked File >>` (`Movement::Right`)
+   - `;`: `Untitled >` (`Dispatch::OpenUntitledFile(TabSide::Right)`)
+   - `n`: `Close` (`Dispatch::CloseCurrentWindow`)
+   - `m`: `Alternate` (`Dispatch::OpenAlternateFile`)
+3. Verified clean compilation with `cargo build`.
+
+### Request 116
+> "add e tap action mark to enter key in Command menu"
+**Response:**
+1. Bound `key!("enter")` in `command_keymap` (`src/keymap.rs`) to `"Toggle Selection Mark"` (`Dispatch::ToggleSelectionMark`).
+2. Updated `KeymapLegend::render` (`src/components/keymap_legend.rs`) to format and display `Enter: <action>` alongside `Space: <action>` beneath the HUD matrix table.
+3. Verified clean compilation with `cargo build`.
+
+### Request 117
+> "commit it"
+**Response:**
+Committed changes: moved Command menu to `Space`, Space menu to double `Space`, migrated full `e` buffer menu into Command menu right side, mapped `Enter` to Toggle Selection Mark, and added `/` Help.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -1069,10 +1069,10 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
     .to_vec()
 }
 
-pub fn command_keymap() -> Keymap {
-    Keymap::new(&[
+pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
+    let mut bindings = vec![
         Keybinding::new_undocumented(
-            key!("o"),
+            key!("f"),
             "Open File (or CD)",
             Dispatch::OpenArbitraryFilePrompt,
         ),
@@ -1084,23 +1084,35 @@ pub fn command_keymap() -> Keymap {
         Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
         Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
         Keybinding::new_undocumented(key!("w"), "Close No Save", Dispatch::CloseNoSave),
-    ])
+        Keybinding::new_undocumented(
+            key!("enter"),
+            "Toggle Selection Mark",
+            Dispatch::ToggleSelectionMark,
+        ),
+        Keybinding::new_undocumented(
+            key!("space"),
+            "Space",
+            Dispatch::ShowMenu(space_keymap_legend_config(editor, context)),
+        ),
+        Keybinding::new_undocumented(
+            key!("/"),
+            "Help",
+            Dispatch::ToEditor(DispatchEditor::ShowHelp),
+        ),
+    ];
+    bindings.extend(buffer_keymap(false).into_vec());
+    Keymap::new(&bindings)
 }
 
-pub fn command_keymap_legend_config() -> KeymapLegendConfig {
+pub fn command_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Command".to_string(),
-        keymap: command_keymap(),
+        keymap: command_keymap(editor, context),
     }
 }
 
 pub fn keymap_others() -> Vec<Keybinding> {
     [
-        Keybinding::new_undocumented(
-            key!(":"),
-            "Command",
-            Dispatch::ShowMenu(command_keymap_legend_config()),
-        ),
         Keybinding::new_undocumented(
             key!("space"),
             "Space",

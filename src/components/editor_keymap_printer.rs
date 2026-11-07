@@ -14,7 +14,7 @@ use crate::{
     },
     context::Context,
     keymap::{
-        buffer_keymap, cut_keymap, delete_keymap, duplicate_keymap, eat_keymap,
+        buffer_keymap, command_keymap, cut_keymap, delete_keymap, duplicate_keymap, eat_keymap,
         insert_mode_delete_keymap, keymap_actions, keymap_core_movements, keymap_other_movements,
         keymap_overridable, keymap_primary_selection_modes, keymap_secondary_selection_modes_init,
         keymap_surround, keymap_transform, keymap_universal, movement_history_keymap,
@@ -134,7 +134,7 @@ impl KeymapPrintSection {
         }
 
         let exmatrix_keybindings =
-            ["* Pick Keyboard", "\\ Leader", ": Command"].join(&" ".repeat(4));
+            ["* Pick Keyboard", "\\ Leader"].join(&" ".repeat(4));
         if get_content_width(&table) < terminal_width {
             format!("{table}\n{exmatrix_keybindings}")
         } else {
@@ -330,6 +330,10 @@ impl KeymapPrintSections {
             KeymapPrintSection::from_keymap(
                 "Other Movements".to_string(),
                 &Keymap::new(&keymap_other_movements()),
+            ),
+            KeymapPrintSection::from_keymap(
+                "Command".to_string(),
+                &command_keymap(&editor, &context),
             ),
             KeymapPrintSection::from_keymap(
                 "Space".to_string(),

@@ -1229,12 +1229,27 @@ impl<T: Frontend> App<T> {
             Dispatch::QuitNoSave => self.quit_all()?,
             Dispatch::SafeQuit => self.safe_quit()?,
             Dispatch::CloseNoSave => self.close_no_save()?,
+            Dispatch::OpenFileTreeWithPathPicker => {
+                self.layout.close_keymap_legend();
+                self.layout.close_app_keymap_legend();
+                self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
+                self.keymap_override = None;
+                if self.layout.is_file_explorer_open() {
+                    self.layout.close_file_explorer(&self.context);
+                }
+                self.open_file_tree_path_prompt()?;
+            }
             Dispatch::RevealInExplorer(path) => self.reveal_path_in_explorer(&path)?,
+            Dispatch::RevealDirInExplorer(path) => self.reveal_dir_in_explorer(&path)?,
             Dispatch::RevealCurrentInExplorer => {
-                let path = self
-                    .get_current_file_path()
-                    .unwrap_or_else(|| self.context.current_working_directory().clone());
-                self.reveal_path_in_explorer(&path)?;
+                if self.layout.is_file_explorer_open() {
+                    self.layout.close_file_explorer(&self.context);
+                } else {
+                    let path = self
+                        .get_current_file_path()
+                        .unwrap_or_else(|| self.context.current_working_directory().clone());
+                    self.reveal_path_in_explorer(&path)?;
+                }
             }
             Dispatch::OpenMovePathsPrompt => self.open_move_paths_prompt()?,
             Dispatch::OpenDuplicateFilePrompt => self.open_copy_file_prompt()?,
@@ -3174,6 +3189,18 @@ impl<T: Frontend> App<T> {
         self.handle_dispatches(dispatches)
     }
 
+    fn reveal_dir_in_explorer(&mut self, path: &AbsolutePath) -> anyhow::Result<()> {
+        let dispatches = self.layout.reveal_dir_in_explorer(path, &self.context)?;
+        self.send_file_watcher_input(FileWatcherInput::SyncFileExplorerExpandedFolders(
+            self.layout
+                .file_explorer_expanded_folders()
+                .into_iter()
+                .chain(Some(self.context.current_working_directory().clone()))
+                .collect(),
+        ));
+        self.handle_dispatches(dispatches)
+    }
+
     #[cfg(test)]
     pub fn file_explorer_content(&self) -> String {
         self.layout.file_explorer_content()
@@ -4090,6 +4117,23 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
         )
     }
 
+    fn open_file_tree_path_prompt(&mut self) -> anyhow::Result<()> {
+        self.open_prompt(
+            PromptConfig::new(
+                "File Tree".to_string(),
+                PromptOnEnter::ParseCurrentLine {
+                    parser: DispatchParser::OpenFileTreePath,
+                    history_key: PromptHistoryKey::OpenFile,
+                    current_line: None,
+                    suggested_items: Vec::new(),
+                },
+            )
+            .set_on_change(Some(
+                PromptOnChangeDispatch::UpdateSuggestedItemsWithChildPathsAndFiles,
+            )),
+        )
+    }
+
     fn working_directory(&self) -> &AbsolutePath {
         self.context.current_working_directory()
     }
@@ -4338,6 +4382,7 @@ pub enum TabSide {
 /// Dispatch are for child component to request action from the root node
 pub enum Dispatch {
     OpenUntitledFile(TabSide),
+    OpenFileTreeWithPathPicker,
     SetTheme(crate::themes::Theme),
     SetThemeFromDescriptor(crate::themes::theme_descriptor::ThemeDescriptor),
     CloseCurrentWindow,
@@ -4429,6 +4474,7 @@ pub enum Dispatch {
     QuitNoSave,
     CloseNoSave,
     RevealInExplorer(AbsolutePath),
+    RevealDirInExplorer(AbsolutePath),
     RevealCurrentInExplorer,
     OpenMovePathsPrompt,
     OpenDuplicateFilePrompt,
@@ -4763,6 +4809,7 @@ pub enum DispatchParser {
     ChangeWorkingDirectory,
     SaveAs,
     OpenArbitraryFile,
+    OpenFileTreePath,
 }
 
 impl DispatchParser {
@@ -4881,6 +4928,22 @@ impl DispatchParser {
                     Ok(Dispatches::one(Dispatch::OpenAndMarkFiles(
                         NonEmpty::new(path),
                     )))
+                }
+            }
+            DispatchParser::OpenFileTreePath => {
+                let text = text.trim();
+                let path = if text.is_empty() {
+                    AbsolutePath::try_from(".")?
+                } else {
+                    AbsolutePath::try_from(text)?
+                };
+                if std::path::PathBuf::from(path.display_absolute()).is_dir() {
+                    Ok(Dispatches::from(vec![
+                        Dispatch::ChangeWorkingDirectory(path.clone()),
+                        Dispatch::RevealDirInExplorer(path),
+                    ]))
+                } else {
+                    Ok(Dispatches::one(Dispatch::RevealInExplorer(path)))
                 }
             }
         }

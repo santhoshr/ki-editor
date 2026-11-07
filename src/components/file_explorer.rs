@@ -4,7 +4,6 @@ use nonempty::NonEmpty;
 
 use crate::{
     app::{Dispatch, Dispatches},
-    buffer::BufferOwner,
     context::Context,
 };
 use shared::absolute_path::AbsolutePath;
@@ -99,6 +98,22 @@ impl FileExplorer {
         }
     }
 
+    /// Open the file tree rooted at `path` (treating it as a directory) and select its first child.
+    pub fn reveal_at_dir(&mut self, path: &AbsolutePath, context: &Context) -> anyhow::Result<Dispatches> {
+        let tree = Tree::new(path)?;
+        self.tree = tree;
+        self.refresh_editor(context)?;
+        // Select first actual entry (index 0 is `..`, index 1 is first child if present)
+        let first_child_index = if self.tree.nodes.len() > 1
+            && matches!(self.tree.nodes.first().map(|n| &n.kind), Some(NodeKind::ParentDirectory))
+        {
+            1
+        } else {
+            0
+        };
+        self.editor_mut().select_line_at(first_child_index, context)
+    }
+
     pub fn refresh(&mut self, context: &Context) -> anyhow::Result<()> {
         let tree = std::mem::take(&mut self.tree);
         self.tree = tree.refresh(context.current_working_directory())?;
@@ -153,11 +168,7 @@ impl FileExplorer {
                 }
                 NodeKind::File => Ok([
                     Dispatch::CloseCurrentWindow,
-                    Dispatch::OpenFile {
-                        path: node.path.clone(),
-                        owner: BufferOwner::User,
-                        focus: true,
-                    },
+                    Dispatch::OpenAndMarkFiles(NonEmpty::new(node.path.clone())),
                 ]
                 .to_vec()
                 .into()),
@@ -294,7 +305,7 @@ impl Tree {
         })
     }
 
-    fn walk_visible<T: Clone, F>(&self, result: T, f: F) -> T
+    fn walk_visible_continuation<T: Clone, F>(&self, result: T, f: F) -> Continuation<T>
     where
         F: Fn(T, &Node) -> Continuation<T> + Clone,
     {
@@ -307,29 +318,22 @@ impl Tree {
                 },
                 |continuation, node| match continuation.kind {
                     ContinuationKind::Continue => match &node.kind {
-                        NodeKind::File | NodeKind::ParentDirectory => {
-                            let result = f(continuation.state, node);
-                            Continuation {
-                                state: result.state,
-                                kind: ContinuationKind::Continue,
-                            }
-                        }
+                        NodeKind::File | NodeKind::ParentDirectory => f(continuation.state, node),
                         NodeKind::Directory { open, children } => {
                             let result = f(continuation.state, node);
-                            if *open {
-                                Continuation {
-                                    state: children
-                                        .as_ref()
-                                        .map(|tree| {
-                                            tree.walk_visible(result.state.clone(), f.clone())
-                                        })
-                                        .unwrap_or(result.state),
-                                    kind: ContinuationKind::Continue,
-                                }
-                            } else {
-                                Continuation {
-                                    state: result.state,
-                                    kind: ContinuationKind::Continue,
+                            match result.kind {
+                                ContinuationKind::Stop => result,
+                                ContinuationKind::Continue => {
+                                    if *open {
+                                        children
+                                            .as_ref()
+                                            .map(|tree| {
+                                                tree.walk_visible_continuation(result.state.clone(), f.clone())
+                                            })
+                                            .unwrap_or(result)
+                                    } else {
+                                        result
+                                    }
                                 }
                             }
                         }
@@ -337,7 +341,13 @@ impl Tree {
                     ContinuationKind::Stop => continuation,
                 },
             )
-            .state
+    }
+
+    fn walk_visible<T: Clone, F>(&self, result: T, f: F) -> T
+    where
+        F: Fn(T, &Node) -> Continuation<T> + Clone,
+    {
+        self.walk_visible_continuation(result, f).state
     }
 
     fn find_map<T: Clone, F>(&self, f: F) -> Option<T>

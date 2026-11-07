@@ -458,8 +458,8 @@ pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> Keymap
                 ),
                 Keybinding::new_undocumented(
                     key!(";"),
-                    "File",
-                    Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored),
+                    "File Tree",
+                    Dispatch::OpenFileTreeWithPathPicker,
                 ),
                 Keybinding::new_undocumented(
                     key!("/"),

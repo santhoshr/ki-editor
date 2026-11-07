@@ -114,7 +114,7 @@ impl Layout {
             } else {
                 self.tree.remove(node.node_id(), true);
             }
-        } else {
+        } else if node.data().kind() == ComponentKind::FileExplorer {
             // Non-file component (such as FileExplorer). Restore the current file editor.
             let fallback_editor = self
                 .last_focused_suggestive_editor
@@ -134,6 +134,8 @@ impl Layout {
             } else {
                 self.tree.remove(node.node_id(), true);
             }
+        } else {
+            self.tree.remove(node.node_id(), true);
         };
 
         self.recalculate_layout(context);
@@ -395,6 +397,31 @@ impl Layout {
         Ok(dispatches)
     }
 
+    /// Open the file explorer rooted at `dir_path` and select its first child.
+    pub fn reveal_dir_in_explorer(
+        &mut self,
+        dir_path: &AbsolutePath,
+        context: &Context,
+    ) -> anyhow::Result<Dispatches> {
+        let result = self
+            .background_file_explorer
+            .borrow_mut()
+            .reveal_at_dir(dir_path, context);
+
+        self.open_file_explorer();
+        let dispatches = result.unwrap_or_else(|error| {
+            Dispatches::one(Dispatch::ShowGlobalInfo(Info::new(
+                "File Tree Error".to_string(),
+                format!(
+                    "Unable to open '{}' in file tree: {error}",
+                    dir_path.try_display_relative_to(context.current_working_directory())
+                ),
+            )))
+        });
+
+        Ok(dispatches)
+    }
+
     pub fn remove_suggestive_editor(&mut self, path: &AbsolutePath) {
         if let Some(last) = &self.last_focused_suggestive_editor {
             if last.borrow().editor().path().as_ref() == Some(path) {
@@ -421,6 +448,33 @@ impl Layout {
             true,
         );
         debug_assert_eq!(self.tree.root().children().count(), 1);
+    }
+
+    pub fn is_file_explorer_open(&self) -> bool {
+        self.tree
+            .root()
+            .children()
+            .any(|node| node.data().kind() == ComponentKind::FileExplorer)
+    }
+
+    pub fn close_file_explorer(&mut self, context: &Context) {
+        let fallback_editor = self
+            .last_focused_suggestive_editor
+            .clone()
+            .or_else(|| {
+                self.background_suggestive_editors
+                    .iter()
+                    .find(|(_, editor)| {
+                        editor.borrow().editor().buffer().owner() == BufferOwner::User
+                    })
+                    .map(|(_, editor)| editor.clone())
+            });
+
+        if let Some(editor) = fallback_editor {
+            self.tree.remove_all_root_children();
+            self.replace_and_focus_current_suggestive_editor(editor);
+        }
+        self.recalculate_layout(context);
     }
 
     pub fn update_highlighted_spans(

@@ -501,6 +501,7 @@ impl Prompt {
             return Dispatches::default();
         }
         *self.last_line.borrow_mut() = Some(current_line.clone());
+        self.editor.reset_dismissed_completion();
         self.on_change
             .as_ref()
             .map(|on_change| {
@@ -535,9 +536,17 @@ impl Component for Prompt {
         event: event::KeyEvent,
     ) -> anyhow::Result<Dispatches> {
         match event {
-            key!("esc") if self.editor().mode == Mode::Normal => {
-                Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
-                    .chain(self.on_cancelled.clone().unwrap_or_default()))
+            key!("esc") => {
+                if self.editor.completion_dropdown_opened() && !self.editor.is_completion_dismissed() {
+                    return Ok(self.editor.dismiss_completion());
+                }
+                if self.editor().mode == Mode::Normal {
+                    return Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
+                        .chain(self.on_cancelled.clone().unwrap_or_default()));
+                }
+                let mut dispatches = self.editor.dismiss_completion();
+                dispatches = dispatches.chain(self.editor.handle_key_event(context, event)?);
+                Ok(dispatches)
             }
             key!("tab") => self.replace_current_query_with_focused_item(context, event),
             _ if event.display() == "alt+x" => {
@@ -593,18 +602,30 @@ impl Component for Prompt {
             }
             key!("enter") => {
                 let dispatches = match &self.on_enter {
-                    PromptOnEnter::SelectsFirstMatchingItem { .. } => self
-                        .editor
-                        .completion_dropdown_current_item()
-                        .map(|item| item.dispatches)
-                        .unwrap_or_default(),
+                    PromptOnEnter::SelectsFirstMatchingItem { .. } => {
+                        if self.editor.is_completion_dismissed() || !self.editor.completion_dropdown_opened() {
+                            Dispatches::default()
+                        } else {
+                            self.editor
+                                .completion_dropdown_current_item()
+                                .map(|item| item.dispatches)
+                                .unwrap_or_default()
+                        }
+                    }
                     PromptOnEnter::ParseCurrentLine {
                         parser,
                         history_key: prompt_history_key,
                         ..
                     } => {
-                        let entry = if let Some(item) = self.editor.completion_dropdown_current_item() {
-                            item.display()
+                        let entry = if !self.editor.is_completion_dismissed()
+                            && self.editor.completion_dropdown_opened()
+                            && self.editor.is_completion_selected()
+                        {
+                            if let Some(item) = self.editor.completion_dropdown_current_item() {
+                                item.display()
+                            } else {
+                                self.editor().current_line()?
+                            }
                         } else {
                             self.editor().current_line()?
                         };

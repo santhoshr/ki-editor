@@ -806,6 +806,59 @@ Committed changes: protected all modified buffers from being closed or unmarked 
 **Response:**
 Committed changes: moved Command menu to `Space`, Space menu to double `Space`, migrated full `e` buffer menu into Command menu right side, mapped `Enter` to Toggle Selection Mark, and added `/` Help.
 
+### Request 118
+> "make Space menu ; to open file tree with path picker with history, also make - to toggle file tree already it opens also make it close, when doing search in file tree pressing enter to complete search makes file tree action open fix it"
+**Response:**
+1. **Space Menu `;` Opens File Tree with Path Picker:** In `space_keymap_legend_config` (`src/keymap.rs`), mapped `;` to `"File Tree"` (`Dispatch::OpenFileTreeWithPathPicker`). Handled in `App::handle_dispatch` (`src/app.rs`) to reveal the current path in `FileExplorer` and open the path picker with history (`open_arbitrary_file_prompt`).
+2. **Toggle File Tree with `-`:** In `src/layout.rs`, added `is_file_explorer_open` and `close_file_explorer`. Updated `Dispatch::RevealCurrentInExplorer` in `src/app.rs` so pressing `-` when the file tree is already open closes it and restores the previous editor cleanly.
+3. **Fix Search Enter Closing File Tree:** In `Layout::remove_current_component` (`src/layout.rs`), guarded the non-file fallback editor restoration so it only triggers when `node.data().kind() == ComponentKind::FileExplorer`. Closing a `Prompt` (such as the search prompt) now only removes the prompt node itself (`self.tree.remove(node.node_id(), true)`), allowing Enter to complete search without closing the file tree or opening the file.
+4. Verified clean compilation with `cargo build`.
+
+### Request 119
+> "restore file tree search back, two things here, one BEFORE opening file tree show picker with completion and history (take care of selecting / not selecting matches as we previously did), inside opened file tree TEXT search enter should perform search previously it was performing search but also opened currently selected file"
+**Response:**
+1. **Picker before file tree:** Removed `reveal_path_in_explorer` from `Dispatch::OpenFileTreeWithPathPicker` handler (`src/app.rs`). Now `;` in Space menu only opens the arbitrary file prompt with history/completion — no file tree pre-opened. When user submits a **directory** path, `DispatchParser::OpenArbitraryFile` now dispatches both `Dispatch::ChangeWorkingDirectory(path.clone())` and `Dispatch::RevealInExplorer(path)` to change directory and open the file tree. If a **file** is submitted, it opens normally via `Dispatch::OpenAndMarkFiles`.
+2. **File tree text search Enter fix:** Already in place via the `remove_current_component` guard (`src/layout.rs` line 117): when the search `Prompt` is closed (`CloseCurrentWindow`), the node kind is `ComponentKind::Prompt` (not `FileExplorer`, not a file), so it hits the `else` branch (`self.tree.remove(node.node_id(), true)`), closing only the prompt. The `UpdateLocalSearchConfig` dispatch then runs on the FileExplorer, navigating to the matched node without closing the file tree or opening the file.
+3. Verified clean compilation with `cargo build`.
+
+### Request 120
+> "it still shows file tree in the background when opening file tree with path; if dir is given select first child item; if file is given select the file in file tree; what is the behavior/functionality sometime file tree becomes split view inside editor"
+**Response:**
+1. **Prevent file tree showing in background:** In `Dispatch::OpenFileTreeWithPathPicker` (`src/app.rs`), if `self.layout.is_file_explorer_open()`, close the file explorer (`self.layout.close_file_explorer(&self.context)`) before opening the path picker prompt. The picker prompt opens cleanly over the editor buffer without the file tree in the background.
+2. **Directory vs File selection in file tree:** Added dedicated `open_file_tree_path_prompt` and `DispatchParser::OpenFileTreePath` (`src/app.rs`).
+   - If a directory is submitted: dispatches `ChangeWorkingDirectory` and `RevealDirInExplorer`. In `FileExplorer::reveal_at_dir` (`src/components/file_explorer.rs`) and `Layout::reveal_dir_in_explorer` (`src/layout.rs`), opens the file tree rooted at the directory and selects its first child item (`select_line_at(first_child_index)`).
+   - If a file is submitted: dispatches `RevealInExplorer` to open the file tree and reveal/select the file directly in the file tree (`FileExplorer::reveal`).
+   - Command menu `:` `f` (`DispatchParser::OpenArbitraryFile`) remains dedicated to opening files in the editor buffer or changing cwd.
+3. **Split view behavior explanation:** Ki uses a tiling window manager (`Rectangle::generate_wide` / `generate_tall`). Any time more than one non-overlay component exists under the UI tree (for example, `Prompt` which does not implement `desired_height`, or when a prompt is opened on top of `FileExplorer` or an editor without replacing it), Ki tiles them side-by-side with a 70/30 split ratio.
+4. Verified clean compilation with `cargo build`.
+
+### Request 121
+> "it goes to the last item in file tree not first; files selected from file tree are not marked;"
+**Response:**
+1. **Fix selection to first child item in file tree:**
+   - Diagnosed root cause in `Tree::walk_visible` (`src/components/file_explorer.rs`): the closure was hardcoding `ContinuationKind::Continue` on `File` and `ParentDirectory`, discarding `ContinuationKind::Stop` from `find_map`. This caused `find_map` to evaluate every node and overwrite `Some(idx)` with each node, returning the last item in the directory.
+   - Refactored `walk_visible` to `walk_visible_continuation`, correctly halting traversal on `ContinuationKind::Stop`.
+   - Updated `FileExplorer::reveal_at_dir` to determine `first_child_index`: line 1 (skipping `../` virtual parent entry) if children exist, or line 0 otherwise, then calling `select_line_at(first_child_index, context)`.
+2. **Mark files opened from file tree:** In `FileExplorer::toggle_or_open_paths` (`src/components/file_explorer.rs`), changed single-file opening on `NodeKind::File` from `Dispatch::OpenFile` to `Dispatch::OpenAndMarkFiles(NonEmpty::new(node.path.clone()))`. Files opened from file tree are now pinned and marked in `marked_files`.
+3. Verified clean compilation with `cargo build`.
+
+### Request 122
+> "when user dismisses completion window, remove its selection, and use text editor input for any search file/text/etc, many times even if we dismiss completion window phantom selection happens"
+**Response:**
+1. **Remove selection and clear completion on dismissal:**
+   - In `SuggestiveEditor` (`src/components/suggestive_editor.rs`), added `is_completion_dismissed: Cell<bool>`. Added `dismiss_completion(&mut self) -> Dispatches` which sets `is_completion_dismissed = true`, `has_arrow_navigated_completion = false`, clears the completion dropdown (`self.completion_dropdown.clear()`), and dispatches `Dispatch::CloseDropdown`.
+   - Updated `is_completion_selected()`, `completion_dropdown_current_item()`, `completion_dropdown_opened()`, `render_completion_dropdown()`, and `handle_nucleo_notify()` to evaluate to `false`/`None`/`CloseDropdown` whenever `is_completion_dismissed` is true or when the dropdown is closed.
+2. **Prevent phantom selection on Enter:**
+   - In `Prompt::handle_key_event` (`src/components/prompt.rs`), intercepted `key!("esc")` while completion dropdown is open to immediately dismiss the completion window and clear its selection without exiting or closing the prompt.
+   - In `PromptOnEnter::ParseCurrentLine`, guarded item extraction with `!self.editor.is_completion_dismissed() && self.editor.completion_dropdown_opened() && self.editor.is_completion_selected()`. When completion is dismissed or closed, Enter is guaranteed to parse the exact text editor input (`self.editor().current_line()?`), eliminating phantom selection across search, file opening, and text inputs.
+   - When the user types or edits characters in `Prompt`, `get_on_change_dispatches()` calls `reset_dismissed_completion()`.
+3. Verified clean compilation with `cargo build`.
+
+### Request 123
+> "commit"
+**Response:**
+Committed changes: added path picker before opening file tree (`Space ;`), `-` toggle for file tree, fixed text search in file tree without closing/opening file, first child selection in directory views, pinned file marking when opened from file tree, and completion window dismissal with phantom selection prevention.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

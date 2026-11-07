@@ -14,7 +14,10 @@ use crate::{
 
 use itertools::Itertools;
 use my_proc_macros::key;
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use super::dropdown_async::{DropdownAsync as Dropdown, DropdownAsyncConfig as DropdownConfig};
 use super::editor::{Direction, DispatchEditor, IfCurrentNotFound};
@@ -32,8 +35,9 @@ pub struct SuggestiveEditor {
     completion_dropdown: Dropdown,
     trigger_characters: Vec<String>,
     filter: SuggestiveEditorFilter,
-    has_arrow_navigated_completion: bool,
+    has_arrow_navigated_completion: Cell<bool>,
     auto_select_at_dir: bool,
+    is_completion_dismissed: Cell<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -99,32 +103,38 @@ impl Component for SuggestiveEditor {
         // Every other character typed in Insert mode should update the dropdown to show
         // relevant completions.
         if self.editor.mode == Mode::Insert && event.kind != KeyEventKind::Release {
-            self.has_arrow_navigated_completion = false;
+            self.has_arrow_navigated_completion.set(false);
+            if event != key!("esc") {
+                self.is_completion_dismissed.set(false);
+            }
         }
         Ok(self
             .editor
             .handle_key_event(context, event)?
             .chain(match event {
-                key!("esc") => [
-                    Dispatch::CloseDropdown,
-                    Dispatch::CloseGlobalInfo,
-                    Dispatch::CloseEditorInfo,
-                    Dispatch::ToEditor(EnterNormalMode),
-                ]
-                .into_iter()
-                .chain(match context.mode() {
-                    Some(GlobalMode::QuickfixListItem) => {
-                        Some(Dispatch::ToEditor(SetSelectionMode(
-                            IfCurrentNotFound::LookForward,
-                            SelectionMode::LocalQuickfix {
-                                title: context.quickfix_list().title().clone(),
-                            },
-                        )))
-                    }
-                    _ => None,
-                })
-                .collect_vec()
-                .into(),
+                key!("esc") => {
+                    let _ = self.dismiss_completion();
+                    [
+                        Dispatch::CloseDropdown,
+                        Dispatch::CloseGlobalInfo,
+                        Dispatch::CloseEditorInfo,
+                        Dispatch::ToEditor(EnterNormalMode),
+                    ]
+                    .into_iter()
+                    .chain(match context.mode() {
+                        Some(GlobalMode::QuickfixListItem) => {
+                            Some(Dispatch::ToEditor(SetSelectionMode(
+                                IfCurrentNotFound::LookForward,
+                                SelectionMode::LocalQuickfix {
+                                    title: context.quickfix_list().title().clone(),
+                                },
+                            )))
+                        }
+                        _ => None,
+                    })
+                    .collect_vec()
+                    .into()
+                }
                 _ if self.editor.mode == Mode::Insert && event.kind != KeyEventKind::Release => {
                     vec![
                         Dispatch::RequestCompletion,
@@ -152,9 +162,25 @@ impl SuggestiveEditor {
             }),
             trigger_characters: vec![],
             filter,
-            has_arrow_navigated_completion: false,
+            has_arrow_navigated_completion: Cell::new(false),
             auto_select_at_dir: true,
+            is_completion_dismissed: Cell::new(false),
         }
+    }
+
+    pub fn is_completion_dismissed(&self) -> bool {
+        self.is_completion_dismissed.get()
+    }
+
+    pub fn reset_dismissed_completion(&self) {
+        self.is_completion_dismissed.set(false);
+    }
+
+    pub fn dismiss_completion(&mut self) -> Dispatches {
+        self.is_completion_dismissed.set(true);
+        self.has_arrow_navigated_completion.set(false);
+        self.completion_dropdown.clear();
+        Dispatches::one(Dispatch::CloseDropdown)
     }
 
     pub fn set_auto_select_at_dir(&mut self, auto_select_at_dir: bool) {
@@ -194,10 +220,16 @@ impl SuggestiveEditor {
     }
 
     pub fn is_completion_selected(&self) -> bool {
+        if self.is_completion_dismissed.get() {
+            return false;
+        }
+        if !self.completion_dropdown_opened() {
+            return false;
+        }
         if self.auto_select_at_dir {
             return true;
         }
-        if self.has_arrow_navigated_completion {
+        if self.has_arrow_navigated_completion.get() {
             return true;
         }
         let line = self.editor().current_line().unwrap_or_default();
@@ -209,7 +241,7 @@ impl SuggestiveEditor {
     }
 
     pub fn completion_dropdown_current_item(&mut self) -> Option<DropdownItem> {
-        if !self.is_completion_selected() {
+        if self.is_completion_dismissed.get() || !self.is_completion_selected() {
             None
         } else {
             self.completion_dropdown.current_item()
@@ -217,18 +249,28 @@ impl SuggestiveEditor {
     }
 
     pub fn completion_dropdown_all_filtered_items(&mut self) -> Vec<DropdownItem> {
-        self.completion_dropdown.all_filtered_items()
+        if self.is_completion_dismissed.get() {
+            Vec::new()
+        } else {
+            self.completion_dropdown.all_filtered_items()
+        }
     }
 
     pub fn completion_dropdown_opened(&self) -> bool {
+        if self.is_completion_dismissed.get() {
+            return false;
+        }
         self.completion_dropdown.opened()
     }
 
     pub fn set_completion(&mut self, completion: Completion) {
+        if self.is_completion_dismissed.get() {
+            return;
+        }
         self.completion_dropdown.inject_items(completion.items);
         self.completion_dropdown.handle_nucleo_notify();
         self.trigger_characters = completion.trigger_characters;
-        self.has_arrow_navigated_completion = false;
+        self.has_arrow_navigated_completion.set(false);
     }
 
     pub fn render_completion_dropdown(&self, ignore_insert_mode: bool) -> Dispatches {
@@ -236,7 +278,8 @@ impl SuggestiveEditor {
             "ignore_insert_mode = {ignore_insert_mode} mode = {:?}",
             self.editor.mode
         );
-        if (!ignore_insert_mode && self.editor.mode != Mode::Insert)
+        if self.is_completion_dismissed.get()
+            || (!ignore_insert_mode && self.editor.mode != Mode::Insert)
             || self.completion_dropdown.no_matching_candidates()
         {
             Dispatches::one(Dispatch::CloseDropdown)
@@ -304,7 +347,8 @@ impl SuggestiveEditor {
 
     fn previous_completion_item(&mut self) -> Result<Dispatches, anyhow::Error> {
         let was_selected = self.is_completion_selected();
-        self.has_arrow_navigated_completion = true;
+        self.has_arrow_navigated_completion.set(true);
+        self.is_completion_dismissed.set(false);
         if was_selected {
             self.completion_dropdown.previous_item();
         } else {
@@ -315,7 +359,8 @@ impl SuggestiveEditor {
 
     fn next_completion_item(&mut self) -> Result<Dispatches, anyhow::Error> {
         let was_selected = self.is_completion_selected();
-        self.has_arrow_navigated_completion = true;
+        self.has_arrow_navigated_completion.set(true);
+        self.is_completion_dismissed.set(false);
         if was_selected {
             self.completion_dropdown.next_item();
         }
@@ -341,6 +386,9 @@ impl SuggestiveEditor {
     }
 
     pub fn handle_nucleo_notify(&mut self) -> Dispatches {
+        if self.is_completion_dismissed.get() {
+            return Dispatches::one(Dispatch::CloseDropdown);
+        }
         let mut render = self.completion_dropdown.handle_nucleo_notify();
         if !self.is_completion_selected() {
             render.highlight_line_index = None;

@@ -263,6 +263,10 @@ impl SuggestiveEditor {
         self.completion_dropdown.opened()
     }
 
+    pub fn set_show_all_when_empty(&mut self, show_all: bool) {
+        self.completion_dropdown.set_show_all_when_empty(show_all);
+    }
+
     pub fn set_completion(&mut self, completion: Completion) {
         if self.is_completion_dismissed.get() {
             return;

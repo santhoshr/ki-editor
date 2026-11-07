@@ -16,6 +16,7 @@ pub struct DropdownAsyncConfig {
 pub struct DropdownAsync {
     pub inner: DropdownSync,
     matcher: BackgroundFuzzyMatcher,
+    show_all_when_empty: bool,
 }
 
 pub const MIN_ITEMS_TO_TEST_NUCLEO: usize = 50;
@@ -27,7 +28,13 @@ impl DropdownAsync {
                 title: config.title,
             }),
             matcher: BackgroundFuzzyMatcher::new(config.on_nucleo_notify),
+            show_all_when_empty: false,
         }
+    }
+
+    pub fn set_show_all_when_empty(&mut self, show_all: bool) {
+        self.show_all_when_empty = show_all;
+        self.matcher.set_show_all_when_empty(show_all);
     }
 
     pub fn set_filter(&mut self, filter: &str) {
@@ -40,12 +47,23 @@ impl DropdownAsync {
             return self.inner.render();
         };
 
+        if self.show_all_when_empty
+            && self.matcher.filter_is_empty
+            && items.len() < self.inner.items_count()
+        {
+            return self.inner.render();
+        }
+
         self.inner.set_items(items);
 
         self.inner.render()
     }
 
     pub fn inject_items(&mut self, items: Vec<DropdownItem>) {
+        if self.show_all_when_empty && self.matcher.filter_is_empty {
+            self.inner.set_items(items.clone());
+        }
+
         // In tests, skip nucleo for small item sets and filter synchronously instead.
         // This avoids spawning background threads unnecessarily, which can
         // exhaust OS thread limits when many dropdowns are created (e.g. during recipe generation).
@@ -124,6 +142,8 @@ struct BackgroundFuzzyMatcher {
     /// It is only constructed when `injector()` is first called.
     nucleo: Option<nucleo::Nucleo<DropdownItem>>,
     notify: Callback<()>,
+    show_all_when_empty: bool,
+    filter_is_empty: bool,
 }
 
 impl BackgroundFuzzyMatcher {
@@ -131,10 +151,17 @@ impl BackgroundFuzzyMatcher {
         Self {
             nucleo: None,
             notify,
+            show_all_when_empty: false,
+            filter_is_empty: true,
         }
     }
 
+    fn set_show_all_when_empty(&mut self, show_all: bool) {
+        self.show_all_when_empty = show_all;
+    }
+
     fn reparse(&mut self, filter: &str) {
+        self.filter_is_empty = filter.is_empty();
         let Some(nucleo) = self.nucleo.as_mut() else {
             return;
         };
@@ -156,10 +183,16 @@ impl BackgroundFuzzyMatcher {
         let snapshot = nucleo.snapshot();
 
         let scroll_offset = 0;
+        let matched_count = snapshot.matched_item_count() as usize;
+        let max_items = if self.show_all_when_empty && self.filter_is_empty {
+            matched_count
+        } else {
+            MIN_ITEMS_TO_TEST_NUCLEO.min(matched_count)
+        };
         let items = snapshot
             .matched_items(
                 scroll_offset as u32
-                    ..MIN_ITEMS_TO_TEST_NUCLEO.min(snapshot.matched_item_count() as usize) as u32,
+                    ..max_items as u32,
             )
             .map(|item| item.data.clone())
             .collect_vec();
@@ -188,6 +221,7 @@ impl BackgroundFuzzyMatcher {
     }
 
     fn clear(&mut self) {
+        self.filter_is_empty = true;
         let Some(nucleo) = self.nucleo.as_mut() else {
             return;
         };

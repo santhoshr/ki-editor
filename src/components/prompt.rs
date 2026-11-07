@@ -263,6 +263,7 @@ pub struct PromptConfig {
     /// If defined, the `Dispatches` here is used for undoing the dispatches fired on change.
     pub on_cancelled: Option<Dispatches>,
     pub on_change: Option<PromptOnChangeDispatch>,
+    pub show_all_when_empty: bool,
 }
 
 impl PromptConfig {
@@ -272,6 +273,14 @@ impl PromptConfig {
             on_enter,
             on_cancelled: None,
             on_change: None,
+            show_all_when_empty: false,
+        }
+    }
+
+    pub fn set_show_all_when_empty(self, show_all_when_empty: bool) -> Self {
+        Self {
+            show_all_when_empty,
+            ..self
         }
     }
     pub fn items(&self) -> Vec<DropdownItem> {
@@ -437,6 +446,7 @@ impl Prompt {
         };
         // TODO: set cursor to last line
         editor.set_title(config.title.clone());
+        editor.set_show_all_when_empty(config.show_all_when_empty);
         editor.set_completion(Completion {
             items: config.items(),
             trigger_characters: vec![" ".to_string()],

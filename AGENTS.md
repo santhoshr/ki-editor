@@ -859,6 +859,29 @@ Committed changes: moved Command menu to `Space`, Space menu to double `Space`, 
 **Response:**
 Committed changes: added path picker before opening file tree (`Space ;`), `-` toggle for file tree, fixed text search in file tree without closing/opening file, first child selection in directory views, pinned file marking when opened from file tree, and completion window dismissal with phantom selection prevention.
 
+### Request 124
+> "in buffer list, completion window should show, all the files, currently it has 50 files limit, which is okey for other search and auto completion, but for recent files, it should show all files when input is empty"
+**Response:**
+Added `show_all_when_empty` option to [`PromptConfig`](file:///home/santh/Developer/ki-editor/src/components/prompt.rs), [`SuggestiveEditor`](file:///home/santh/Developer/ki-editor/src/components/suggestive_editor.rs), and [`DropdownAsync`](file:///home/santh/Developer/ki-editor/src/components/dropdown_async.rs). For `FilePickerKind::Opened` (`src/app.rs`), enabled `show_all_when_empty: true` and indexed item ranks so all marked and open buffer files are displayed when query is empty, while maintaining the 50-item limit for query filters, general file searches, and editor code completion.
+
+### Request 125
+> "enter in completion window triggers save text content" / "let us not fix it, just explain, I think nested windows trigger save"
+**Response:**
+Investigated and explained the root cause:
+1. `Enter` is bound to `Dispatch::SaveFile` in Normal mode (`src/keymap.rs:1462`).
+2. The completion window is backed by an internal `Editor` (`ComponentKind::Dropdown` in `src/layout.rs`) in Normal mode with no disk path (`path == None`).
+3. Completion keymaps only capture navigation (`alt+l`/`j` / arrows / Tab), so an unhandled `Enter` in Normal mode triggers `SaveFile`. On any pathless buffer, `do_save` falls back to `Dispatch::OpenSaveAsPrompt`, displaying `"Save current buffer content to a new file:"`.
+
+### Request 126
+> "Buffer menu Alternate function sometimes restores close buffer, but it is not marked"
+**Response:**
+In [`App::open_alternate_file`](file:///home/santh/Developer/ki-editor/src/app.rs#L2847-L2872), when alternate file or backward location history targets a file, verified it is a valid file (`.is_file()`), pinned it into `context.mark_file(...)` so it gains a marked tab (`[-]`), and opened it as the focused editor.
+
+### Request 127
+> "commit it"
+**Response:**
+Committed changes: display all open/marked buffer files in completion dropdown when query is empty, and auto-mark restored files in Buffer Alternate function.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

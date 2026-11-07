@@ -1918,17 +1918,23 @@ impl<T: Frontend> App<T> {
                 PromptItems::Precomputed(
                     opened_paths
                         .into_iter()
-                        .map(|path| {
+                        .enumerate()
+                        .map(|(index, path)| {
                             DropdownItem::from_path_buf(&working_directory, path.into_path_buf())
+                                .set_rank(Some(Box::new([index])))
                         })
                         .collect_vec(),
                 )
             }
         };
-        self.open_prompt(PromptConfig::new(
-            format!("Open file: {}", kind.display()),
-            PromptOnEnter::SelectsFirstMatchingItem { items },
-        ))
+        let show_all_when_empty = matches!(kind, FilePickerKind::Opened);
+        self.open_prompt(
+            PromptConfig::new(
+                format!("Open file: {}", kind.display()),
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_show_all_when_empty(show_all_when_empty),
+        )
     }
 
     pub fn open_file(
@@ -2844,14 +2850,14 @@ impl<T: Frontend> App<T> {
             .context
             .get_alternate_file()
             .cloned()
-            .filter(|alt| Some(alt) != current_path.as_ref())
+            .filter(|alt| Some(alt) != current_path.as_ref() && alt.is_file())
             .or_else(|| {
                 self.context
                     .location_history_backward()
                     .iter()
                     .rev()
                     .map(|loc| &loc.path)
-                    .find(|path| Some(*path) != current_path.as_ref())
+                    .find(|path| Some(*path) != current_path.as_ref() && path.is_file())
                     .cloned()
             });
 
@@ -2859,6 +2865,7 @@ impl<T: Frontend> App<T> {
             if let Some(cp) = current_path {
                 self.context.set_alternate_file(cp);
             }
+            self.context.mark_file(target.clone());
             let _ = self.open_file(&target, BufferOwner::User, true, true);
         }
         Ok(())
@@ -4195,6 +4202,7 @@ Please consider installing it.\n\
             title: "Save current buffer content to a new file:".to_owned(),
             on_cancelled: None,
             on_change: None,
+            show_all_when_empty: false,
         })
     }
 

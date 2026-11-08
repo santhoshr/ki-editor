@@ -50,6 +50,7 @@ pub struct Prompt {
     on_change: Option<PromptOnChangeDispatch>,
     on_cancelled: Option<Dispatches>,
     last_line: std::cell::RefCell<Option<String>>,
+    ignore_completion_on_enter: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -264,6 +265,7 @@ pub struct PromptConfig {
     pub on_cancelled: Option<Dispatches>,
     pub on_change: Option<PromptOnChangeDispatch>,
     pub show_all_when_empty: bool,
+    pub ignore_completion_on_enter: bool,
 }
 
 impl PromptConfig {
@@ -274,12 +276,20 @@ impl PromptConfig {
             on_cancelled: None,
             on_change: None,
             show_all_when_empty: false,
+            ignore_completion_on_enter: false,
         }
     }
 
     pub fn set_show_all_when_empty(self, show_all_when_empty: bool) -> Self {
         Self {
             show_all_when_empty,
+            ..self
+        }
+    }
+
+    pub fn set_ignore_completion_on_enter(self, ignore_completion_on_enter: bool) -> Self {
+        Self {
+            ignore_completion_on_enter,
             ..self
         }
     }
@@ -471,6 +481,7 @@ impl Prompt {
                 on_cancelled: config.on_cancelled,
                 on_change: config.on_change,
                 last_line: std::cell::RefCell::new(None),
+                ignore_completion_on_enter: config.ignore_completion_on_enter,
             },
             dispatches,
         )
@@ -627,7 +638,14 @@ impl Component for Prompt {
                         history_key: prompt_history_key,
                         ..
                     } => {
-                        let entry = if !self.editor.is_completion_dismissed()
+                        let is_text_search = self.ignore_completion_on_enter
+                            || matches!(
+                                prompt_history_key,
+                                PromptHistoryKey::Search
+                                    | PromptHistoryKey::FilterSelectionsMatchingSearch { .. }
+                            );
+                        let entry = if !is_text_search
+                            && !self.editor.is_completion_dismissed()
                             && self.editor.completion_dropdown_opened()
                             && self.editor.is_completion_selected()
                         {

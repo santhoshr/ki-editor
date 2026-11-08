@@ -882,6 +882,16 @@ In [`App::open_alternate_file`](file:///home/santh/Developer/ki-editor/src/app.r
 **Response:**
 Committed changes: display all open/marked buffer files in completion dropdown when query is empty, and auto-mark restored files in Buffer Alternate function.
 
+### Request 128
+> "in the text search / and shift+/ what user typed should be searched for, completion window is ignore, previously there was fix with dismissing completion window, input is taken as it is, but user no need to have to close completion window; since the same input/picker is also used for file search, make sure file search remains with all the changes we did"
+**Response:**
+Added `ignore_completion_on_enter` to [`PromptConfig`](file:///home/santh/Developer/ki-editor/src/components/prompt.rs) and [`Prompt`](file:///home/santh/Developer/ki-editor/src/components/prompt.rs). For text searches (`open_search_prompt` and `open_filter_selections_prompt` in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs)), pressing `Enter` now always treats the input panel content as final (`self.editor().current_line()?`), ignoring the completion window and candidate highlights without requiring `Esc` dismissal. File pickers (`PromptOnEnter::SelectsFirstMatchingItem`) and file path prompts (`PromptHistoryKey::OpenFile`) retain their full candidate selection and dismissal behaviors.
+
+### Request 129
+> "commit it"
+**Response:**
+Committed changes: make input panel text final say in text searches on Enter, ignoring completion window while preserving file picker behavior.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

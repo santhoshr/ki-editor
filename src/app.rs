@@ -1760,6 +1760,7 @@ impl<T: Frontend> App<T> {
                     suggested_items: self.words(),
                 },
             )
+            .set_ignore_completion_on_enter(true)
             .set_on_change(match scope {
                 Scope::Local => Some({
                     let component_id = self.current_component().borrow().id();
@@ -3427,19 +3428,22 @@ impl<T: Frontend> App<T> {
     fn open_filter_selections_prompt(&mut self, maintain: bool) -> anyhow::Result<()> {
         let config = self.context.local_search_config(Scope::Local);
         let mode = config.mode;
-        self.open_prompt(PromptConfig::new(
-            format!(
-                "{} selections matching search ({})",
-                if maintain { "Maintain" } else { "Remove" },
-                mode.display()
-            ),
-            PromptOnEnter::ParseCurrentLine {
-                parser: DispatchParser::FilterSelectionMatchingSearch { maintain },
-                history_key: PromptHistoryKey::FilterSelectionsMatchingSearch { maintain },
-                current_line: None,
-                suggested_items: Vec::default(),
-            },
-        ))
+        self.open_prompt(
+            PromptConfig::new(
+                format!(
+                    "{} selections matching search ({})",
+                    if maintain { "Maintain" } else { "Remove" },
+                    mode.display()
+                ),
+                PromptOnEnter::ParseCurrentLine {
+                    parser: DispatchParser::FilterSelectionMatchingSearch { maintain },
+                    history_key: PromptHistoryKey::FilterSelectionsMatchingSearch { maintain },
+                    current_line: None,
+                    suggested_items: Vec::default(),
+                },
+            )
+            .set_ignore_completion_on_enter(true),
+        )
     }
 
     fn navigate_back(&mut self) -> anyhow::Result<()> {
@@ -4203,6 +4207,7 @@ Please consider installing it.\n\
             on_cancelled: None,
             on_change: None,
             show_all_when_empty: false,
+            ignore_completion_on_enter: false,
         })
     }
 

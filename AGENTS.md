@@ -892,6 +892,21 @@ Added `ignore_completion_on_enter` to [`PromptConfig`](file:///home/santh/Develo
 **Response:**
 Committed changes: make input panel text final say in text searches on Enter, ignoring completion window while preserving file picker behavior.
 
+### Request 130
+> "swap Command menu w and v; w will warn v will close dirty buffer, existing function as it is"
+**Response:**
+In [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1072-L1105) (`src/keymap.rs`), mapped `w` to `"Close"` (`Dispatch::CloseCurrentWindow`, which warns and prevents close on dirty buffers) and `v` to `"Close No Save"` (`Dispatch::CloseNoSave`, which force-closes dirty buffers without saving).
+
+### Request 131
+> "not v I meant to say n, keep v as Quit No Save like prior"
+**Response:**
+Restored `v` to `"Quit No Save"` (`Dispatch::QuitNoSave`) in [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1072-L1105). In [`buffer_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1940-L2015) (`src/keymap.rs`), mapped `n` to `"Close No Save"` (`Dispatch::CloseNoSave`), which force-closes dirty buffers without saving. `w` in `command_keymap` remains `"Close"` (`Dispatch::CloseCurrentWindow`), which warns on dirty buffers. Verified with `cargo build`.
+
+### Request 132
+> "commit it"
+**Response:**
+Committed changes: swap Command menu `w` (Close with warning) and `n` (Close No Save), preserving `v` as Quit No Save.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

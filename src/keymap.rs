@@ -1082,8 +1082,8 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             Dispatch::OpenFilePicker(FilePickerKind::Opened),
         ),
         Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
+        Keybinding::new_undocumented(key!("w"), "Close", Dispatch::CloseCurrentWindow),
         Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
-        Keybinding::new_undocumented(key!("w"), "Close No Save", Dispatch::CloseNoSave),
         Keybinding::new_undocumented(
             key!("enter"),
             "Toggle Selection Mark",
@@ -1984,8 +1984,8 @@ pub fn buffer_keymap(is_alted: bool) -> Keymap {
         )))
         .chain(Some(Keybinding::new_undocumented(
             possibly_alted(key!("n"), is_alted),
-            "Close",
-            Dispatch::CloseCurrentWindow,
+            "Close No Save",
+            Dispatch::CloseNoSave,
         )))
         .chain(Some(Keybinding::new_undocumented(
             possibly_alted(key!("i"), is_alted),

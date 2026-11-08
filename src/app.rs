@@ -477,7 +477,12 @@ impl<T: Frontend> App<T> {
             _ => false,
         };
 
-        if is_user_action && self.auto_hide_global_info {
+        let is_window_switch = match &event {
+            Event::Key(key_event) => key_event == &key!("alt+/"),
+            _ => false,
+        };
+
+        if is_user_action && !is_window_switch && self.auto_hide_global_info {
             self.auto_hide_global_info = false;
             self.layout.close_global_info();
         }
@@ -1220,7 +1225,15 @@ impl<T: Frontend> App<T> {
             }
             #[cfg(test)]
             Dispatch::Custom(_) => unreachable!(),
-            Dispatch::RemainOnlyCurrentComponent => self.layout.remain_only_current_component(),
+            Dispatch::RemainOnlyCurrentComponent => {
+                if self.layout.get_current_component_kind() == Some(ComponentKind::GlobalInfo) {
+                    self.layout.close_global_info();
+                } else if self.layout.get_current_component_kind() == Some(ComponentKind::EditorInfo) {
+                    self.layout.close_editor_info();
+                } else {
+                    self.layout.remain_only_current_component();
+                }
+            }
             Dispatch::ToEditor(dispatch_editor) => self.handle_dispatch_editor(dispatch_editor)?,
             Dispatch::GotoLocation(location) => self.go_to_location(&location, true)?,
             Dispatch::OpenMoveToIndexPrompt(prior_change) => {
@@ -2231,12 +2244,14 @@ impl<T: Frontend> App<T> {
                 },
             );
         }
+        let is_error = info.title().to_lowercase().contains("error")
+            || info.title() == "Search Halted";
         self.layout
             .show_global_info(info, &self.context)
             .unwrap_or_else(|err| {
                 log::error!("Error showing info: {err:?}");
             });
-        self.auto_hide_global_info = true;
+        self.auto_hide_global_info = is_error;
     }
 
     fn show_last_error(&mut self) {

@@ -47,7 +47,15 @@ impl UiTree {
         let removed = self.tree.remove(node_id, RemoveBehavior::DropChildren);
         if change_focus {
             if let Some(parent_id) = parent_id {
-                self.set_focus_component_id(parent_id);
+                if parent_id == self.root_id() {
+                    if let Some(first_child) = self.root().first_child() {
+                        self.set_focus_component_id(first_child.node_id());
+                    } else {
+                        self.set_focus_component_id(parent_id);
+                    }
+                } else {
+                    self.set_focus_component_id(parent_id);
+                }
             } else {
                 self.cycle_component();
             }

@@ -907,6 +907,20 @@ Restored `v` to `"Quit No Save"` (`Dispatch::QuitNoSave`) in [`command_keymap`](
 **Response:**
 Committed changes: swap Command menu `w` (Close with warning) and `n` (Close No Save), preserving `v` as Quit No Save.
 
+### Request 133
+> "alt / should open current buffer list only when there are no splits, if there are windows then it would switch, but when git hunk view is open alt / opens buffer list"
+**Response:**
+Diagnosed why `alt /` opened buffer list when git hunk view was open: `App::show_global_info` previously set `auto_hide_global_info = true` unconditionally for all global info, causing any user action including `alt /` to auto-close the hunk diff window before `Dispatch::OtherWindow` ran. With the hunk window closed, `can_cycle_window()` evaluated to `false` and fell back to opening the buffer list.
+1. In `src/app.rs` (`show_global_info`), restricted `auto_hide_global_info` strictly to ephemeral error dialogs (`title().to_lowercase().contains("error") || title() == "Search Halted"`), keeping Git hunk diffs and persistent info windows open.
+2. In `App::handle_event`, excluded `key!("alt+/")` from auto-hiding global info.
+3. In `src/layout.rs` and `src/ui_tree.rs`, ensured closing an info window returns focus cleanly to `SuggestiveEditor`.
+Verified compilation with `cargo build`.
+
+### Request 134
+> "commit it"
+**Response:**
+Committed changes: fix `alt /` window switching when Git hunk diff view is open instead of auto-dismissing and opening buffer list.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

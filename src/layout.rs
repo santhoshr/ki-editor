@@ -583,6 +583,9 @@ impl Layout {
 
     pub fn close_editor_info(&mut self) {
         self.tree.remove_current_child(ComponentKind::EditorInfo);
+        if self.tree.focused_component_id() == self.tree.root_id() {
+            self.focus_suggestive_editor();
+        }
     }
 
     pub fn close_keymap_legend(&mut self) {
@@ -819,9 +822,21 @@ impl Layout {
         self.tree.remove_current_child(ComponentKind::EditorInfo);
     }
 
+    pub fn focus_suggestive_editor(&mut self) {
+        if let Some(node_id) = self
+            .tree
+            .get_node_child_id(self.tree.root_id(), ComponentKind::SuggestiveEditor)
+        {
+            self.tree.set_focus_component_id(node_id);
+        }
+    }
+
     pub fn close_global_info(&mut self) {
         self.tree
             .remove_node_child(self.tree.root_id(), ComponentKind::GlobalInfo);
+        if self.tree.focused_component_id() == self.tree.root_id() {
+            self.focus_suggestive_editor();
+        }
     }
 
     pub fn get_component_by_id(

@@ -60,6 +60,7 @@ pub struct Context {
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
+    filetree_open_with_path: bool,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -414,6 +415,7 @@ impl Context {
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
+            filetree_open_with_path: app_config.filetree_open_with_path(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -502,6 +504,10 @@ impl Context {
 
     pub fn e_normal_mode(&self) -> crate::config::ENormalMode {
         self.e_normal_mode
+    }
+
+    pub fn filetree_open_with_path(&self) -> bool {
+        self.filetree_open_with_path
     }
 
     #[cfg(test)]

@@ -222,8 +222,10 @@ Accessible via `f` from the Space Command menu (`Dispatch::OpenArbitraryFileProm
 
 ## 6. File Explorer & Filesystem Ingestion
 
-### 6.1 Path Pre-picker & <kbd>Tab</kbd> Action (`src/components/file_explorer.rs`)
-- **Starting Path Prompt:** `Space e` prompts for an absolute or relative directory path before opening the tree.
+### 6.1 Path Pre-picker & Direct Opening (`src/components/file_explorer.rs`, `src/keymap.rs`)
+- **Config Key:** `"filetree_open_with_path": false` (added to `config.json` and `src/config_default.json`).
+- **Default State (`false`):** Pressing `Space ;` opens the File Explorer directly rooted at the current buffer or working directory (`Dispatch::RevealInExplorer`), matching original Ki behavior.
+- **Path Picker State (`true`):** Pressing `Space ;` opens the path picker prompt before launching the file tree (`Dispatch::OpenFileTreeWithPathPicker`).
 - **Node <kbd>Tab</kbd> Dispatch:** Pressing <kbd>Tab</kbd> on any node in the File Explorer:
   1. Inspects the focused node:
      - If `NodeKind::File`, resolves to parent directory (`node.path.parent()`).

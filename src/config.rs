@@ -37,6 +37,7 @@ pub struct AppConfig {
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: ENormalMode,
+    filetree_open_with_path: bool,
     icon_config: shared::icons::IconsConfig,
     load_errors: Vec<String>,
 }
@@ -64,6 +65,8 @@ pub struct RawConfig {
     pick_menu_df_swap: bool,
     #[serde(default)]
     e_normal_mode: ENormalMode,
+    #[serde(default)]
+    filetree_open_with_path: bool,
     #[serde(default)]
     icon_style: shared::icons::IconStyle,
 }
@@ -200,6 +203,7 @@ impl TryFrom<RawConfig> for AppConfig {
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
             e_normal_mode: value.e_normal_mode,
+            filetree_open_with_path: value.filetree_open_with_path,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             load_errors: Vec::new(),
         })
@@ -549,6 +553,10 @@ impl AppConfig {
 
     pub fn e_normal_mode(&self) -> ENormalMode {
         self.e_normal_mode
+    }
+
+    pub fn filetree_open_with_path(&self) -> bool {
+        self.filetree_open_with_path
     }
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {

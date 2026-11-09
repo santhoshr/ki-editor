@@ -41,5 +41,6 @@
     "swap_key": "/",
     "pick_menu_df_swap": false,
     "e_normal_mode": "buffer",
+    "filetree_open_with_path": false,
     "icon_style": "none"
 }

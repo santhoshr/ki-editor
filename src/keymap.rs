@@ -462,7 +462,15 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                 Keybinding::new_undocumented(
                     key!(";"),
                     "File Tree",
-                    Dispatch::OpenFileTreeWithPathPicker,
+                    if context.filetree_open_with_path() {
+                        Dispatch::OpenFileTreeWithPathPicker
+                    } else {
+                        Dispatch::RevealInExplorer(
+                            editor
+                                .path()
+                                .unwrap_or_else(|| context.current_working_directory().clone()),
+                        )
+                    },
                 ),
                 Keybinding::new_undocumented(
                     key!("/"),

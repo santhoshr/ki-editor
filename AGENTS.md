@@ -1280,6 +1280,16 @@ Confirmed: in `mark_keymap`, `y` and `p` were previously mapped to `Dispatch::Cy
 2. In `mark_keymap` (`src/keymap.rs`), remapped `y` to `|< Local Mark` (`Dispatch::GotoLocalMark(Movement::First)`) and `p` to `Local Mark >|` (`Dispatch::GotoLocalMark(Movement::Last)`).
 3. Updated `README.md` and verified with `cargo check` and `cargo build`.
 
+### Request 184
+> "add config for filetree_open_with_path: true/false, default to false, making Space ; to open filetree directly (original behavior), or open with path (current), default to false"
+**Response:**
+1. Added `filetree_open_with_path: bool` to `AppConfig`, `RawConfig` (`#[serde(default)]`), and `Context`.
+2. Added lenient parsing in `src/config/lenient.rs` and default configuration `"filetree_open_with_path": false` in `src/config_default.json`.
+3. In `space_keymap_legend_config` (`src/keymap.rs`), updated `;` ("File Tree"):
+   - When `false` (default): dispatches `Dispatch::RevealInExplorer` rooted at the current file or working directory (original behavior).
+   - When `true`: dispatches `Dispatch::OpenFileTreeWithPathPicker` to prompt for a starting directory path before opening the tree.
+4. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -1256,6 +1256,30 @@ Verified with `cargo check` and `cargo build`.
    - When `true`: `f` is File and `d` is Buffer.
 4. Updated `README.md` and verified with `cargo check` and `cargo build`.
 
+### Request 181
+> "provide config for e menu, 'e_normal_mode': 'buffer'/'mark', e with original buffer menu or e with current customized navigation of local/global marks with u/o and j/l along with i/k/n/m buffer actions along with new files creation h/; both retain e tap to mark; default to 'buffer'"
+**Response:**
+1. Added `ENormalMode` enum (`#[serde(rename = "buffer")] Buffer`, `#[serde(rename = "mark")] Mark`, default `Buffer`) to `src/config.rs`.
+2. Added `e_normal_mode` to `AppConfig`, `RawConfig` (`#[serde(default)]`), and `Context`.
+3. Added lenient parsing in `src/config/lenient.rs` and default configuration `"e_normal_mode": "buffer"` in `src/config_default.json`.
+4. In `src/keymap.rs`, updated `keymap_other_movements`:
+   - When `e_normal_mode` is `Buffer` (default): holding `e` opens the original buffer menu (`≡ Buffer` via `buffer_keymap_legend_config`).
+   - When `e_normal_mode` is `Mark`: holding `e` opens mark navigation (`≡ Mark` via `mark_keymap_legend_config`).
+   - Both modes retain `on_tap: ToggleSelectionMark`.
+5. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
+### Request 182
+> "does mark menu had y and p to point to first and last marked files?"
+**Response:**
+Confirmed: in `mark_keymap`, `y` and `p` were previously mapped to `Dispatch::CycleMarkedFile(Movement::First)` and `Dispatch::CycleMarkedFile(Movement::Last)`.
+
+### Request 183
+> "make it point to first local mark and last local mark"
+**Response:**
+1. Updated `Dispatch::GotoLocalMark(Movement)` in `src/app.rs` to support `Movement::First` and `Movement::Last` alongside `Movement::Left` and `Movement::Right`.
+2. In `mark_keymap` (`src/keymap.rs`), remapped `y` to `|< Local Mark` (`Dispatch::GotoLocalMark(Movement::First)`) and `p` to `Local Mark >|` (`Dispatch::GotoLocalMark(Movement::Last)`).
+3. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -285,7 +285,13 @@ impl KeymapPrintSections {
             ),
             KeymapPrintSection::from_keymap(
                 "Normal".to_string(),
-                &Keymap::new(&normal_mode_keymap(&editor, None, None, context.swap_key())),
+                &Keymap::new(&normal_mode_keymap(
+                    &editor,
+                    None,
+                    None,
+                    context.swap_key(),
+                    context.e_normal_mode(),
+                )),
             ),
             KeymapPrintSection::from_keymap(
                 "Movements".to_string(),
@@ -330,7 +336,10 @@ impl KeymapPrintSections {
             ),
             KeymapPrintSection::from_keymap(
                 "Other Movements".to_string(),
-                &Keymap::new(&keymap_other_movements(context.swap_key())),
+                &Keymap::new(&keymap_other_movements(
+                    context.swap_key(),
+                    context.e_normal_mode(),
+                )),
             ),
             KeymapPrintSection::from_keymap(
                 "Command".to_string(),

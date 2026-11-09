@@ -1,6 +1,6 @@
 use crate::{
     app::{Dispatch, FilePickerKind, HistoryNavigationMovement, Scope, TabSide},
-    config::SwapKey,
+    config::{ENormalMode, SwapKey},
     components::{
         editor::{
             Direction, DispatchEditor, Editor, IfCurrentNotFound, Movement, PriorChange, Reveal,
@@ -366,16 +366,17 @@ pub fn normal_mode_keymap_legend_config(
     normal_mode_override: Option<NormalModeOverride>,
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
+    e_normal_mode: ENormalMode,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Normal".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key)
+            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key, e_normal_mode)
                 .into_iter()
                 .chain(Some(Keybinding::new_undocumented(
                     key!("f"),
                     "Extend",
-                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key)),
+                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key, e_normal_mode)),
                 )))
                 .collect_vec(),
         ),
@@ -756,18 +757,28 @@ pub fn keymap_transform() -> Vec<Keybinding> {
     )))
     .collect_vec()
 }
-pub fn extend_mode_keymap_legend_config(editor: &Editor, swap_key: SwapKey) -> KeymapLegendConfig {
+pub fn extend_mode_keymap_legend_config(
+    editor: &Editor,
+    swap_key: SwapKey,
+    e_normal_mode: ENormalMode,
+) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Extend".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, None, Some(PriorChange::EnableSelectionExtension), swap_key)
-                .into_iter()
-                .chain(Some(Keybinding::new_undocumented(
-                    key!("f"),
-                    "Select All",
-                    Dispatch::ToEditor(SelectAll),
-                )))
-                .collect_vec(),
+            &normal_mode_keymap(
+                editor,
+                None,
+                Some(PriorChange::EnableSelectionExtension),
+                swap_key,
+                e_normal_mode,
+            )
+            .into_iter()
+            .chain(Some(Keybinding::new_undocumented(
+                key!("f"),
+                "Select All",
+                Dispatch::ToEditor(SelectAll),
+            )))
+            .collect_vec(),
         ),
     }
 }
@@ -776,6 +787,7 @@ pub fn normal_mode_keymap(
     normal_mode_override: Option<NormalModeOverride>,
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
+    e_normal_mode: ENormalMode,
 ) -> Vec<Keybinding> {
     let normal_mode_override = normal_mode_override
         .clone()
@@ -783,7 +795,7 @@ pub fn normal_mode_keymap(
         .unwrap_or_default();
     keymap_core_movements(prior_change)
         .into_iter()
-        .chain(keymap_other_movements(swap_key))
+        .chain(keymap_other_movements(swap_key, e_normal_mode))
         .chain(keymap_primary_selection_modes(editor, prior_change))
         .chain(keymap_secondary_selection_modes_init(editor, prior_change))
         .chain(keymap_actions(&normal_mode_override, false, editor, swap_key))
@@ -1765,7 +1777,7 @@ pub fn keymap_actions_overridable(
     .flatten()
     .collect_vec()
 }
-pub fn keymap_other_movements(swap_key: SwapKey) -> Vec<Keybinding> {
+pub fn keymap_other_movements(swap_key: SwapKey, e_normal_mode: ENormalMode) -> Vec<Keybinding> {
     let mut bindings = vec![
         Keybinding::new_undocumented(
             key!("alt+k"),
@@ -1784,8 +1796,14 @@ pub fn keymap_other_movements(swap_key: SwapKey) -> Vec<Keybinding> {
         }),
         Keybinding::app_momentary_layer(MomentaryLayer {
             event: key!("e"),
-            name: "≡ Mark".to_string(),
-            config: mark_keymap_legend_config(),
+            name: match e_normal_mode {
+                ENormalMode::Buffer => "≡ Buffer".to_string(),
+                ENormalMode::Mark => "≡ Mark".to_string(),
+            },
+            config: match e_normal_mode {
+                ENormalMode::Buffer => buffer_keymap_legend_config(),
+                ENormalMode::Mark => mark_keymap_legend_config(),
+            },
             on_tap: Some(OnTap::new(
                 "Toggle Selection Mark",
                 Dispatch::ToggleSelectionMark,
@@ -2098,12 +2116,12 @@ pub fn mark_keymap(is_alted: bool) -> Keymap {
             Keybinding::new_undocumented(
                 possibly_alted(key!("j"), is_alted),
                 "Local Mark <",
-                Dispatch::GotoLocalMark(Direction::Start),
+                Dispatch::GotoLocalMark(Movement::Left),
             ),
             Keybinding::new_undocumented(
                 possibly_alted(key!("l"), is_alted),
                 "> Local Mark",
-                Dispatch::GotoLocalMark(Direction::End),
+                Dispatch::GotoLocalMark(Movement::Right),
             ),
             Keybinding::new_undocumented(
                 possibly_alted(key!("u"), is_alted),
@@ -2117,13 +2135,13 @@ pub fn mark_keymap(is_alted: bool) -> Keymap {
             ),
             Keybinding::new_undocumented(
                 possibly_alted(key!("y"), is_alted),
-                "|< Marked File",
-                Dispatch::CycleMarkedFile(Movement::First),
+                "|< Local Mark",
+                Dispatch::GotoLocalMark(Movement::First),
             ),
             Keybinding::new_undocumented(
                 possibly_alted(key!("p"), is_alted),
-                "Marked File >|",
-                Dispatch::CycleMarkedFile(Movement::Last),
+                "Local Mark >|",
+                Dispatch::GotoLocalMark(Movement::Last),
             ),
         ]
         .into_iter()
@@ -2165,6 +2183,13 @@ pub fn mark_keymap_legend_config() -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "≡ Mark".to_string(),
         keymap: mark_keymap(false),
+    }
+}
+
+pub fn buffer_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Buffer".to_string(),
+        keymap: buffer_keymap(false),
     }
 }
 

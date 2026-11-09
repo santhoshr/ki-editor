@@ -1438,7 +1438,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
-            Dispatch::GotoLocalMark(direction) => self.goto_local_mark(direction)?,
+            Dispatch::GotoLocalMark(movement) => self.goto_local_mark(movement)?,
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
             Dispatch::OpenBookmarkFilesPicker => self.open_bookmark_files_picker()?,
@@ -3043,7 +3043,7 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
-    fn goto_local_mark(&mut self, direction: Direction) -> anyhow::Result<()> {
+    fn goto_local_mark(&mut self, movement: Movement) -> anyhow::Result<()> {
         let Some(current_path) = self.get_current_file_path() else {
             return Ok(());
         };
@@ -3060,16 +3060,19 @@ impl<T: Frontend> App<T> {
             .current_selection_range()
             .start;
 
-        let target_range = match direction {
-            Direction::End => marks
+        let target_range = match movement {
+            Movement::First => marks.first().unwrap(),
+            Movement::Last => marks.last().unwrap(),
+            Movement::Right | Movement::Next => marks
                 .iter()
                 .find(|m| m.start > current_pos)
                 .unwrap_or_else(|| marks.first().unwrap()),
-            Direction::Start => marks
+            Movement::Left | Movement::Previous => marks
                 .iter()
                 .filter(|m| m.start < current_pos)
                 .last()
                 .unwrap_or_else(|| marks.last().unwrap()),
+            _ => return Ok(()),
         };
 
         let location = Location {
@@ -5109,7 +5112,7 @@ pub enum Dispatch {
     },
     CloseAppKeymapLegend,
     CycleMarkedFile(Movement),
-    GotoLocalMark(Direction),
+    GotoLocalMark(Movement),
     GotoGlobalMark(Direction),
     OpenBookmarkMenu,
     OpenBookmarkFilesPicker,

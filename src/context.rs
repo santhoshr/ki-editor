@@ -59,6 +59,7 @@ pub struct Context {
     command_menu_invocation: crate::config::CommandMenuInvocation,
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
+    e_normal_mode: crate::config::ENormalMode,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -412,6 +413,7 @@ impl Context {
             command_menu_invocation: app_config.command_menu_invocation(),
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
+            e_normal_mode: app_config.e_normal_mode(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -496,6 +498,10 @@ impl Context {
 
     pub fn pick_menu_df_swap(&self) -> bool {
         self.pick_menu_df_swap
+    }
+
+    pub fn e_normal_mode(&self) -> crate::config::ENormalMode {
+        self.e_normal_mode
     }
 
     #[cfg(test)]

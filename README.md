@@ -148,6 +148,28 @@ The swap and cut key assignments are configurable via `"swap_key"` in `config.js
 | `Alt+/` | Normal Mode | Multi-window switcher: cycles focus between Editor, File Explorer, Git Blame, and Hunk Diff views. Falls back to Buffer Picker if only one view is open. |
 | `Shift+M` | Normal Mode | Jump to position: accepts `line:col` or `line col` (e.g. `42:15`), preserving active selection mode (e.g. Tree-sitter AST Node mode). |
 
+### 3.4 E Key Momentary Menu Configuration (`src/config.rs`, `src/keymap.rs`)
+
+The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `config.json` (`"buffer"` or `"mark"`, defaulting to `"buffer"`):
+
+- **Default (`"e_normal_mode": "buffer"`):**
+  - **Hold `e`:** Opens the original buffer menu (`≡ Buffer`):
+    - `j` / `l`: cycle marked files (`<<` / `>>`)
+    - `u` / `o`: cycle opened files (`<` / `>`)
+    - `y` / `p`: first / last marked file
+    - `k`: toggle file mark, `n`: close window, `i`: unmark other buffers, `m`: alternate buffer
+    - `h` / `;`: open untitled file left / right
+  - **Tap `e`:** Toggles selection mark (`ToggleSelectionMark`).
+
+- **Alternative (`"e_normal_mode": "mark"`):**
+  - **Hold `e`:** Opens the customized mark navigation menu (`≡ Mark`):
+    - `j` / `l`: local marks (`<` / `>`)
+    - `u` / `o`: global marks (`<` / `>`)
+    - `y` / `p`: first / last local mark (`|<` / `>|`)
+    - `k`: toggle file mark, `n`: close window, `i`: unmark other buffers, `m`: alternate buffer
+    - `h` / `;`: open untitled file left / right
+  - **Tap `e`:** Toggles selection mark (`ToggleSelectionMark`).
+
 ---
 
 ## 4. Buffer Lifecycle & Tab Engine

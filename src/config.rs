@@ -36,6 +36,7 @@ pub struct AppConfig {
     command_menu_invocation: CommandMenuInvocation,
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
+    e_normal_mode: ENormalMode,
     icon_config: shared::icons::IconsConfig,
     load_errors: Vec<String>,
 }
@@ -62,7 +63,18 @@ pub struct RawConfig {
     #[serde(default)]
     pick_menu_df_swap: bool,
     #[serde(default)]
+    e_normal_mode: ENormalMode,
+    #[serde(default)]
     icon_style: shared::icons::IconStyle,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum ENormalMode {
+    #[default]
+    #[serde(rename = "buffer", alias = "Buffer")]
+    Buffer,
+    #[serde(rename = "mark", alias = "Mark")]
+    Mark,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -187,6 +199,7 @@ impl TryFrom<RawConfig> for AppConfig {
             command_menu_invocation: value.command_menu_invocation,
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
+            e_normal_mode: value.e_normal_mode,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             load_errors: Vec::new(),
         })
@@ -532,6 +545,10 @@ impl AppConfig {
 
     pub fn pick_menu_df_swap(&self) -> bool {
         self.pick_menu_df_swap
+    }
+
+    pub fn e_normal_mode(&self) -> ENormalMode {
+        self.e_normal_mode
     }
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {

@@ -4319,7 +4319,13 @@ impl Editor {
     fn get_current_keymap_legend_config(&self, context: &Context) -> super::keymap_legend::KeymapLegendConfig {
         match self.mode {
             Mode::Insert => insert_mode_keymap_legend_config(true),
-            _ => normal_mode_keymap_legend_config(self, None, None, context.swap_key()),
+            _ => normal_mode_keymap_legend_config(
+                self,
+                None,
+                None,
+                context.swap_key(),
+                context.e_normal_mode(),
+            ),
         }
     }
 

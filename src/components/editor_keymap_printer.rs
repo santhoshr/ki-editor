@@ -142,7 +142,7 @@ impl KeymapPrintSection {
         let is_space = self.name == "Space" || self.name == "Command";
 
         let exmatrix_keybindings = if is_quick_marks {
-            "Key Open/Pick, S-Key Search picker, Alt-Key Edit panel".to_string()
+            "Key Open/Pick, S-Key Add file, Alt-Key Edit panel".to_string()
         } else if is_bookmark {
             "Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)".to_string()
         } else if is_space {

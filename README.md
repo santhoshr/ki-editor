@@ -259,10 +259,10 @@ Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`. Both sy
 | **Capacity per Key** | 1 target (file, directory, or nested submenu) | Multiple paths (`Vec<AbsolutePath>`) per key |
 | **Key Activation** | Jumps to file/directory or enters submenu | If 1 target: jumps directly. If >1: opens searchable picker |
 | **Unassigned Key** | Opens assign prompt pre-filled with current file | Opens assign prompt pre-filled with current file |
-| **Shift+Key** | Assigns / navigates shifted character key | Opens searchable fuzzy picker for that key's bookmarks |
+| **Shift+Key** | Assigns / navigates shifted character key | Opens prompt pre-filled with current file path to add another bookmark |
 | **Alt+Key** | Re-assigns key with pre-filled path | Opens editable panel (multi-line buffer in Normal line mode with first item selected) |
 | **Editable Panel (Alt+Key)** | N/A (Submenus used instead) | Opens in Normal mode, Line selection mode with first item selected. Navigate with `j`/`k`, delete line with `r` or `x`, delete multiple with `v`/`l` selection + `r`/`x`, delete all with `SelectAll` + `r`/`x`. `<Enter>` opens focused bookmark and saves edits; `<Esc>` saves edits |
-| **HUD Footer** | `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)` | `Key Open/Pick, S-Key Search picker, Alt-Key Edit panel` |
+| **HUD Footer** | `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)` | `Key Open/Pick, S-Key Add file, Alt-Key Edit panel` |
 
 ### 7.2 Configuration & Invocations
 - **Invocations:**

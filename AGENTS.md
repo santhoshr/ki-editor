@@ -1443,6 +1443,20 @@ Updated `src/config_default.json` with all specified default values and verified
 **Response:**
 Staged all changes and committed as `feat(config): support bookmarks_menu_invocation with resolution hierarchy and set new defaults`.
 
+### Request 200
+> "in quick marks, shift+key should show current file path prefilled for addition not show search"
+**Response:**
+In `src/keymap_override/bookmark.rs`:
+- Updated `Shift+key` handler in Quick-marks mode to dispatch `Dispatch::OpenAssignQuickMarkPrompt { key: base_key, prefill_current_file: true }` so it directly opens the assignment prompt pre-filled with the active buffer's path for addition, rather than opening the search picker.
+- Updated HUD footer in `src/components/editor_keymap_printer.rs` to `Key Open/Pick, S-Key Add file, Alt-Key Edit panel`.
+- Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+- Verified cleanly with `cargo build`.
+
+### Request 201
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(quick_marks): shift+key prefills current file path for addition`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -97,20 +97,14 @@ impl KeymapOverrideTrait for BookmarkKeymapOverride {
                     }
                 }
 
-                // Shift+key: open searchable fuzzy picker
+                // Shift+key: show current file path prefilled for addition
                 if is_shift_press {
-                    if context.has_single_bookmark(base_key) {
-                        return Ok(close_dispatches.chain(Dispatches::one(
-                            Dispatch::OpenSearchableSingleBookmarkPicker(base_key),
-                        )));
-                    } else {
-                        return Ok(close_dispatches.chain(Dispatches::one(
-                            Dispatch::OpenAssignQuickMarkPrompt {
-                                key: base_key,
-                                prefill_current_file: true,
-                            },
-                        )));
-                    }
+                    return Ok(close_dispatches.chain(Dispatches::one(
+                        Dispatch::OpenAssignQuickMarkPrompt {
+                            key: base_key,
+                            prefill_current_file: true,
+                        },
+                    )));
                 }
 
                 // Normal key activation

@@ -810,9 +810,9 @@
                 <li><strong>Quick-marks (Single):</strong> Stored in <code>~/.config/ki/quick_marks.json</code>. Invoked by <kbd>:</kbd> by default (or <kbd>1</kbd> if command menu is at <kbd>:</kbd> or configured via <code>"quick_marks_menu_invocation": "1"</code>). Flat mapping where each key supports as many bookmarks as desired (<code>Vec&lt;AbsolutePath&gt;</code>).
                   <ul>
                     <li><strong>Activation by key:</strong> If unassigned, opens assign prompt pre-filled with current file. If 1 bookmark configured, activates directly. If multiple bookmarks configured, opens the searchable fuzzy picker to select and activate via <kbd>Enter</kbd>.</li>
-                    <li><strong>Shift+Key:</strong> Opens searchable fuzzy picker listing all bookmarks configured under that key (with <kbd>Ctrl+o</kbd> batch open).</li>
+                    <li><strong>Shift+Key:</strong> Opens prompt pre-filled with the current file path to add another bookmark to that key.</li>
                     <li><strong>Alt+Key:</strong> Opens editable panel (multi-line editor buffer) in <strong>Normal</strong> mode and <strong>Line</strong> selection mode with the <strong>first item selected</strong>. Allows users to delete or edit one, many, or all bookmarks using standard Ki editor keys (<kbd>r</kbd>/<kbd>x</kbd>, selections, etc.). <kbd>Enter</kbd> activates focused line and saves; <kbd>Esc</kbd> saves remaining bookmarks and exits.</li>
-                    <li><strong>HUD footer:</strong> <code>Key Open/Pick, S-Key Search picker, Alt-Key Edit panel</code>.</li>
+                    <li><strong>HUD footer:</strong> <code>Key Open/Pick, S-Key Add file, Alt-Key Edit panel</code>.</li>
                   </ul>
                 </li>
               </ul>

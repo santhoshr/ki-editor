@@ -918,8 +918,16 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenNewFile { path } => self.open_new_file(&path)?,
             Dispatch::OpenFileFromPathBuf { path, owner, focus } => {
                 let canonicalized_path: AbsolutePath = path.try_into()?;
-                self.context.mark_file(canonicalized_path.clone());
-                self.open_file(&canonicalized_path, owner, true, focus)?;
+                if canonicalized_path.to_path_buf().is_dir() {
+                    self.change_working_directory(canonicalized_path)?;
+                } else {
+                    self.context.mark_file(canonicalized_path.clone());
+                    if !canonicalized_path.exists() {
+                        self.open_new_file(&canonicalized_path)?;
+                    } else {
+                        self.open_file(&canonicalized_path, owner, true, focus)?;
+                    }
+                }
             }
             Dispatch::OpenFilePicker(kind) => {
                 self.open_file_picker(kind)?;
@@ -4127,19 +4135,19 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
     }
 
     fn open_arbitrary_file_prompt(&mut self) -> anyhow::Result<()> {
+        let working_directory = self.working_directory().clone();
+        let items = PromptItems::BackgroundTask {
+            task: PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory },
+        };
         self.open_prompt(
             PromptConfig::new(
                 "Open File (or CD)".to_string(),
-                PromptOnEnter::ParseCurrentLine {
-                    parser: DispatchParser::OpenArbitraryFile,
-                    history_key: PromptHistoryKey::OpenFile,
-                    current_line: None,
-                    suggested_items: Vec::new(),
-                },
+                PromptOnEnter::SelectsFirstMatchingItem { items },
             )
             .set_on_change(Some(
-                PromptOnChangeDispatch::UpdateSuggestedItemsWithChildPathsAndFiles,
-            )),
+                PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile,
+            ))
+            .set_auto_select_at_dir(false),
         )
     }
 
@@ -4211,19 +4219,17 @@ Please consider installing it.\n\
     }
 
     fn save_as(&mut self) -> anyhow::Result<()> {
-        self.open_prompt(PromptConfig {
-            on_enter: PromptOnEnter::ParseCurrentLine {
-                parser: DispatchParser::SaveAs,
-                history_key: PromptHistoryKey::SaveAs,
-                current_line: Some(self.context.current_working_directory().display_absolute()),
-                suggested_items: vec![],
-            },
-            title: "Save current buffer content to a new file:".to_owned(),
-            on_cancelled: None,
-            on_change: None,
-            show_all_when_empty: false,
-            ignore_completion_on_enter: false,
-        })
+        self.open_prompt(
+            PromptConfig::new(
+                "Save current buffer content to a new file:".to_owned(),
+                PromptOnEnter::ParseCurrentLine {
+                    parser: DispatchParser::SaveAs,
+                    history_key: PromptHistoryKey::SaveAs,
+                    current_line: Some(self.context.current_working_directory().display_absolute()),
+                    suggested_items: vec![],
+                },
+            ),
+        )
     }
 
     fn save_current_buffer_content_to(&mut self, path: AbsolutePath) -> anyhow::Result<()> {
@@ -4836,6 +4842,7 @@ pub enum DispatchParser {
     Null,
     ChangeWorkingDirectory,
     SaveAs,
+    #[allow(dead_code)]
     OpenArbitraryFile,
     OpenFileTreePath,
 }

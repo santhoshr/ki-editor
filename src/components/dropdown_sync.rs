@@ -94,20 +94,32 @@ impl DropdownItem {
         working_directory: &AbsolutePath,
         path: std::path::PathBuf,
     ) -> DropdownItem {
+        let is_dir = path.is_dir();
         DropdownItem::new({
-            let name = path
+            let mut name = path
                 .strip_prefix(working_directory)
                 .map(|path| path.display().to_string())
                 .unwrap_or_else(|_| path.display().to_string());
+            if is_dir && !name.ends_with('/') {
+                name.push('/');
+            }
             let icon_config = crate::config::AppConfig::singleton().icon_config();
             let icon = shared::absolute_path::get_path_icon(&path, icon_config);
             format_with_icon(icon, &name)
         })
-        .set_dispatches(Dispatches::one(crate::app::Dispatch::OpenFileFromPathBuf {
-            path,
-            owner: BufferOwner::User,
-            focus: true,
-        }))
+        .set_dispatches(if is_dir {
+            if let Ok(abs_path) = AbsolutePath::try_from(path.clone()) {
+                Dispatches::one(crate::app::Dispatch::ChangeWorkingDirectory(abs_path))
+            } else {
+                Dispatches::default()
+            }
+        } else {
+            Dispatches::one(crate::app::Dispatch::OpenFileFromPathBuf {
+                path,
+                owner: BufferOwner::User,
+                focus: true,
+            })
+        })
     }
 
     pub fn group(&self) -> &Option<String> {

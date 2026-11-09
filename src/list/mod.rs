@@ -231,6 +231,34 @@ impl WalkBuilderConfig {
                 })
             });
     }
+
+    pub fn get_non_git_ignored_files_and_directories(
+        root: PathBuf,
+        on_entry: Arc<dyn Fn(PathBuf) + Send + Sync>,
+    ) {
+        WalkBuilder::new(&root)
+            .hidden(false)
+            .build_parallel()
+            .run(|| {
+                let on_entry = on_entry.clone();
+                Box::new(move |entry| {
+                    if let Ok(entry) = entry {
+                        if entry.file_name() == ".git" {
+                            return WalkState::Skip;
+                        }
+                        if entry.depth() > 0 {
+                            if let Some(file_type) = entry.file_type() {
+                                if file_type.is_file() || file_type.is_dir() {
+                                    let path: PathBuf = entry.path().into();
+                                    on_entry(path);
+                                }
+                            }
+                        }
+                    }
+                    WalkState::Continue
+                })
+            });
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

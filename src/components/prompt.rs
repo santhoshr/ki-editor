@@ -51,6 +51,8 @@ pub struct Prompt {
     on_cancelled: Option<Dispatches>,
     last_line: std::cell::RefCell<Option<String>>,
     ignore_completion_on_enter: bool,
+    workspace_items: std::sync::Arc<std::sync::Mutex<Vec<DropdownItem>>>,
+    was_path_nav: std::cell::Cell<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +61,7 @@ pub enum PromptOnChangeDispatch {
     SetIncrementalSearchConfig { component_id: ComponentId },
     UpdateSuggestedItemsWithChildPaths,
     UpdateSuggestedItemsWithChildPathsAndFiles,
+    UpdateSuggestedItemsForArbitraryFile,
 }
 
 impl PromptOnChangeDispatch {
@@ -125,6 +128,7 @@ impl PromptOnChangeDispatch {
                     ))
                 }
             }
+            PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile => Dispatches::default(),
         }
     }
 }
@@ -161,6 +165,18 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
             base.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| PathBuf::from("/"))
         };
         (dir, false)
+    } else if line == ".." || line == "../" || line.starts_with("../") {
+        let base = AbsolutePath::try_from(line)
+            .map(|p| p.to_path_buf().clone())
+            .unwrap_or_else(|_| PathBuf::from(".."));
+        let dir = if (line.ends_with('/') || line == "..") && base.is_dir() {
+            base
+        } else {
+            base.parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| PathBuf::from("."))
+        };
+        (dir, false)
     } else {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let base = cwd.join(line);
@@ -176,6 +192,7 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
         return Vec::new();
     };
 
+    let icon_config = crate::config::AppConfig::singleton().icon_config();
     let mut formatted_items = Vec::new();
 
     for entry in entries.filter_map(|e| e.ok()) {
@@ -208,6 +225,21 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
             } else {
                 path.display().to_string()
             }
+        } else if line.starts_with("..") {
+            let parent_dir = AbsolutePath::try_from("..")
+                .map(|p| p.to_path_buf().clone())
+                .unwrap_or_else(|_| PathBuf::from(".."));
+            if let Ok(rel) = path.strip_prefix(&parent_dir) {
+                if is_dir {
+                    format!("../{}/", rel.display())
+                } else {
+                    format!("../{}", rel.display())
+                }
+            } else if is_dir {
+                format!("{}/", path.display())
+            } else {
+                path.display().to_string()
+            }
         } else {
             // Relative
             if let Ok(cwd) = std::env::current_dir() {
@@ -231,15 +263,32 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
             }
         };
 
-        formatted_items.push(display_str);
+        let icon = shared::absolute_path::get_path_icon(&path, icon_config);
+        let display_with_icon = shared::icons::format_with_icon(icon, &display_str);
+
+        let dispatches = if is_dir {
+            if let Ok(abs_path) = AbsolutePath::try_from(path.clone()) {
+                Dispatches::one(Dispatch::ChangeWorkingDirectory(abs_path))
+            } else {
+                Dispatches::default()
+            }
+        } else {
+            Dispatches::one(Dispatch::OpenFileFromPathBuf {
+                path,
+                owner: crate::buffer::BufferOwner::User,
+                focus: true,
+            })
+        };
+
+        formatted_items.push((
+            display_str,
+            DropdownItem::new(display_with_icon).set_dispatches(dispatches),
+        ));
     }
 
-    formatted_items.sort();
+    formatted_items.sort_by(|a, b| a.0.cmp(&b.0));
 
-    formatted_items
-        .into_iter()
-        .map(DropdownItem::new)
-        .collect()
+    formatted_items.into_iter().map(|(_, item)| item).collect()
 }
 
 fn get_child_directories(path: &Path) -> anyhow::Result<Vec<AbsolutePath>> {
@@ -266,10 +315,12 @@ pub struct PromptConfig {
     pub on_change: Option<PromptOnChangeDispatch>,
     pub show_all_when_empty: bool,
     pub ignore_completion_on_enter: bool,
+    pub auto_select_at_dir: bool,
 }
 
 impl PromptConfig {
     pub fn new(title: String, on_enter: PromptOnEnter) -> Self {
+        let auto_select_at_dir = !matches!(on_enter, PromptOnEnter::ParseCurrentLine { .. });
         Self {
             title,
             on_enter,
@@ -277,6 +328,7 @@ impl PromptConfig {
             on_change: None,
             show_all_when_empty: false,
             ignore_completion_on_enter: false,
+            auto_select_at_dir,
         }
     }
 
@@ -290,6 +342,13 @@ impl PromptConfig {
     pub fn set_ignore_completion_on_enter(self, ignore_completion_on_enter: bool) -> Self {
         Self {
             ignore_completion_on_enter,
+            ..self
+        }
+    }
+
+    pub fn set_auto_select_at_dir(self, auto_select_at_dir: bool) -> Self {
+        Self {
+            auto_select_at_dir,
             ..self
         }
     }
@@ -341,6 +400,7 @@ pub enum PromptItems {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PromptItemsBackgroundTask {
     NonGitIgnoredFiles { working_directory: AbsolutePath },
+    NonGitIgnoredFilesAndDirectories { working_directory: AbsolutePath },
     HandledByMainEventLoop,
 }
 impl PromptItemsBackgroundTask {
@@ -349,6 +409,17 @@ impl PromptItemsBackgroundTask {
             PromptItemsBackgroundTask::NonGitIgnoredFiles { working_directory } => {
                 std::thread::spawn(move || {
                     crate::list::WalkBuilderConfig::get_non_git_ignored_files(
+                        working_directory.to_path_buf().clone(),
+                        Arc::new(move |path_buf| {
+                            let item = DropdownItem::from_path_buf(&working_directory, path_buf);
+                            injector.call(item);
+                        }),
+                    );
+                });
+            }
+            PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory } => {
+                std::thread::spawn(move || {
+                    crate::list::WalkBuilderConfig::get_non_git_ignored_files_and_directories(
                         working_directory.to_path_buf().clone(),
                         Arc::new(move |path_buf| {
                             let item = DropdownItem::from_path_buf(&working_directory, path_buf);
@@ -463,16 +534,21 @@ impl Prompt {
         });
         let dispatches = dispatches.chain(editor.render_completion_dropdown(true));
 
+        let workspace_items = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         if let PromptOnEnter::SelectsFirstMatchingItem {
             items: PromptItems::BackgroundTask { task },
         } = &config.on_enter
         {
-            task.to_owned().execute(editor.injector());
+            let ws_clone = workspace_items.clone();
+            let injector = editor.injector();
+            let caching_injector = Callback::new(std::sync::Arc::new(move |item: DropdownItem| {
+                ws_clone.lock().unwrap().push(item.clone());
+                injector.call(item);
+            }));
+            task.to_owned().execute(caching_injector);
         }
 
-        if matches!(config.on_enter, PromptOnEnter::ParseCurrentLine { .. }) {
-            editor.set_auto_select_at_dir(false);
-        }
+        editor.set_auto_select_at_dir(config.auto_select_at_dir);
 
         (
             Prompt {
@@ -482,6 +558,8 @@ impl Prompt {
                 on_change: config.on_change,
                 last_line: std::cell::RefCell::new(None),
                 ignore_completion_on_enter: config.ignore_completion_on_enter,
+                workspace_items,
+                was_path_nav: std::cell::Cell::new(false),
             },
             dispatches,
         )
@@ -494,7 +572,37 @@ impl Prompt {
     ) -> Result<Dispatches, anyhow::Error> {
         if self.editor.completion_dropdown_opened() {
             if let Some(item) = self.editor.completion_dropdown_current_item() {
-                let dispatches = self.editor.update_current_line(context, &item.display())?;
+                let clean_text = if let Some(dispatch) = item.dispatches.clone().into_vec().first() {
+                    match dispatch {
+                        Dispatch::OpenFileFromPathBuf { path, .. } => {
+                            if let Ok(cwd) = std::env::current_dir() {
+                                path.strip_prefix(&cwd)
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|_| path.display().to_string())
+                            } else {
+                                path.display().to_string()
+                            }
+                        }
+                        Dispatch::ChangeWorkingDirectory(path) => {
+                            let mut s = if let Ok(cwd) = std::env::current_dir() {
+                                path.to_path_buf()
+                                    .strip_prefix(&cwd)
+                                    .map(|p| p.display().to_string())
+                                    .unwrap_or_else(|_| path.to_path_buf().display().to_string())
+                            } else {
+                                path.to_path_buf().display().to_string()
+                            };
+                            if !s.ends_with('/') {
+                                s.push('/');
+                            }
+                            s
+                        }
+                        _ => item.display(),
+                    }
+                } else {
+                    item.display()
+                };
+                let dispatches = self.editor.update_current_line(context, &clean_text)?;
                 Ok(dispatches.chain(self.editor_mut().move_to_line_end()?))
             } else {
                 Ok(Dispatches::default())
@@ -523,6 +631,38 @@ impl Prompt {
         }
         *self.last_line.borrow_mut() = Some(current_line.clone());
         self.editor.reset_dismissed_completion();
+
+        if self.on_change == Some(PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile) {
+            let line = current_line.trim();
+            let is_path_nav = line.starts_with('/')
+                || line.starts_with('~')
+                || line.starts_with("..")
+                || line == "."
+                || line.starts_with("./");
+
+            if is_path_nav {
+                self.was_path_nav.set(true);
+                let items = get_child_paths_and_files_for_prompt(line);
+                return Dispatches::one(Dispatch::ToSuggestiveEditor(
+                    DispatchSuggestiveEditor::Completion(Completion {
+                        items,
+                        trigger_characters: Vec::new(),
+                    }),
+                ));
+            } else if self.was_path_nav.get() {
+                self.was_path_nav.set(false);
+                let items = self.workspace_items.lock().unwrap().clone();
+                return Dispatches::one(Dispatch::ToSuggestiveEditor(
+                    DispatchSuggestiveEditor::Completion(Completion {
+                        items,
+                        trigger_characters: Vec::new(),
+                    }),
+                ));
+            } else {
+                return Dispatches::default();
+            }
+        }
+
         self.on_change
             .as_ref()
             .map(|on_change| {
@@ -600,8 +740,10 @@ impl Component for Prompt {
                     for item in &all_items {
                         for dispatch in item.dispatches.clone().into_vec() {
                             if let Dispatch::OpenFileFromPathBuf { path, .. } = dispatch {
-                                if let Ok(abs_path) = path.try_into() {
-                                    paths.push(abs_path);
+                                if let Ok(abs_path) = AbsolutePath::try_from(path) {
+                                    if !abs_path.to_path_buf().is_dir() {
+                                        paths.push(abs_path);
+                                    }
                                 }
                             }
                         }
@@ -624,13 +766,36 @@ impl Component for Prompt {
             key!("enter") => {
                 let dispatches = match &self.on_enter {
                     PromptOnEnter::SelectsFirstMatchingItem { .. } => {
-                        if self.editor.is_completion_dismissed() || !self.editor.completion_dropdown_opened() {
-                            Dispatches::default()
+                        let current_item = if !self.editor.is_completion_dismissed()
+                            && self.editor.completion_dropdown_opened()
+                        {
+                            self.editor.completion_dropdown_current_item()
                         } else {
-                            self.editor
-                                .completion_dropdown_current_item()
-                                .map(|item| item.dispatches)
-                                .unwrap_or_default()
+                            None
+                        };
+
+                        if let Some(item) = current_item {
+                            item.dispatches
+                        } else {
+                            let line = self.editor().current_line().unwrap_or_default();
+                            let text = line.trim();
+                            if !text.is_empty() {
+                                if let Ok(abs_path) = AbsolutePath::try_from(text) {
+                                    if abs_path.to_path_buf().is_dir() {
+                                        Dispatches::one(Dispatch::ChangeWorkingDirectory(abs_path))
+                                    } else {
+                                        Dispatches::one(Dispatch::OpenFileFromPathBuf {
+                                            path: abs_path.into_path_buf(),
+                                            owner: crate::buffer::BufferOwner::User,
+                                            focus: true,
+                                        })
+                                    }
+                                } else {
+                                    Dispatches::default()
+                                }
+                            } else {
+                                Dispatches::default()
+                            }
                         }
                     }
                     PromptOnEnter::ParseCurrentLine {

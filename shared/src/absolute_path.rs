@@ -121,6 +121,9 @@ impl TryFrom<&String> for AbsolutePath {
 }
 
 pub fn get_path_icon<'a>(path: &Path, config: &'a crate::icons::IconsConfig) -> &'a str {
+    if path.is_dir() {
+        return config.folder.as_str();
+    }
     path.file_name()
         .and_then(|filename| {
             config

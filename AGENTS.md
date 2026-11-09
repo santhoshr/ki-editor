@@ -921,6 +921,41 @@ Verified compilation with `cargo build`.
 **Response:**
 Committed changes: fix `alt /` window switching when Git hunk diff view is open instead of auto-dismissing and opening buffer list.
 
+### Request 135
+> "why space f open does not show nested files and also bindings like ctrl o does not open all files?"
+**Response:**
+Explained that `Space f` previously invoked `OpenArbitraryFilePrompt` with `UpdateSuggestedItemsWithChildPathsAndFiles`, performing a shallow single-level `std::fs::read_dir` instead of recursive search. Autocomplete items also lacked `Dispatch::OpenFileFromPathBuf`, causing `ctrl+o` to find no paths.
+
+### Request 136
+> "space f should work like space space k f (pick -> file) except fo handling directories where it will do change directory"
+**Response:**
+Updated `OpenArbitraryFilePrompt` (`Space f`) to fuzzy search all nested files and directories via `PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories`:
+1. Recursively discovers non-git-ignored files and directories with folder icons and trailing `/`.
+2. Selecting a directory or pressing Enter on a directory executes `Dispatch::ChangeWorkingDirectory`.
+3. Selecting a file opens and marks it in the editor.
+4. `ctrl+o` / `alt+g` opens all matching files in tabs while filtering out directory items.
+5. If typed path has no completion dropdown match, Enter resolves typed line: `cd` if directory, open if file.
+
+### Request 137
+> "few things has been done for auto completion picker so it will play nicely with input in previous impl like no selecting first child, keep those changes as well"
+**Response:**
+Added `auto_select_at_dir: bool` to `PromptConfig` (passed to `editor.set_auto_select_at_dir`) and configured `set_auto_select_at_dir(false)` on `open_arbitrary_file_prompt`:
+1. When input is empty, `~`, `.`, `..`, or ends with `/`, no dropdown candidate is auto-selected (`highlight_line_index = None`).
+2. Tab replacement cleans leading icons before inserting into the editor query line.
+3. Arrow keys select and navigate candidates cleanly without skipping the first item.
+
+### Request 138
+> "it is also not recognizing / ~ path navigtiaon instead doing fuzzy match in current folder tree"
+**Response:**
+Added `PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile` to handle dynamic path navigation:
+1. When query begins with `/`, `~`, or `..`, dynamically resolves and reads that path target rather than fuzzy searching the workspace, populating candidates with folder icons and `ChangeWorkingDirectory` / `OpenFileFromPathBuf` dispatches.
+2. Caches initial workspace items (`workspace_items: Arc<Mutex<Vec<DropdownItem>>>`); when input switches back to relative/empty, instantly restores workspace fuzzy search without re-walking disk.
+
+### Request 139
+> "commit it"
+**Response:**
+Committed changes: recursive file & directory discovery in `Space f`, directory `cd` action, dynamic path navigation for `/`, `~`, and `..`, unselected first child at directory boundaries, and `ctrl+o` batch-open support.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -234,7 +234,13 @@ impl SuggestiveEditor {
         }
         let line = self.editor().current_line().unwrap_or_default();
         let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.ends_with('/') || trimmed.ends_with('\\') {
+        if trimmed.is_empty()
+            || trimmed == "~"
+            || trimmed == "."
+            || trimmed == ".."
+            || trimmed.ends_with('/')
+            || trimmed.ends_with('\\')
+        {
             return false;
         }
         true

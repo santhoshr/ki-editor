@@ -82,7 +82,7 @@ In Normal mode, pressing `Space` directly opens the Command Menu HUD (`command_k
 
 Supported invocation keys:
 - `"Space"` (default): `Space` opens the Command Menu; pressing `Space` inside opens the secondary Space Menu.
-- `"c"`: `c` in Normal mode opens the Command Menu; `Space` in Normal mode directly opens the Space Menu.
+- `"c"`: `c` in Normal mode opens the Command Menu; `Space` in Normal mode directly opens the Space Menu; Normal mode's original `c` action (`Copy/≡ Dup`) is moved inside the Command Menu under `c`.
 - `"C"`: `C` (or `Shift+c`) opens the Command Menu; `Space` in Normal mode directly opens the Space Menu.
 - `"Shift+;"` (or `":"`): `:` opens the Command Menu; `Space` in Normal mode directly opens the Space Menu.
 

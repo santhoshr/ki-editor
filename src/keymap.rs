@@ -1180,6 +1180,17 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             Dispatch::ToEditor(DispatchEditor::ShowHelp),
         ),
     ];
+    if context.command_menu_invocation() == crate::config::CommandMenuInvocation::LowerC {
+        bindings.push(Keybinding::momentary_layer(MomentaryLayer {
+            event: key!("c"),
+            name: "Copy/≡ Dup".to_string(),
+            config: KeymapLegendConfig {
+                title: "Copy/≡ Dup".to_string(),
+                keymap: duplicate_keymap(),
+            },
+            on_tap: Some(OnTap::new("Copy", Dispatch::ToEditor(Copy))),
+        }));
+    }
     bindings.extend(buffer_keymap(false).into_vec());
     Keymap::new(&bindings)
 }

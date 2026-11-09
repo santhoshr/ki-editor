@@ -1229,6 +1229,12 @@ Prepended the full contents of `KustomKi.md` to the top of `README.md` and remov
 5. In `src/keymap_override/menu.rs`: enabled dismissal of Command menu when pressing the configured non-space invocation key again.
 Verified with `cargo check` and `cargo build`.
 
+### Request 178
+> "when 'c' is mapped to Command menu move normal mode 'c' to Command menu c"
+**Response:**
+In `command_keymap` (`src/keymap.rs`), when `context.command_menu_invocation() == CommandMenuInvocation::LowerC`, added the `Copy/≡ Dup` momentary layer (`Keybinding::momentary_layer(MomentaryLayer { event: key!("c"), name: "Copy/≡ Dup", ... })`) to `c`, preserving normal mode's copy/duplicate action within the Command menu.
+Verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

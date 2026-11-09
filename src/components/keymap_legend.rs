@@ -88,7 +88,8 @@ impl ReleaseKey {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Keymap(Vec<Keybinding>);
 impl Keymap {
-    fn display(
+    #[allow(dead_code)]
+    pub fn display(
         &self,
         terminal_width: usize,
         option: &KeymapDisplayOption,
@@ -124,7 +125,11 @@ impl KeymapLegendConfig {
         option: &KeymapDisplayOption,
         layout: Option<&KeyboardLayout>,
     ) -> String {
-        self.keymap.display(width, option, layout)
+        KeymapPrintSection::from_keymap(self.title.clone(), &self.keymap).display(
+            width,
+            option,
+            layout,
+        )
     }
 
     pub fn keymap(&self) -> Keymap {

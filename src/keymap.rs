@@ -507,6 +507,26 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                     "Current File Dir",
                     Dispatch::ChangeWorkingDirectoryToCurrentFile,
                 ),
+                Keybinding::new_undocumented(
+                    key!("-"),
+                    "Explorer",
+                    Dispatch::RevealCurrentInExplorer,
+                ),
+                Keybinding::new_undocumented(
+                    key!("_"),
+                    "Explorer Working Dir",
+                    Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+_"),
+                    "Explorer Working Dir",
+                    Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+-"),
+                    "Explorer Working Dir",
+                    Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+                ),
             ]
             .into_iter()
             .chain(

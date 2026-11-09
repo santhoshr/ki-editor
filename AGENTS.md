@@ -1290,6 +1290,37 @@ Confirmed: in `mark_keymap`, `y` and `p` were previously mapped to `Dispatch::Cy
    - When `true`: dispatches `Dispatch::OpenFileTreeWithPathPicker` to prompt for a starting directory path before opening the tree.
 4. Updated `README.md` and verified with `cargo check` and `cargo build`.
 
+### Request 185
+> "in bookmarks menu, instead of Pick Keybpard/Leader help text, add Key/S-Key/Alt-Key Pick file/folder to bookmark, empty to clear, =/equals to nest"
+> "target only qwerty for now"
+**Response:**
+1. In `KeymapLegendConfig::display` (`src/components/keymap_legend.rs`), forwarded `self.title.clone()` into `KeymapPrintSection::from_keymap(self.title.clone(), &self.keymap).display(...)` so the section carries the menu title.
+2. In `KeymapPrintSection::display` (`src/components/editor_keymap_printer.rs`), checked if `self.name` indicates the bookmark menu (`self.name.starts_with("≡ Bookmark") || self.name.to_lowercase().contains("bookmark")`).
+3. Set `exmatrix_keybindings` to `"Key/S-Key/Alt-Key Pick file/folder to bookmark, empty to clear, =/equals to nest"` for bookmarks HUD (targeting QWERTY layout) while preserving `* Pick Keyboard    \ Leader` for all standard menus.
+4. Updated `README.md` and verified cleanly with `cargo check` and `cargo build`.
+
+### Request 186
+> "make it empty path to clear, input =/equals to nest"
+**Response:**
+Updated the bookmarks menu HUD footer text in `src/components/editor_keymap_printer.rs` to:
+`"Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input =/equals to nest"`.
+Updated `README.md` and verified with `cargo check` and `cargo build`.
+
+### Request 187
+> "since =/equals sounds like they can type equals make it, input = to nest(equals key)"
+**Response:**
+Updated the bookmarks menu HUD footer text in `src/components/editor_keymap_printer.rs` to:
+`"Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)"`.
+Updated `README.md` and verified with `cargo check` and `cargo build`.
+
+### Request 188
+> "add info for file tree after Leader in Space HUD, - File Tree (current file) shift+-/_ File Tree (cd)"
+**Response:**
+1. In `KeymapPrintSection::display` (`src/components/editor_keymap_printer.rs`), added file tree helper keybindings after `\ Leader` when displaying Space HUD (`self.name == "Space" || self.name == "Command"`):
+   `["* Pick Keyboard", "\\ Leader", "- File Tree (current file)", "shift+-/_ File Tree (cd)"].join(&" ".repeat(4))`.
+2. In `space_keymap_legend_config` (`src/keymap.rs`), added `-` (`Dispatch::RevealCurrentInExplorer`), `_` / `shift+_` / `shift+-` (`Dispatch::RevealCurrentWorkingDirectoryInExplorer`) to ensure identical behavior in Space menu.
+3. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

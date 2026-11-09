@@ -133,8 +133,24 @@ impl KeymapPrintSection {
             content_width as usize + 12 + 22 + 2
         }
 
-        let exmatrix_keybindings =
-            ["* Pick Keyboard", "\\ Leader"].join(&" ".repeat(4));
+        let is_bookmark = self.name.starts_with("≡ Bookmark")
+            || self.name.to_lowercase().contains("bookmark");
+
+        let is_space = self.name == "Space" || self.name == "Command";
+
+        let exmatrix_keybindings = if is_bookmark {
+            "Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)".to_string()
+        } else if is_space {
+            [
+                "* Pick Keyboard",
+                "\\ Leader",
+                "- File Tree (current file)",
+                "shift+-/_ File Tree (cd)",
+            ]
+            .join(&" ".repeat(4))
+        } else {
+            ["* Pick Keyboard", "\\ Leader"].join(&" ".repeat(4))
+        };
         if get_content_width(&table) < terminal_width {
             format!("{table}\n{exmatrix_keybindings}")
         } else {

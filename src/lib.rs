@@ -6,6 +6,7 @@ mod git;
 
 mod alternator;
 mod app;
+pub mod bookmarks;
 pub mod char_index_range;
 mod cli;
 mod clipboard;

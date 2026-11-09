@@ -3,11 +3,13 @@ use crate::{
     components::editor_keymap::CombinedKeyEvent,
     context::Context,
     keymap_override::{
-        find_one::FindOneCharKeymapOverride, jump::JumpKeymapOverride, menu::MenuKeymapOverride,
+        bookmark::BookmarkKeymapOverride, find_one::FindOneCharKeymapOverride,
+        jump::JumpKeymapOverride, menu::MenuKeymapOverride,
         momentary_layer::MomentaryLayerKeymapOverride,
     },
 };
 
+pub mod bookmark;
 pub mod find_one;
 pub mod jump;
 pub mod menu;
@@ -30,6 +32,7 @@ pub enum EditorKeymapOverride {
     FindOneChar(FindOneCharKeymapOverride),
     Menu(MenuKeymapOverride),
     MomentaryLayer(MomentaryLayerKeymapOverride),
+    Bookmark(BookmarkKeymapOverride),
 }
 
 pub trait KeymapOverrideTrait {
@@ -86,6 +89,7 @@ impl EditorKeymapOverride {
             Self::MomentaryLayer(momentary_layer_keymap_override) => {
                 momentary_layer_keymap_override
             }
+            Self::Bookmark(bookmark_keymap_override) => bookmark_keymap_override,
         }
     }
 }

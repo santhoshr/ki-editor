@@ -1952,15 +1952,17 @@ impl Editor {
             self.selection_set
                 .map(|selection| {
                     let range = selection.extended_range();
-                    let new_char_index = range.start + s.chars().count();
+                    let (edit_range, new_char_index) = if range.start < range.end {
+                        (range, range.start + s.chars().count())
+                    } else {
+                        let start = selection.to_char_index(&Direction::End);
+                        ((start..start).into(), start + s.chars().count())
+                    };
                     ActionGroup::new(
                         [
                             Action::Edit(Edit::new(
                                 self.buffer().rope(),
-                                {
-                                    let start = selection.to_char_index(&Direction::End);
-                                    (start..start).into()
-                                },
+                                edit_range,
                                 Rope::from_str(s),
                             )),
                             Action::Select(
@@ -2615,15 +2617,21 @@ impl Editor {
         let edit_transaction = EditTransaction::from_action_groups(
             self.selection_set
                 .map(|selection| {
-                    let start = CharIndex(selection.extended_range().start.0.saturating_sub(1));
+                    let range = selection.extended_range();
+                    let (edit_range, new_cursor) = if range.start < range.end {
+                        (range, range.start)
+                    } else {
+                        let start = CharIndex(range.start.0.saturating_sub(1));
+                        ((start..range.start).into(), start)
+                    };
                     ActionGroup::new(
                         [
                             Action::Edit(Edit::new(
                                 self.buffer().rope(),
-                                (start..selection.extended_range().start).into(),
+                                edit_range,
                                 Rope::from(""),
                             )),
-                            Action::Select(selection.clone().set_range((start..start).into())),
+                            Action::Select(selection.clone().set_range((new_cursor..new_cursor).into())),
                         ]
                         .to_vec(),
                     )

@@ -32,7 +32,8 @@ use crate::{
     grid::{Grid, StyleKey},
     integration_event::{IntegrationEvent, IntegrationEventEmitter},
     keymap_override::{
-        menu::MenuKeymapOverride, momentary_layer::MomentaryLayerKeymapOverride, AppKeymapOverride,
+        bookmark::BookmarkKeymapOverride, menu::MenuKeymapOverride,
+        momentary_layer::MomentaryLayerKeymapOverride, AppKeymapOverride,
         EditorKeymapOverride, KeymapOverrideScope, KeymapOverrideTrait,
     },
     layout::Layout,
@@ -129,6 +130,8 @@ pub struct App<T: Frontend> {
     auto_hide_global_info: bool,
     last_global_info: Option<Info>,
     last_terminal_title: Option<String>,
+    pending_bookmark_key: Option<char>,
+    pending_bookmark_default_path: Option<AbsolutePath>,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -274,6 +277,8 @@ impl<T: Frontend> App<T> {
             auto_hide_global_info: false,
             last_global_info: None,
             last_terminal_title: None,
+            pending_bookmark_key: None,
+            pending_bookmark_default_path: None,
         };
 
         app.restore_session();
@@ -492,6 +497,10 @@ impl<T: Frontend> App<T> {
 
         if let Event::Key(key_event) = event {
             let is_insert_mode = component.borrow().editor().mode == crate::components::editor::Mode::Insert;
+            if !is_insert_mode && key_event == key!("shift+space") {
+                self.open_bookmark_menu()?;
+                return Ok(true);
+            }
             if is_insert_mode {
                 if key_event == key!("j") {
                     self.last_insert_j_press = Some(std::time::Instant::now());
@@ -918,7 +927,23 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenNewFile { path } => self.open_new_file(&path)?,
             Dispatch::OpenFileFromPathBuf { path, owner, focus } => {
                 let canonicalized_path: AbsolutePath = path.try_into()?;
-                if canonicalized_path.to_path_buf().is_dir() {
+                if let Some(key) = self.pending_bookmark_key.take() {
+                    let bookmark_path = if let Some(default_path) = self.pending_bookmark_default_path.take() {
+                        if canonicalized_path.file_name() == default_path.file_name() {
+                            default_path
+                        } else {
+                            canonicalized_path
+                        }
+                    } else {
+                        canonicalized_path
+                    };
+                    self.context.set_bookmark(key, bookmark_path.clone())?;
+                    let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
+                    self.show_global_info(Info::new(
+                        "Bookmark Assigned".to_string(),
+                        format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
+                    ));
+                } else if canonicalized_path.to_path_buf().is_dir() {
                     self.change_working_directory(canonicalized_path)?;
                 } else {
                     self.context.mark_file(canonicalized_path.clone());
@@ -1272,6 +1297,14 @@ impl<T: Frontend> App<T> {
                     self.reveal_path_in_explorer(&path)?;
                 }
             }
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer => {
+                if self.layout.is_file_explorer_open() {
+                    self.layout.close_file_explorer(&self.context);
+                } else {
+                    let cwd = self.context.current_working_directory().clone();
+                    self.reveal_dir_in_explorer(&cwd)?;
+                }
+            }
             Dispatch::OpenMovePathsPrompt => self.open_move_paths_prompt()?,
             Dispatch::OpenDuplicateFilePrompt => self.open_copy_file_prompt()?,
             Dispatch::OpenAddPathPrompt => self.open_add_path_prompt()?,
@@ -1404,6 +1437,19 @@ impl<T: Frontend> App<T> {
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
             Dispatch::GotoLocalMark(direction) => self.goto_local_mark(direction)?,
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
+            Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
+            Dispatch::OpenBookmark(key) => self.open_bookmark(key)?,
+            Dispatch::ClearBookmark(key) => self.clear_bookmark(key)?,
+            Dispatch::OpenAssignBookmarkPrompt {
+                key,
+                prefill_current_file,
+            } => self.open_assign_bookmark_prompt(key, prefill_current_file)?,
+            Dispatch::ChangeWorkingDirectoryToBookmark(key) => self.change_working_directory_to_bookmark(key)?,
+            Dispatch::ChangeWorkingDirectoryToCurrentFile => self.change_working_directory_to_current_file()?,
+            Dispatch::CancelPendingBookmark => {
+                self.pending_bookmark_key = None;
+                self.pending_bookmark_default_path = None;
+            }
             Dispatch::OpenAlternateFile => self.open_alternate_file()?,
             Dispatch::PushPromptHistory { key, line } => self.push_history_prompt(key, line),
             Dispatch::OpenThemePicker => self.open_theme_picker()?,
@@ -1481,9 +1527,40 @@ impl<T: Frontend> App<T> {
             Dispatch::ToSuggestiveEditor(dispatch) => {
                 self.handle_dispatch_suggestive_editor(dispatch)?;
             }
-            Dispatch::OpenAndMarkFiles(paths) => self.open_and_mark_files(paths)?,
+            Dispatch::OpenAndMarkFiles(paths) => {
+                if let Some(key) = self.pending_bookmark_key.take() {
+                    let first_path = paths.first().clone();
+                    let bookmark_path = if let Some(default_path) = self.pending_bookmark_default_path.take() {
+                        if first_path.file_name() == default_path.file_name() {
+                            default_path
+                        } else {
+                            first_path
+                        }
+                    } else {
+                        first_path
+                    };
+                    self.context.set_bookmark(key, bookmark_path.clone())?;
+                    let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
+                    self.show_global_info(Info::new(
+                        "Bookmark Assigned".to_string(),
+                        format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
+                    ));
+                } else {
+                    self.open_and_mark_files(paths)?;
+                }
+            }
             Dispatch::ToggleOrOpenPaths => self.toggle_or_open_paths()?,
-            Dispatch::ChangeWorkingDirectory(path) => self.change_working_directory(path)?,
+            Dispatch::ChangeWorkingDirectory(path) => {
+                if let Some(key) = self.pending_bookmark_key.take() {
+                    self.context.set_bookmark(key, path.clone())?;
+                    self.show_global_info(Info::new(
+                        "Bookmark Assigned".to_string(),
+                        format!("Bookmark '{key}' assigned to directory {}", path.display_absolute()),
+                    ));
+                } else {
+                    self.change_working_directory(path)?;
+                }
+            }
             Dispatch::OpenChangeWorkingDirectoryPrompt => {
                 self.open_change_working_directory_prompt()?;
             }
@@ -2246,7 +2323,11 @@ impl<T: Frontend> App<T> {
     }
 
     fn show_global_info(&mut self, info: Info) {
-        self.last_global_info = Some(info.clone());
+        let is_error = info.title().to_lowercase().contains("error")
+            || info.title() == "Search Halted";
+        if is_error {
+            self.last_global_info = Some(info.clone());
+        }
         if self.is_running_as_embedded() {
             self.integration_event_sender.emit_event(
                 crate::integration_event::IntegrationEvent::ShowInfo {
@@ -2254,14 +2335,12 @@ impl<T: Frontend> App<T> {
                 },
             );
         }
-        let is_error = info.title().to_lowercase().contains("error")
-            || info.title() == "Search Halted";
         self.layout
             .show_global_info(info, &self.context)
             .unwrap_or_else(|err| {
                 log::error!("Error showing info: {err:?}");
             });
-        self.auto_hide_global_info = is_error;
+        self.auto_hide_global_info = true;
     }
 
     fn show_last_error(&mut self) {
@@ -3050,6 +3129,175 @@ impl<T: Frontend> App<T> {
             }
         }
 
+        Ok(())
+    }
+
+    fn open_bookmark_menu(&mut self) -> anyhow::Result<()> {
+        let config = self.create_bookmark_keymap_legend_config();
+        self.layout.close_keymap_legend();
+        self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(Some(
+            EditorKeymapOverride::Bookmark(BookmarkKeymapOverride::new(config.clone())),
+        )))?;
+        self.show_keymap_legend(false, config, None);
+        Ok(())
+    }
+
+    fn create_bookmark_keymap_legend_config(&self) -> KeymapLegendConfig {
+        let mut bindings = Vec::new();
+        for (&key, path) in self.context.bookmarks().entries() {
+            let mut name = if let Some(file_name) = path.file_name() {
+                file_name.to_string()
+            } else {
+                path.display_absolute()
+            };
+            if path.to_path_buf().is_dir() && !name.ends_with('/') {
+                name.push('/');
+            }
+            if name.len() > 10 {
+                name.truncate(9);
+                name.push('…');
+            }
+            let mut modifiers = event::KeyModifiers::default();
+            if key.is_uppercase() {
+                modifiers.shift = true;
+            }
+            let event = event::KeyEvent::pressed(
+                crossterm::event::KeyCode::Char(key),
+                modifiers,
+            );
+            bindings.push(Keybinding::new_dynamic(
+                event,
+                name,
+                Dispatch::OpenBookmark(key),
+            ));
+        }
+        KeymapLegendConfig {
+            title: "≡ Bookmark".to_string(),
+            keymap: Keymap::new(&bindings),
+        }
+    }
+
+    fn open_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        let Some(path) = self.context.get_bookmark(key).cloned() else {
+            return Ok(());
+        };
+        if !path.exists() {
+            self.show_global_info(Info::new(
+                "Bookmark Not Found".to_string(),
+                format!("Bookmark '{key}' path does not exist: {}", path.display_absolute()),
+            ));
+            return Ok(());
+        }
+        if path.to_path_buf().is_dir() {
+            self.change_working_directory(path)?;
+        } else {
+            self.context.mark_file(path.clone());
+            self.open_file(&path, BufferOwner::User, true, true)?;
+        }
+        Ok(())
+    }
+
+    fn clear_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        if self.context.remove_bookmark(key)? {
+            self.show_global_info(Info::new(
+                "Bookmark Cleared".to_string(),
+                format!("Bookmark '{key}' cleared"),
+            ));
+        } else {
+            self.show_global_info(Info::new(
+                "Bookmark Not Found".to_string(),
+                format!("Bookmark '{key}' is not assigned"),
+            ));
+        }
+        Ok(())
+    }
+
+    fn open_assign_bookmark_prompt(
+        &mut self,
+        key: char,
+        prefill_current_file: bool,
+    ) -> anyhow::Result<()> {
+        self.pending_bookmark_key = Some(key);
+        let current_path = self.get_current_file_path();
+        self.pending_bookmark_default_path = current_path.clone();
+        let working_directory = self.working_directory().clone();
+        let items = PromptItems::BackgroundTask {
+            task: PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory },
+        };
+        let initial_text = if prefill_current_file {
+            current_path.map(|p| p.display_absolute())
+        } else {
+            None
+        };
+        let on_empty_enter = Some(Dispatches::from(vec![
+            Dispatch::CancelPendingBookmark,
+            Dispatch::ClearBookmark(key),
+        ]));
+        let title = if prefill_current_file {
+            format!("Assign Bookmark '{key}' (or clear if empty)")
+        } else {
+            format!("Assign Bookmark '{key}' (or CD)")
+        };
+        self.open_prompt(
+            PromptConfig::new(
+                title,
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_initial_text(initial_text)
+            .set_on_empty_enter(on_empty_enter)
+            .set_on_change(Some(
+                PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile,
+            ))
+            .set_on_cancelled(Some(Dispatches::one(Dispatch::CancelPendingBookmark))),
+        )
+    }
+
+    fn change_working_directory_to_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        let Some(path) = self.context.get_bookmark(key).cloned() else {
+            self.show_global_info(Info::new(
+                "Bookmark Not Found".to_string(),
+                format!("Bookmark '{key}' is not assigned"),
+            ));
+            return Ok(());
+        };
+        if !path.exists() {
+            self.show_global_info(Info::new(
+                "Bookmark Not Found".to_string(),
+                format!("Bookmark '{key}' path does not exist: {}", path.display_absolute()),
+            ));
+            return Ok(());
+        }
+        let dir = if path.to_path_buf().is_dir() {
+            path
+        } else {
+            path.parent().ok().flatten().unwrap_or(path)
+        };
+        self.change_working_directory(dir.clone())?;
+        self.show_global_info(Info::new(
+            "Working Directory Changed".to_string(),
+            format!("Changed working directory to {}", dir.display_absolute()),
+        ));
+        Ok(())
+    }
+
+    fn change_working_directory_to_current_file(&mut self) -> anyhow::Result<()> {
+        let Some(current_path) = self.get_current_file_path() else {
+            self.show_global_info(Info::new(
+                "No File Open".to_string(),
+                "Cannot change working directory: no active file".to_string(),
+            ));
+            return Ok(());
+        };
+        let dir = if current_path.to_path_buf().is_dir() {
+            current_path
+        } else {
+            current_path.parent().ok().flatten().unwrap_or(current_path)
+        };
+        self.change_working_directory(dir.clone())?;
+        self.show_global_info(Info::new(
+            "Working Directory Changed".to_string(),
+            format!("Changed working directory to {}", dir.display_absolute()),
+        ));
         Ok(())
     }
 
@@ -4615,6 +4863,7 @@ pub enum Dispatch {
     RevealInExplorer(AbsolutePath),
     RevealDirInExplorer(AbsolutePath),
     RevealCurrentInExplorer,
+    RevealCurrentWorkingDirectoryInExplorer,
     OpenMovePathsPrompt,
     OpenDuplicateFilePrompt,
     OpenAddPathPrompt,
@@ -4696,6 +4945,16 @@ pub enum Dispatch {
     CycleMarkedFile(Movement),
     GotoLocalMark(Direction),
     GotoGlobalMark(Direction),
+    OpenBookmarkMenu,
+    OpenBookmark(char),
+    ClearBookmark(char),
+    OpenAssignBookmarkPrompt {
+        key: char,
+        prefill_current_file: bool,
+    },
+    ChangeWorkingDirectoryToBookmark(char),
+    ChangeWorkingDirectoryToCurrentFile,
+    CancelPendingBookmark,
     OpenAlternateFile,
     PushPromptHistory {
         key: PromptHistoryKey,

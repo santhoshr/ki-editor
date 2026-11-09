@@ -16,7 +16,7 @@ use crate::{
     context::Context,
     lsp::completion::Completion,
     search::parse_search_config,
-    selection::SelectionMode,
+    selection::{CharIndex, Selection, SelectionMode, SelectionSet},
     thread::Callback,
 };
 
@@ -49,6 +49,7 @@ pub struct Prompt {
     on_enter: PromptOnEnter,
     on_change: Option<PromptOnChangeDispatch>,
     on_cancelled: Option<Dispatches>,
+    on_empty_enter: Option<Dispatches>,
     last_line: std::cell::RefCell<Option<String>>,
     ignore_completion_on_enter: bool,
     workspace_items: std::sync::Arc<std::sync::Mutex<Vec<DropdownItem>>>,
@@ -316,6 +317,8 @@ pub struct PromptConfig {
     pub show_all_when_empty: bool,
     pub ignore_completion_on_enter: bool,
     pub auto_select_at_dir: bool,
+    pub initial_text: Option<String>,
+    pub on_empty_enter: Option<Dispatches>,
 }
 
 impl PromptConfig {
@@ -329,6 +332,22 @@ impl PromptConfig {
             show_all_when_empty: false,
             ignore_completion_on_enter: false,
             auto_select_at_dir,
+            initial_text: None,
+            on_empty_enter: None,
+        }
+    }
+
+    pub fn set_initial_text(self, initial_text: Option<String>) -> Self {
+        Self {
+            initial_text,
+            ..self
+        }
+    }
+
+    pub fn set_on_empty_enter(self, on_empty_enter: Option<Dispatches>) -> Self {
+        Self {
+            on_empty_enter,
+            ..self
         }
     }
 
@@ -496,7 +515,13 @@ impl Prompt {
             PromptOnEnter::ParseWholeBuffer { initial_lines, .. } => {
                 (initial_lines.join("\n"), false, true)
             }
-            PromptOnEnter::SelectsFirstMatchingItem { .. } => ("".to_string(), true, false),
+            PromptOnEnter::SelectsFirstMatchingItem { .. } => {
+                if let Some(initial) = &config.initial_text {
+                    (initial.clone(), false, false)
+                } else {
+                    ("".to_string(), true, false)
+                }
+            }
         };
         let mut editor = SuggestiveEditor::from_buffer(
             Rc::new(RefCell::new(Buffer::new(None, &text))),
@@ -505,6 +530,11 @@ impl Prompt {
         );
         let dispatches = if leaves_current_line_empty {
             Dispatches::one(Dispatch::ToEditor(DispatchEditor::MoveToLastChar))
+        } else if config.initial_text.is_some() {
+            Dispatches::new(vec![
+                Dispatch::ToEditor(DispatchEditor::SelectAll),
+                Dispatch::ToEditor(DispatchEditor::EnterInsertMode(super::editor::Direction::End)),
+            ])
         } else {
             Dispatches::new(
                 [
@@ -548,6 +578,16 @@ impl Prompt {
             task.to_owned().execute(caching_injector);
         }
 
+        if let Some(initial) = &config.initial_text {
+            let len = CharIndex(initial.chars().count());
+            let mut sel = Selection::default();
+            sel.range = (CharIndex(0)..len).into();
+            sel.initial_range = Some((CharIndex(0)..CharIndex(0)).into());
+            let _ = editor.editor_mut().set_selection_set(
+                SelectionSet::new(nonempty::NonEmpty::singleton(sel)),
+                context,
+            );
+        }
         editor.set_auto_select_at_dir(config.auto_select_at_dir);
 
         (
@@ -556,6 +596,7 @@ impl Prompt {
                 on_enter: config.on_enter,
                 on_cancelled: config.on_cancelled,
                 on_change: config.on_change,
+                on_empty_enter: config.on_empty_enter,
                 last_line: std::cell::RefCell::new(None),
                 ignore_completion_on_enter: config.ignore_completion_on_enter,
                 workspace_items,
@@ -766,6 +807,14 @@ impl Component for Prompt {
             key!("enter") => {
                 let dispatches = match &self.on_enter {
                     PromptOnEnter::SelectsFirstMatchingItem { .. } => {
+                        let line = self.editor().current_line().unwrap_or_default();
+                        let text = line.trim();
+                        if text.is_empty() {
+                            if let Some(on_empty) = &self.on_empty_enter {
+                                return Ok(Dispatches::one(Dispatch::CloseCurrentWindow).chain(on_empty.clone()));
+                            }
+                        }
+
                         let current_item = if !self.editor.is_completion_dismissed()
                             && self.editor.completion_dropdown_opened()
                         {
@@ -777,8 +826,6 @@ impl Component for Prompt {
                         if let Some(item) = current_item {
                             item.dispatches
                         } else {
-                            let line = self.editor().current_line().unwrap_or_default();
-                            let text = line.trim();
                             if !text.is_empty() {
                                 if let Ok(abs_path) = AbsolutePath::try_from(text) {
                                     if abs_path.to_path_buf().is_dir() {
@@ -794,7 +841,7 @@ impl Component for Prompt {
                                     Dispatches::default()
                                 }
                             } else {
-                                Dispatches::default()
+                                self.on_empty_enter.clone().unwrap_or_default()
                             }
                         }
                     }

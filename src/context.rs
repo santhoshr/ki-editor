@@ -8,6 +8,7 @@ use shared::absolute_path::AbsolutePath;
 
 use crate::{
     app::{GlobalSearchConfigUpdate, LocalSearchConfigUpdate, Scope},
+    bookmarks::Bookmarks,
     char_index_range::CharIndexRange,
     clipboard::{Clipboard, RingHistory, Texts},
     components::{editor_keymap::KeyboardLayout, prompt::PromptHistoryKey},
@@ -41,6 +42,7 @@ pub struct Context {
     alternate_file: Option<AbsolutePath>,
 
     marks: HashMap<AbsolutePath, Vec<CharIndexRange>>,
+    bookmarks: Bookmarks,
 
     /// This is true, for example, when Ki is running as a VS Code's extension
     is_running_as_embedded: bool,
@@ -179,6 +181,30 @@ impl Context {
 
     pub fn marks(&self) -> &HashMap<AbsolutePath, Vec<CharIndexRange>> {
         &self.marks
+    }
+
+    pub fn bookmarks(&self) -> &Bookmarks {
+        &self.bookmarks
+    }
+
+    pub fn bookmarks_mut(&mut self) -> &mut Bookmarks {
+        &mut self.bookmarks
+    }
+
+    pub fn get_bookmark(&self, key: char) -> Option<&AbsolutePath> {
+        self.bookmarks.get(key)
+    }
+
+    pub fn has_bookmark(&self, key: char) -> bool {
+        self.bookmarks.contains(key)
+    }
+
+    pub fn set_bookmark(&mut self, key: char, path: AbsolutePath) -> anyhow::Result<()> {
+        self.bookmarks.set(key, path)
+    }
+
+    pub fn remove_bookmark(&mut self, key: char) -> anyhow::Result<bool> {
+        self.bookmarks.remove(key)
     }
 
     pub fn handle_file_renamed(&mut self, source: std::path::PathBuf, destination: AbsolutePath) {
@@ -342,6 +368,7 @@ impl Context {
             is_running_as_embedded,
             persistence,
             marks,
+            bookmarks: Bookmarks::load_or_default(),
             lsp_progress: "".to_string(),
             quickfix_list: QuickfixList::default(),
             kill_ring: RingHistory::new(),

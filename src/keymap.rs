@@ -471,6 +471,31 @@ pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> Keymap
                     "Last Error",
                     Dispatch::ShowLastError,
                 ),
+                Keybinding::new_undocumented(
+                    key!("shift+t"),
+                    "Last Error",
+                    Dispatch::ShowLastError,
+                ),
+                Keybinding::new_undocumented(
+                    key!("B"),
+                    "Bookmark",
+                    Dispatch::OpenBookmarkMenu,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+b"),
+                    "Bookmark",
+                    Dispatch::OpenBookmarkMenu,
+                ),
+                Keybinding::new_undocumented(
+                    key!("C"),
+                    "Current File Dir",
+                    Dispatch::ChangeWorkingDirectoryToCurrentFile,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+c"),
+                    "Current File Dir",
+                    Dispatch::ChangeWorkingDirectoryToCurrentFile,
+                ),
             ]
             .into_iter()
             .chain(
@@ -1081,6 +1106,56 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             "Buffer List",
             Dispatch::OpenFilePicker(FilePickerKind::Opened),
         ),
+        Keybinding::new_undocumented(
+            key!("T"),
+            "Last Error",
+            Dispatch::ShowLastError,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+t"),
+            "Last Error",
+            Dispatch::ShowLastError,
+        ),
+        Keybinding::new_undocumented(
+            key!("B"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+b"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("C"),
+            "Current File Dir",
+            Dispatch::ChangeWorkingDirectoryToCurrentFile,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+c"),
+            "Current File Dir",
+            Dispatch::ChangeWorkingDirectoryToCurrentFile,
+        ),
+        Keybinding::new_undocumented(
+            key!("-"),
+            "Explorer",
+            Dispatch::RevealCurrentInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("_"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+_"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+-"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+        ),
         Keybinding::new_undocumented(key!("q"), "Quit", Dispatch::SafeQuit),
         Keybinding::new_undocumented(key!("w"), "Close", Dispatch::CloseCurrentWindow),
         Keybinding::new_undocumented(key!("v"), "Quit No Save", Dispatch::QuitNoSave),
@@ -1093,6 +1168,11 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             key!("space"),
             "Space",
             Dispatch::ShowMenu(space_keymap_legend_config(editor, context)),
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+space"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
         ),
         Keybinding::new_undocumented(
             key!("/"),
@@ -1119,9 +1199,39 @@ pub fn keymap_others() -> Vec<Keybinding> {
             Dispatch::ToEditor(DispatchEditor::PressSpace),
         ),
         Keybinding::new_undocumented(
+            key!("B"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+b"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+space"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
             key!("-"),
             "Explorer",
             Dispatch::RevealCurrentInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("_"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+_"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+-"),
+            "Explorer Working Dir",
+            Dispatch::RevealCurrentWorkingDirectoryInExplorer,
         ),
         Keybinding::new_undocumented(
             key!(","),
@@ -1961,11 +2071,6 @@ pub fn mark_keymap(is_alted: bool) -> Keymap {
                 possibly_alted(key!("o"), is_alted),
                 "> Global Mark",
                 Dispatch::GotoGlobalMark(Direction::End),
-            ),
-            Keybinding::new_undocumented(
-                possibly_alted(key!("e"), is_alted),
-                "Toggle Mark",
-                Dispatch::ToggleSelectionMark,
             ),
             Keybinding::new_undocumented(
                 possibly_alted(key!("y"), is_alted),

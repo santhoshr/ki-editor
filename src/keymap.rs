@@ -367,17 +367,17 @@ pub fn normal_mode_keymap_legend_config(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
-    bookmark_invocation: crate::config::BookmarkMenuInvocation,
+    quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Normal".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key, e_normal_mode, bookmark_invocation)
+            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key, e_normal_mode, quick_marks_invocation)
                 .into_iter()
                 .chain(Some(Keybinding::new_undocumented(
                     key!("f"),
                     "Extend",
-                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key, e_normal_mode, bookmark_invocation)),
+                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key, e_normal_mode, quick_marks_invocation)),
                 )))
                 .collect_vec(),
         ),
@@ -488,30 +488,40 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                     "Last Error",
                     Dispatch::ShowLastError,
                 ),
-                if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+                Keybinding::new_undocumented(
+                    key!("B"),
+                    "Bookmark",
+                    Dispatch::OpenBookmarkMenu,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+b"),
+                    "Bookmark",
+                    Dispatch::OpenBookmarkMenu,
+                ),
+                if context.quick_marks_menu_invocation() == crate::config::QuickMarksMenuInvocation::Colon {
                     Keybinding::new_undocumented(
                         key!(":"),
-                        "Bookmark",
-                        Dispatch::OpenBookmarkMenu,
+                        "Quick-marks",
+                        Dispatch::OpenQuickMarksMenu,
                     )
                 } else {
                     Keybinding::new_undocumented(
-                        key!("B"),
-                        "Bookmark",
-                        Dispatch::OpenBookmarkMenu,
+                        key!("1"),
+                        "Quick-marks",
+                        Dispatch::OpenQuickMarksMenu,
                     )
                 },
-                if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+                if context.quick_marks_menu_invocation() == crate::config::QuickMarksMenuInvocation::Colon {
                     Keybinding::new_undocumented(
                         key!("shift+;"),
-                        "Bookmark",
-                        Dispatch::OpenBookmarkMenu,
+                        "Quick-marks",
+                        Dispatch::OpenQuickMarksMenu,
                     )
                 } else {
                     Keybinding::new_undocumented(
-                        key!("shift+b"),
-                        "Bookmark",
-                        Dispatch::OpenBookmarkMenu,
+                        key!("1"),
+                        "Quick-marks",
+                        Dispatch::OpenQuickMarksMenu,
                     )
                 },
                 Keybinding::new_undocumented(
@@ -806,7 +816,7 @@ pub fn extend_mode_keymap_legend_config(
     editor: &Editor,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
-    bookmark_invocation: crate::config::BookmarkMenuInvocation,
+    quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Extend".to_string(),
@@ -817,7 +827,7 @@ pub fn extend_mode_keymap_legend_config(
                 Some(PriorChange::EnableSelectionExtension),
                 swap_key,
                 e_normal_mode,
-                bookmark_invocation,
+                quick_marks_invocation,
             )
             .into_iter()
             .chain(Some(Keybinding::new_undocumented(
@@ -835,7 +845,7 @@ pub fn normal_mode_keymap(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
-    bookmark_invocation: crate::config::BookmarkMenuInvocation,
+    quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
 ) -> Vec<Keybinding> {
     let normal_mode_override = normal_mode_override
         .clone()
@@ -847,7 +857,7 @@ pub fn normal_mode_keymap(
         .chain(keymap_primary_selection_modes(editor, prior_change))
         .chain(keymap_secondary_selection_modes_init(editor, prior_change))
         .chain(keymap_actions(&normal_mode_override, false, editor, swap_key))
-        .chain(keymap_others(bookmark_invocation))
+        .chain(keymap_others(quick_marks_invocation))
         .chain(keymap_universal())
         .collect_vec()
 }
@@ -1186,30 +1196,40 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             "Last Error",
             Dispatch::ShowLastError,
         ),
-        if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+        Keybinding::new_undocumented(
+            key!("B"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+b"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        if context.quick_marks_menu_invocation() == crate::config::QuickMarksMenuInvocation::Colon {
             Keybinding::new_undocumented(
                 key!(":"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
+                "Quick-marks",
+                Dispatch::OpenQuickMarksMenu,
             )
         } else {
             Keybinding::new_undocumented(
-                key!("B"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
+                key!("1"),
+                "Quick-marks",
+                Dispatch::OpenQuickMarksMenu,
             )
         },
-        if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+        if context.quick_marks_menu_invocation() == crate::config::QuickMarksMenuInvocation::Colon {
             Keybinding::new_undocumented(
                 key!("shift+;"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
+                "Quick-marks",
+                Dispatch::OpenQuickMarksMenu,
             )
         } else {
             Keybinding::new_undocumented(
-                key!("shift+b"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
+                key!("1"),
+                "Quick-marks",
+                Dispatch::OpenQuickMarksMenu,
             )
         },
         Keybinding::new_undocumented(
@@ -1288,39 +1308,43 @@ pub fn command_keymap_legend_config(editor: &Editor, context: &Context) -> Keyma
     }
 }
 
-pub fn keymap_others(bookmark_invocation: crate::config::BookmarkMenuInvocation) -> Vec<Keybinding> {
-    [
+pub fn keymap_others(quick_marks_invocation: crate::config::QuickMarksMenuInvocation) -> Vec<Keybinding> {
+    let mut bindings = vec![
         Keybinding::new_undocumented(
             key!("space"),
             "Space",
             Dispatch::ToEditor(DispatchEditor::PressSpace),
         ),
-        if bookmark_invocation == crate::config::BookmarkMenuInvocation::Colon {
-            Keybinding::new_undocumented(
-                key!(":"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
-            )
-        } else {
-            Keybinding::new_undocumented(
-                key!("B"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
-            )
-        },
-        if bookmark_invocation == crate::config::BookmarkMenuInvocation::Colon {
-            Keybinding::new_undocumented(
-                key!("shift+;"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
-            )
-        } else {
-            Keybinding::new_undocumented(
-                key!("shift+b"),
-                "Bookmark",
-                Dispatch::OpenBookmarkMenu,
-            )
-        },
+        Keybinding::new_undocumented(
+            key!("B"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+b"),
+            "Bookmark",
+            Dispatch::OpenBookmarkMenu,
+        ),
+    ];
+    if quick_marks_invocation == crate::config::QuickMarksMenuInvocation::Colon {
+        bindings.push(Keybinding::new_undocumented(
+            key!(":"),
+            "Quick-marks",
+            Dispatch::OpenQuickMarksMenu,
+        ));
+        bindings.push(Keybinding::new_undocumented(
+            key!("shift+;"),
+            "Quick-marks",
+            Dispatch::OpenQuickMarksMenu,
+        ));
+    } else {
+        bindings.push(Keybinding::new_undocumented(
+            key!("1"),
+            "Quick-marks",
+            Dispatch::OpenQuickMarksMenu,
+        ));
+    }
+    bindings.extend([
         Keybinding::new_undocumented(
             key!("shift+space"),
             "Bookmark",
@@ -1356,8 +1380,8 @@ pub fn keymap_others(bookmark_invocation: crate::config::BookmarkMenuInvocation)
             "Remain only this window",
             Dispatch::ToEditor(DispatchEditor::HandleEsc),
         ),
-    ]
-    .to_vec()
+    ]);
+    bindings
 }
 
 pub fn keymap_primary_selection_modes(

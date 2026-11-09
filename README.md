@@ -243,37 +243,33 @@ Rust's `ignore::WalkBuilder` emits raw directory entry `FileType` metadata witho
 
 ---
 
-## 7. Persistent Hierarchical Bookmarks
+## 7. Persistent Bookmarks & Quick-marks Engine
 
-Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`, backed by `~/.config/ki/bookmarks.json`:
+Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`. Both systems run simultaneously and maintain independent persistent JSON configuration files:
 
-```json
-{
-  "bookmarks": {
-    "c": { "type": "directory", "path": "/home/user/.config" },
-    "k": { "type": "file", "path": "/home/user/Developer/ki-editor/src/app.rs" },
-    "d": {
-      "type": "submenu",
-      "name": "docs",
-      "children": {
-        "m": { "type": "file", "path": "/home/user/Developer/ki-editor/KustomKi.md" }
-      }
-    }
-  }
-}
-```
+- **Bookmarks (Nested):** `~/.config/ki/bookmarks.json`
+- **Quick-marks (Single):** `~/.config/ki/quick_marks.json`
 
-### 7.1 Workflow & Keybindings
-- **Access:** `Space b` (or `B` / `Shift+B` / `Shift+Space` in Space Command menu, or `:` if configured).
-- **Invocation Config (`"bookmark_menu_invocation"`):** Configurable in `config.json` as `"B"` (default) or `":"`. When set to `":"`, `:` opens the Bookmarks menu. If both `command_menu_invocation` and `bookmark_menu_invocation` are set to `":"`, Ki reports a configuration conflict warning, defaults Bookmarks to `"B"`, and retains `":"` for the Command menu.
-- **Navigation:** Pressing any assigned alphanumeric key (`a`-`z`, `A`-`Z`, `0`-`9`) immediately opens the file or changes directory.
-- **Assignment:** Pressing `= <key>` clears any previous binding and opens the assignment prompt for `<key>`:
-  - Default text is the current buffer path (or current directory if no file is open).
-  - Trailing slash `/` or typing `=` creates a nested Submenu.
-- **Submenus:** Arbitrary recursive nesting with breadcrumb HUD display; `<Esc>` navigates up one level.
-- **HUD Help Text:** In the Bookmarks menu HUD, the footer displays contextual instructions: `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)` instead of the default `* Pick Keyboard    \ Leader`.
-- **Filter Picker (<kbd>Tab</kbd>):** Pressing <kbd>Tab</kbd> in any bookmark menu opens a searchable dropdown with full absolute paths. Root displays all bookmarks; submenus scope to their children. Supports `<Ctrl-O>` for batch opening.
-- **Live Disk Synchronization:** Automatically detects modifications to `bookmarks.json` on disk via `notify` events and reloads state in real time.
+### 7.1 Architecture & Comparison
+
+| Feature | Bookmarks (`Shift+B` / `B`) | Quick-marks (`:` or `1`) |
+| :--- | :--- | :--- |
+| **Storage File** | `~/.config/ki/bookmarks.json` | `~/.config/ki/quick_marks.json` |
+| **Architecture** | Hierarchical submenus and directory/file leaves | Flat key-to-multiple-bookmarks map |
+| **Capacity per Key** | 1 target (file, directory, or nested submenu) | Multiple paths (`Vec<AbsolutePath>`) per key |
+| **Key Activation** | Jumps to file/directory or enters submenu | If 1 target: jumps directly. If >1: opens searchable picker |
+| **Unassigned Key** | Opens assign prompt pre-filled with current file | Opens assign prompt pre-filled with current file |
+| **Shift+Key** | Assigns / navigates shifted character key | Opens searchable fuzzy picker for that key's bookmarks |
+| **Alt+Key** | Re-assigns key with pre-filled path | Opens editable panel (multi-line buffer in Normal line mode with first item selected) |
+| **Editable Panel (Alt+Key)** | N/A (Submenus used instead) | Opens in Normal mode, Line selection mode with first item selected. Navigate with `j`/`k`, delete line with `r` or `x`, delete multiple with `v`/`l` selection + `r`/`x`, delete all with `SelectAll` + `r`/`x`. `<Enter>` opens focused bookmark and saves edits; `<Esc>` saves edits |
+| **HUD Footer** | `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)` | `Key Open/Pick, S-Key Search picker, Alt-Key Edit panel` |
+
+### 7.2 Configuration & Invocations
+- **Bookmarks Invocation:** `Shift+B` (or `B` / `Shift+Space` in Space Command menu).
+- **Quick-marks Invocation:** Configurable via `"quick_marks_menu_invocation"` (or `"quick-marks_menu_invocation"`) in `config.json` as `":"` (default) or `"1"`.
+  - When `command_menu_invocation` is configured at `":"`, Quick-marks automatically defaults to `"1"`. If both are explicitly configured for `":"`, a configuration warning is recorded and Quick-marks falls back to `"1"`.
+- **Filter Picker (<kbd>Tab</kbd>):** Pressing <kbd>Tab</kbd> in either HUD opens a searchable dropdown with full absolute paths across all marks in that system. Supports `<Ctrl-O>` for batch opening.
+- **Live Disk Synchronization:** Automatically detects modifications to `bookmarks.json` and `quick_marks.json` on disk via `notify` events and reloads state in real time.
 
 ---
 

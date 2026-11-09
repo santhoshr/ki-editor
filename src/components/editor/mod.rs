@@ -1840,11 +1840,11 @@ impl Editor {
                                     command_keymap_legend_config(self, context),
                                 )));
                             }
-                            let bookmark_invocation = context.bookmark_menu_invocation();
-                            if bookmark_invocation.matches(&key_event)
-                                || bookmark_invocation.matches(&combined_key_event.translated)
+                            let quick_marks_invocation = context.quick_marks_menu_invocation();
+                            if quick_marks_invocation.matches(&key_event)
+                                || quick_marks_invocation.matches(&combined_key_event.translated)
                             {
-                                return Ok(Dispatches::one(Dispatch::OpenBookmarkMenu));
+                                return Ok(Dispatches::one(Dispatch::OpenQuickMarksMenu));
                             }
                         }
                         let translated_key_event =
@@ -4331,7 +4331,7 @@ impl Editor {
                 None,
                 context.swap_key(),
                 context.e_normal_mode(),
-                context.bookmark_menu_invocation(),
+                context.quick_marks_menu_invocation(),
             ),
         }
     }

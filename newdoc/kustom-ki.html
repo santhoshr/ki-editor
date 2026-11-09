@@ -804,13 +804,28 @@
         <div class="field-label">Update Note</div>
         <div class="field-body">
           <ul>
-            <li><strong>Persistent Storage:</strong> Backed by <code>~/.config/ki/bookmarks.json</code> with live disk watcher reload on external file modifications.</li>
-            <li><strong>Access:</strong> Bound to <kbd>Space b</kbd> (or <kbd>B</kbd> / <kbd>Shift+Space</kbd> in Command menu, or <kbd>:</kbd> if configured).</li>
-            <li><strong>Invocation Key:</strong> Added <code>"bookmark_menu_invocation"</code> (<code>"B"</code> or <code>":"</code>, default <code>"B"</code>). When set to <code>":"</code>, <kbd>:</kbd> opens the Bookmarks menu. If both <code>command_menu_invocation</code> and <code>bookmark_menu_invocation</code> are set to <code>":"</code>, Ki emits a configuration conflict warning, defaults Bookmarks to <code>"B"</code>, and retains <code>":"</code> for the Command menu.</li>
+            <li><strong>Simultaneous Dual Engines:</strong> Both <strong>Bookmarks</strong> (nested) and <strong>Quick-marks</strong> (single) run concurrently without needing a mode switch:
+              <ul>
+                <li><strong>Bookmarks (Nested):</strong> Stored in <code>~/.config/ki/bookmarks.json</code>. Invoked by <kbd>Shift+B</kbd> (or <kbd>B</kbd> in Space Command menu). Supports hierarchical submenus with recursive nesting via <code>=</code> or trailing <code>/</code>. HUD footer: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>.</li>
+                <li><strong>Quick-marks (Single):</strong> Stored in <code>~/.config/ki/quick_marks.json</code>. Invoked by <kbd>:</kbd> by default (or <kbd>1</kbd> if command menu is at <kbd>:</kbd> or configured via <code>"quick_marks_menu_invocation": "1"</code>). Flat mapping where each key supports as many bookmarks as desired (<code>Vec&lt;AbsolutePath&gt;</code>).
+                  <ul>
+                    <li><strong>Activation by key:</strong> If unassigned, opens assign prompt pre-filled with current file. If 1 bookmark configured, activates directly. If multiple bookmarks configured, opens the searchable fuzzy picker to select and activate via <kbd>Enter</kbd>.</li>
+                    <li><strong>Shift+Key:</strong> Opens searchable fuzzy picker listing all bookmarks configured under that key (with <kbd>Ctrl+o</kbd> batch open).</li>
+                    <li><strong>Alt+Key:</strong> Opens editable panel (multi-line editor buffer) in <strong>Normal</strong> mode and <strong>Line</strong> selection mode with the <strong>first item selected</strong>. Allows users to delete or edit one, many, or all bookmarks using standard Ki editor keys (<kbd>r</kbd>/<kbd>x</kbd>, selections, etc.). <kbd>Enter</kbd> activates focused line and saves; <kbd>Esc</kbd> saves remaining bookmarks and exits.</li>
+                    <li><strong>HUD footer:</strong> <code>Key Open/Pick, S-Key Search picker, Alt-Key Edit panel</code>.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><strong>Persistent Storage:</strong> Backed by <code>~/.config/ki/bookmarks.json</code> and <code>~/.config/ki/quick_marks.json</code> with live disk watcher reload on external file modifications.</li>
+            <li><strong>Invocations &amp; Config:</strong>
+              <ul>
+                <li><strong>Bookmarks:</strong> <kbd>Shift+B</kbd> (or <kbd>B</kbd> / <kbd>Shift+Space</kbd> in Space Command menu).</li>
+                <li><strong>Quick-marks:</strong> Configurable via <code>"quick_marks_menu_invocation"</code>: <code>":"</code> (default) or <code>"1"</code>. Automatically defaults to <code>"1"</code> if <code>command_menu_invocation</code> is set to <code>":"</code>.</li>
+              </ul>
+            </li>
             <li><strong>Mnemonic Jumps:</strong> Pressing any assigned character (<kbd>a</kbd>&ndash;<kbd>z</kbd>, <kbd>A</kbd>&ndash;<kbd>Z</kbd>, <kbd>0</kbd>&ndash;<kbd>9</kbd>) instantly opens the file or switches working directory.</li>
-            <li><strong>Assignment &amp; Submenus:</strong> Pressing <code>= &lt;key&gt;</code> clears prior binding and prompts for path. Trailing <code>/</code> or typing <code>=</code> creates a recursive nested submenu.</li>
-            <li><strong>Searchable Filter:</strong> <kbd>Tab</kbd> in any bookmark level opens a Nucleo fuzzy picker displaying all absolute paths with <kbd>Ctrl+o</kbd> batch open support.</li>
-            <li><strong>Contextual HUD Footer:</strong> Replaces standard footer text in the Bookmarks HUD with: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>.</li>
+            <li><strong>Searchable Filter:</strong> <kbd>Tab</kbd> in either HUD opens a Nucleo fuzzy picker displaying all absolute paths with <kbd>Ctrl+o</kbd> batch open support.</li>
           </ul>
         </div>
       </div>

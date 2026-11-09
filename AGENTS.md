@@ -1345,6 +1345,72 @@ Updated `README.md` and verified with `cargo check` and `cargo build`.
 5. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
 6. Verified cleanly via `cargo check` and `cargo build`.
 
+### Request 191
+> "bookmark menu supports two configuration, bookmarks_mode: 'single'/'nested'; In single, each key supports as many bookmarks as possible, alt+key will show picker without editable panel, allowing users to delete one, many, all through usual editor keys, activation by key, if no bookmark configured, opens pre-filled current file like current (nested); shift+key will allow adding more files to same key; current implementation will be called nested; each bookmark mode maintains separate json; default mode is nested;"
+**Response:**
+1. Added `BookmarksMode` enum (`Nested`, `Single`, defaulting to `Nested`) in `src/config.rs` and exposed through `AppConfig`, `RawConfig`, `src/config/lenient.rs`, `src/config_default.json`, and `Context`.
+2. Implemented dual-mode persistence in `src/bookmarks.rs`:
+   - `bookmarks.json` stores `BTreeMap<char, BookmarkNode>` in `nested` mode.
+   - `bookmarks_single.json` stores `BTreeMap<char, Vec<AbsolutePath>>` in `single` mode.
+   - Preserved live filesystem sync and deduplicated `all_files()` traversal for both modes.
+3. Implemented picker without editable panel via `PromptOnEnter::ManageBookmarks { key, initial_lines }` in `src/components/prompt.rs`:
+   - Renders bookmark paths directly as lines in a multi-line buffer in Normal mode with line selection.
+   - Allows users to delete one line (`r`/`x`), delete multiple (`v`/`l` selection + `r`/`x`), or delete all (`SelectAll` + `r`/`x`) using standard Ki editor keys.
+   - Pressing `<Enter>` activates the focused bookmark path and saves all remaining lines.
+   - Pressing `<Esc>` closes the window and saves all remaining lines.
+4. Updated `src/keymap_override/bookmark.rs`:
+   - In `Single` mode:
+     - Activation by key: if unconfigured, opens assign prompt pre-filled with current file; if 1 bookmark, activates directly; if >1 bookmarks, opens the manage picker.
+     - `Shift+key`: opens assign prompt pre-filled with current file to append more bookmarks to the key.
+     - `Alt+key`: opens the manage/delete picker without editable panel.
+   - In `Nested` mode: preserves all existing nested and submenu behavior.
+5. Updated `src/components/editor_keymap_printer.rs` to render contextual footer help for single mode: `Key Open/Pick, S-Key Add file, Alt-Key Manage/Delete bookmarks`.
+6. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+7. Verified cleanly via `cargo check` and `cargo build`.
+
+### Request 192
+> "make shift+key searchable picker, alt+k as editable panel, make editable panel 'normal' line mode on open with first item selected"
+**Response:**
+1. In `src/keymap_override/bookmark.rs` (Single mode):
+   - `Shift+key` routed to `Dispatch::OpenSearchableSingleBookmarkPicker(base_key)` to open a fuzzy searchable picker listing all bookmarks assigned to that key.
+   - `Alt+key` routed to `Dispatch::OpenManageSingleBookmarksPicker(base_key)` to open the editable panel.
+   - Normal key activation: if 1 bookmark, directly activates; if >1 bookmarks, opens the searchable picker; if unassigned, opens assign prompt.
+2. In `src/app.rs`:
+   - Implemented `open_searchable_single_bookmark_picker(key)` constructing a precomputed fuzzy `Prompt` over the key's bookmarks with `<Ctrl-o>` batch open support.
+   - Updated `create_bookmark_keymap_legend_config` to dispatch `OpenSearchableSingleBookmarkPicker` when key has multiple bookmarks.
+3. In `src/components/prompt.rs`:
+   - Fixed `Prompt::new` for `ManageBookmarks` so it sets `mode = Mode::Normal`, sets `SelectionMode::Line`, selects the first line, and omits `MoveToLineEnd` (which was incorrectly entering Insert mode).
+4. Updated HUD footer in `src/components/editor_keymap_printer.rs` to: `Key Open/Pick, S-Key Search picker, Alt-Key Edit panel`.
+5. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+6. Verified cleanly via `cargo check` and `cargo build`.
+
+### Request 193
+> "let's keep both, let us call, single as quick-marks, nested as bookmarks, shift+b will invoke bookmarks, : will invoke quick-marks, if command menu is configured at :, 1 will launch quick-marks, can be configured with 'quick-marks_menu_invocation': '1' or ':', no need of bookmarks_mode and bookmarks_menu_invocation configuration"
+**Response:**
+Co-located Bookmarks (nested) and Quick-marks (single) to run simultaneously without mode toggles:
+- Bookmarks (`Shift+B` / `B` in Space Command menu): backed by `~/.config/ki/bookmarks.json`.
+- Quick-marks (`:` or `1`): backed by `~/.config/ki/quick_marks.json`.
+- Added `quick_marks_menu_invocation` configuration option (`":"` or `"1"`, defaulting to `":"`, falling back to `"1"` if command menu is configured at `":"`).
+- Removed `bookmarks_mode` and `bookmark_menu_invocation`.
+
+### Request 194
+> "we already have the functionality both quickmarks and booksmarks work well, just map it appropriately, don't invent things"
+**Response:**
+Mapped both engines directly without duplicating codebases:
+- Kept data structures unified in `src/bookmarks.rs` (`single_entries` for quick-marks, `nested_entries` for bookmarks).
+- Re-used `BookmarkKeymapOverride` with `is_quick_marks: bool` flag.
+- Wired key bindings in `src/keymap.rs` and dispatches in `src/app.rs`.
+
+### Request 195
+> "don't over analyse, I will let you know of issues"
+**Response:**
+Cleanly finished wiring in `src/app.rs`, updated documentation, and compiled with `cargo check` and `cargo build`.
+
+### Request 196
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(bookmarks): support simultaneous Bookmarks (nested) and Quick-marks (single)`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

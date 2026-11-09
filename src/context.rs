@@ -57,7 +57,7 @@ pub struct Context {
     indent_width: usize,
     format_on_save: bool,
     command_menu_invocation: crate::config::CommandMenuInvocation,
-    bookmark_menu_invocation: crate::config::BookmarkMenuInvocation,
+    quick_marks_menu_invocation: crate::config::QuickMarksMenuInvocation,
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
@@ -243,6 +243,50 @@ impl Context {
         self.bookmarks.remove_at(&[], key)
     }
 
+    pub fn has_single_bookmark(&self, key: char) -> bool {
+        self.bookmarks.has_single(key)
+    }
+
+    pub fn get_single_bookmarks(&self, key: char) -> Option<&Vec<AbsolutePath>> {
+        self.bookmarks.get_single(key)
+    }
+
+    pub fn add_single_bookmark(&mut self, key: char, file: AbsolutePath) -> anyhow::Result<()> {
+        self.bookmarks.add_single(key, file)
+    }
+
+    pub fn set_single_bookmarks(&mut self, key: char, files: Vec<AbsolutePath>) -> anyhow::Result<()> {
+        self.bookmarks.set_single(key, files)
+    }
+
+    pub fn remove_single_bookmark(&mut self, key: char) -> anyhow::Result<bool> {
+        self.bookmarks.remove_single(key)
+    }
+
+    pub fn all_single_bookmarks(&self) -> Vec<AbsolutePath> {
+        self.bookmarks.all_single_files()
+    }
+
+    pub fn has_quick_mark(&self, key: char) -> bool {
+        self.has_single_bookmark(key)
+    }
+
+    pub fn get_quick_marks(&self, key: char) -> Option<&Vec<AbsolutePath>> {
+        self.get_single_bookmarks(key)
+    }
+
+    pub fn add_quick_mark(&mut self, key: char, file: AbsolutePath) -> anyhow::Result<()> {
+        self.add_single_bookmark(key, file)
+    }
+
+    pub fn set_quick_marks(&mut self, key: char, files: Vec<AbsolutePath>) -> anyhow::Result<()> {
+        self.set_single_bookmarks(key, files)
+    }
+
+    pub fn remove_quick_mark(&mut self, key: char) -> anyhow::Result<bool> {
+        self.remove_single_bookmark(key)
+    }
+
     pub fn handle_file_renamed(&mut self, source: std::path::PathBuf, destination: AbsolutePath) {
         if let Some(path) = self
             .marked_files
@@ -413,7 +457,7 @@ impl Context {
             indent_width: app_config.indent_width(),
             format_on_save: app_config.format_on_save(),
             command_menu_invocation: app_config.command_menu_invocation(),
-            bookmark_menu_invocation: app_config.bookmark_menu_invocation(),
+            quick_marks_menu_invocation: app_config.quick_marks_menu_invocation(),
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
@@ -496,8 +540,8 @@ impl Context {
         self.command_menu_invocation
     }
 
-    pub fn bookmark_menu_invocation(&self) -> crate::config::BookmarkMenuInvocation {
-        self.bookmark_menu_invocation
+    pub fn quick_marks_menu_invocation(&self) -> crate::config::QuickMarksMenuInvocation {
+        self.quick_marks_menu_invocation
     }
 
     pub fn swap_key(&self) -> crate::config::SwapKey {

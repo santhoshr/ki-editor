@@ -38,7 +38,7 @@
     "show_key_in_keymap": false,
     "format_on_save": false,
     "command_menu_invocation": "Space",
-    "bookmark_menu_invocation": "B",
+    "quick_marks_menu_invocation": ":",
     "swap_key": "/",
     "pick_menu_df_swap": false,
     "e_normal_mode": "buffer",

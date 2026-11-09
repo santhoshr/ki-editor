@@ -42,6 +42,10 @@ pub enum PromptOnEnter {
     SelectsFirstMatchingItem {
         items: PromptItems,
     },
+    ManageBookmarks {
+        key: char,
+        initial_lines: Vec<String>,
+    },
 }
 
 pub struct Prompt {
@@ -383,6 +387,7 @@ impl PromptConfig {
                 suggested_items, ..
             } => suggested_items.clone(),
             PromptOnEnter::ParseWholeBuffer { .. } => Vec::new(),
+            PromptOnEnter::ManageBookmarks { .. } => Vec::new(),
             PromptOnEnter::SelectsFirstMatchingItem { items } => match &items {
                 PromptItems::None => Vec::default(),
                 PromptItems::Precomputed(dropdown_items) => dropdown_items.clone(),
@@ -521,6 +526,9 @@ impl Prompt {
             PromptOnEnter::ParseWholeBuffer { initial_lines, .. } => {
                 (initial_lines.join("\n"), false, true)
             }
+            PromptOnEnter::ManageBookmarks { initial_lines, .. } => {
+                (initial_lines.join("\n"), false, true)
+            }
             PromptOnEnter::SelectsFirstMatchingItem { .. } => {
                 if let Some(initial) = &config.initial_text {
                     (initial.clone(), false, false)
@@ -534,12 +542,24 @@ impl Prompt {
             SuggestiveEditorFilter::CurrentLine,
             on_nucleo_tick_debounced,
         );
+        if matches!(&config.on_enter, PromptOnEnter::ManageBookmarks { .. }) {
+            editor.editor_mut().mode = Mode::Normal;
+        }
         let dispatches = if leaves_current_line_empty {
             Dispatches::one(Dispatch::ToEditor(DispatchEditor::MoveToLastChar))
         } else if config.initial_text.is_some() {
             Dispatches::new(vec![
                 Dispatch::ToEditor(DispatchEditor::SelectAll),
                 Dispatch::ToEditor(DispatchEditor::EnterInsertMode(super::editor::Direction::End)),
+            ])
+        } else if matches!(&config.on_enter, PromptOnEnter::ManageBookmarks { .. }) {
+            Dispatches::new(vec![
+                Dispatch::ToEditor(DispatchEditor::EnterNormalMode),
+                Dispatch::ToEditor(DispatchEditor::SetSelectionMode(
+                    super::editor::IfCurrentNotFound::LookForward,
+                    SelectionMode::Line,
+                )),
+                Dispatch::ToEditor(DispatchEditor::MoveSelection(super::editor::Movement::First)),
             ])
         } else {
             Dispatches::new(
@@ -548,6 +568,7 @@ impl Prompt {
                         super::editor::IfCurrentNotFound::LookForward,
                         SelectionMode::Line,
                     )),
+                    Dispatch::ToEditor(DispatchEditor::EnterNormalMode),
                     Dispatch::ToEditor(DispatchEditor::MoveSelection(
                         super::editor::Movement::Last,
                     )),
@@ -746,6 +767,17 @@ impl Component for Prompt {
     ) -> anyhow::Result<Dispatches> {
         match event {
             key!("esc") => {
+                if let PromptOnEnter::ManageBookmarks { key, .. } = &self.on_enter {
+                    if self.editor().mode == Mode::Normal {
+                        let content = self.editor().content();
+                        return Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
+                            .append(Dispatch::FinishManageBookmarks {
+                                key: *key,
+                                all_lines: content,
+                                activate_line: None,
+                            }));
+                    }
+                }
                 if self.editor.completion_dropdown_opened() && !self.editor.is_completion_dismissed() {
                     return Ok(self.editor.dismiss_completion());
                 }
@@ -821,6 +853,16 @@ impl Component for Prompt {
             }
             key!("enter") => {
                 let dispatches = match &self.on_enter {
+                    PromptOnEnter::ManageBookmarks { key, .. } => {
+                        let content = self.editor().content();
+                        let current_line = self.editor().current_line().ok();
+                        return Ok(Dispatches::one(Dispatch::CloseCurrentWindow)
+                            .append(Dispatch::FinishManageBookmarks {
+                                key: *key,
+                                all_lines: content,
+                                activate_line: current_line,
+                            }));
+                    }
                     PromptOnEnter::SelectsFirstMatchingItem { .. } => {
                         let line = self.editor().current_line().unwrap_or_default();
                         let text = line.trim();

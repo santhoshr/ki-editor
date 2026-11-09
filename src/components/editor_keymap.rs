@@ -345,6 +345,31 @@ pub fn shifted_char(c: char) -> char {
     }
 }
 
+pub fn unshifted_char(c: char) -> char {
+    match c {
+        '>' => '.',
+        '<' => ',',
+        '?' => '/',
+        ':' => ';',
+        '{' => '[',
+        '}' => ']',
+        '!' => '1',
+        '@' => '2',
+        '#' => '3',
+        '$' => '4',
+        '%' => '5',
+        '^' => '6',
+        '&' => '7',
+        '*' => '8',
+        '(' => '9',
+        ')' => '0',
+        '_' => '-',
+        '+' => '=',
+        c if c.is_ascii_uppercase() => c.to_ascii_lowercase(),
+        c => c,
+    }
+}
+
 pub fn shifted(mut key_event: KeyEvent) -> KeyEvent {
     if let KeyCode::Char(ref mut c) = key_event.code {
         *c = shifted_char(*c);

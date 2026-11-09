@@ -133,12 +133,17 @@ impl KeymapPrintSection {
             content_width as usize + 12 + 22 + 2
         }
 
+        let is_quick_marks = self.name.starts_with("≡ Quick-marks")
+            || self.name.to_lowercase().contains("quick-mark")
+            || self.name.to_lowercase().contains("quick_mark");
         let is_bookmark = self.name.starts_with("≡ Bookmark")
             || self.name.to_lowercase().contains("bookmark");
 
         let is_space = self.name == "Space" || self.name == "Command";
 
-        let exmatrix_keybindings = if is_bookmark {
+        let exmatrix_keybindings = if is_quick_marks {
+            "Key Open/Pick, S-Key Search picker, Alt-Key Edit panel".to_string()
+        } else if is_bookmark {
             "Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)".to_string()
         } else if is_space {
             [
@@ -307,7 +312,7 @@ impl KeymapPrintSections {
                     None,
                     context.swap_key(),
                     context.e_normal_mode(),
-                    context.bookmark_menu_invocation(),
+                    context.quick_marks_menu_invocation(),
                 )),
             ),
             KeymapPrintSection::from_keymap(

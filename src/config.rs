@@ -34,7 +34,7 @@ pub struct AppConfig {
     show_key_in_keymap: bool,
     format_on_save: bool,
     command_menu_invocation: CommandMenuInvocation,
-    bookmark_menu_invocation: BookmarkMenuInvocation,
+    quick_marks_menu_invocation: QuickMarksMenuInvocation,
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: ENormalMode,
@@ -61,7 +61,8 @@ pub struct RawConfig {
     #[serde(default)]
     command_menu_invocation: CommandMenuInvocation,
     #[serde(default)]
-    bookmark_menu_invocation: BookmarkMenuInvocation,
+    #[serde(alias = "quick-marks_menu_invocation")]
+    quick_marks_menu_invocation: Option<QuickMarksMenuInvocation>,
     #[serde(default)]
     swap_key: SwapKey,
     #[serde(default)]
@@ -136,29 +137,36 @@ impl CommandMenuInvocation {
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
-pub enum BookmarkMenuInvocation {
+pub enum QuickMarksMenuInvocation {
     #[default]
-    #[serde(rename = "B", alias = "b")]
-    B,
-    #[serde(rename = ":", alias = "Shift+;")]
+    #[serde(rename = ":", alias = "colon", alias = "Colon", alias = "Shift+;")]
     Colon,
+    #[serde(rename = "1", alias = "One", alias = "one")]
+    One,
 }
 
-impl BookmarkMenuInvocation {
+impl QuickMarksMenuInvocation {
     pub fn matches(&self, event: &event::KeyEvent) -> bool {
         match self {
-            Self::B => {
-                (event.code == crossterm::event::KeyCode::Char('B')
-                    || (event.code == crossterm::event::KeyCode::Char('b') && event.modifiers.shift))
-                    && !event.modifiers.ctrl
-                    && !event.modifiers.alt
-            }
             Self::Colon => {
                 (event.code == crossterm::event::KeyCode::Char(':')
                     || (event.code == crossterm::event::KeyCode::Char(';') && event.modifiers.shift))
                     && !event.modifiers.ctrl
                     && !event.modifiers.alt
             }
+            Self::One => {
+                event.code == crossterm::event::KeyCode::Char('1')
+                    && !event.modifiers.shift
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+        }
+    }
+
+    pub fn display(&self) -> &'static str {
+        match self {
+            Self::Colon => ":",
+            Self::One => "1",
         }
     }
 }
@@ -231,12 +239,22 @@ impl TryFrom<RawConfig> for AppConfig {
             show_key_in_keymap: value.show_key_in_keymap,
             format_on_save: value.format_on_save,
             command_menu_invocation: value.command_menu_invocation,
-            bookmark_menu_invocation: if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon
-                && value.bookmark_menu_invocation == BookmarkMenuInvocation::Colon
-            {
-                BookmarkMenuInvocation::B
-            } else {
-                value.bookmark_menu_invocation
+            quick_marks_menu_invocation: match value.quick_marks_menu_invocation {
+                Some(QuickMarksMenuInvocation::Colon) => {
+                    if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
+                        QuickMarksMenuInvocation::One
+                    } else {
+                        QuickMarksMenuInvocation::Colon
+                    }
+                }
+                Some(QuickMarksMenuInvocation::One) => QuickMarksMenuInvocation::One,
+                None => {
+                    if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
+                        QuickMarksMenuInvocation::One
+                    } else {
+                        QuickMarksMenuInvocation::Colon
+                    }
+                }
             },
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
@@ -493,9 +511,9 @@ impl AppConfig {
 
         let mut conflict_error = None;
         if raw_config.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon
-            && raw_config.bookmark_menu_invocation == BookmarkMenuInvocation::Colon
+            && raw_config.quick_marks_menu_invocation == Some(QuickMarksMenuInvocation::Colon)
         {
-            conflict_error = Some("Both 'command_menu_invocation' and 'bookmark_menu_invocation' are configured for ':'. Defaulting bookmark_menu_invocation to 'B' and using ':' for Command menu.".to_string());
+            conflict_error = Some("Both 'command_menu_invocation' and 'quick-marks_menu_invocation' are configured for ':'. Defaulting quick-marks to '1' and using ':' for Command menu.".to_string());
         }
 
         let (app_config, apply_error) = match AppConfig::try_from(raw_config) {
@@ -589,8 +607,8 @@ impl AppConfig {
         self.command_menu_invocation
     }
 
-    pub fn bookmark_menu_invocation(&self) -> BookmarkMenuInvocation {
-        self.bookmark_menu_invocation
+    pub fn quick_marks_menu_invocation(&self) -> QuickMarksMenuInvocation {
+        self.quick_marks_menu_invocation
     }
 
     pub fn swap_key(&self) -> SwapKey {

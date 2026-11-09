@@ -133,6 +133,7 @@ pub struct App<T: Frontend> {
     last_terminal_title: Option<String>,
     pending_bookmark_key: Option<char>,
     pending_bookmark_default_path: Option<AbsolutePath>,
+    pending_is_quick_marks: bool,
     pub bookmark_path: Vec<char>,
 }
 
@@ -281,6 +282,7 @@ impl<T: Frontend> App<T> {
             last_terminal_title: None,
             pending_bookmark_key: None,
             pending_bookmark_default_path: None,
+            pending_is_quick_marks: false,
             bookmark_path: Vec::new(),
         };
 
@@ -937,6 +939,7 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenFileFromPathBuf { path, owner, focus } => {
                 let canonicalized_path: AbsolutePath = path.try_into()?;
                 if let Some(key) = self.pending_bookmark_key.take() {
+                    let is_quick_marks = std::mem::take(&mut self.pending_is_quick_marks);
                     let bookmark_path = if let Some(default_path) = self.pending_bookmark_default_path.take() {
                         if canonicalized_path.file_name() == default_path.file_name() {
                             default_path
@@ -946,12 +949,20 @@ impl<T: Frontend> App<T> {
                     } else {
                         canonicalized_path
                     };
-                    self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
                     let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
-                    self.show_global_info(Info::new(
-                        "Bookmark Assigned".to_string(),
-                        format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
-                    ));
+                    if is_quick_marks {
+                        self.context.add_single_bookmark(key, bookmark_path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Quick-mark Added".to_string(),
+                            format!("Quick-mark '{key}' added {kind_str} {}", bookmark_path.display_absolute()),
+                        ));
+                    } else {
+                        self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Bookmark Assigned".to_string(),
+                            format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
+                        ));
+                    }
                 } else if canonicalized_path.to_path_buf().is_dir() {
                     self.change_working_directory(canonicalized_path)?;
                 } else {
@@ -1448,7 +1459,17 @@ impl<T: Frontend> App<T> {
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
             Dispatch::OpenBookmarkFilesPicker => self.open_bookmark_files_picker()?,
+            Dispatch::OpenQuickMarksMenu => self.open_quick_marks_menu()?,
+            Dispatch::OpenQuickMarksFilesPicker => self.open_quick_marks_files_picker()?,
             Dispatch::OpenBookmark(key) => self.open_bookmark(key)?,
+            Dispatch::ActivateSingleBookmark(key) => self.activate_single_bookmark(key)?,
+            Dispatch::OpenSearchableSingleBookmarkPicker(key) => self.open_searchable_single_bookmark_picker(key)?,
+            Dispatch::OpenManageSingleBookmarksPicker(key) => self.open_manage_single_bookmarks_picker(key)?,
+            Dispatch::FinishManageBookmarks {
+                key,
+                all_lines,
+                activate_line,
+            } => self.finish_manage_bookmarks(key, all_lines, activate_line)?,
             Dispatch::CreateBookmarkSubmenu(key) => self.create_bookmark_submenu(key)?,
             Dispatch::EnterBookmarkSubmenu(key) => self.enter_bookmark_submenu(key)?,
             Dispatch::BookmarkGoBack => self.bookmark_go_back()?,
@@ -1457,11 +1478,16 @@ impl<T: Frontend> App<T> {
                 key,
                 prefill_current_file,
             } => self.open_assign_bookmark_prompt(key, prefill_current_file)?,
+            Dispatch::OpenAssignQuickMarkPrompt {
+                key,
+                prefill_current_file,
+            } => self.open_assign_quick_mark_prompt(key, prefill_current_file)?,
             Dispatch::ChangeWorkingDirectoryToBookmark(key) => self.change_working_directory_to_bookmark(key)?,
             Dispatch::ChangeWorkingDirectoryToCurrentFile => self.change_working_directory_to_current_file()?,
             Dispatch::CancelPendingBookmark => {
                 self.pending_bookmark_key = None;
                 self.pending_bookmark_default_path = None;
+                self.pending_is_quick_marks = false;
             }
             Dispatch::OpenAlternateFile => self.open_alternate_file()?,
             Dispatch::PushPromptHistory { key, line } => self.push_history_prompt(key, line),
@@ -1542,6 +1568,7 @@ impl<T: Frontend> App<T> {
             }
             Dispatch::OpenAndMarkFiles(paths) => {
                 if let Some(key) = self.pending_bookmark_key.take() {
+                    let is_quick_marks = std::mem::take(&mut self.pending_is_quick_marks);
                     let first_path = paths.first().clone();
                     let bookmark_path = if let Some(default_path) = self.pending_bookmark_default_path.take() {
                         if first_path.file_name() == default_path.file_name() {
@@ -1552,12 +1579,20 @@ impl<T: Frontend> App<T> {
                     } else {
                         first_path
                     };
-                    self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
                     let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
-                    self.show_global_info(Info::new(
-                        "Bookmark Assigned".to_string(),
-                        format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
-                    ));
+                    if is_quick_marks {
+                        self.context.add_single_bookmark(key, bookmark_path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Quick-mark Added".to_string(),
+                            format!("Quick-mark '{key}' added {kind_str} {}", bookmark_path.display_absolute()),
+                        ));
+                    } else {
+                        self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Bookmark Assigned".to_string(),
+                            format!("Bookmark '{key}' assigned to {kind_str} {}", bookmark_path.display_absolute()),
+                        ));
+                    }
                 } else {
                     self.open_and_mark_files(paths)?;
                 }
@@ -1565,11 +1600,20 @@ impl<T: Frontend> App<T> {
             Dispatch::ToggleOrOpenPaths => self.toggle_or_open_paths()?,
             Dispatch::ChangeWorkingDirectory(path) => {
                 if let Some(key) = self.pending_bookmark_key.take() {
-                    self.context.set_bookmark_file(&self.bookmark_path, key, path.clone())?;
-                    self.show_global_info(Info::new(
-                        "Bookmark Assigned".to_string(),
-                        format!("Bookmark '{key}' assigned to directory {}", path.display_absolute()),
-                    ));
+                    let is_quick_marks = std::mem::take(&mut self.pending_is_quick_marks);
+                    if is_quick_marks {
+                        self.context.add_single_bookmark(key, path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Quick-mark Added".to_string(),
+                            format!("Quick-mark '{key}' added directory {}", path.display_absolute()),
+                        ));
+                    } else {
+                        self.context.set_bookmark_file(&self.bookmark_path, key, path.clone())?;
+                        self.show_global_info(Info::new(
+                            "Bookmark Assigned".to_string(),
+                            format!("Bookmark '{key}' assigned to directory {}", path.display_absolute()),
+                        ));
+                    }
                 } else {
                     self.change_working_directory(path)?;
                 }
@@ -3155,6 +3199,81 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
+    fn open_quick_marks_menu(&mut self) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        let config = self.create_quick_marks_keymap_legend_config();
+        self.layout.close_keymap_legend();
+        self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(Some(
+            EditorKeymapOverride::Bookmark(BookmarkKeymapOverride::new_quick_marks(config.clone())),
+        )))?;
+        self.show_keymap_legend(false, config, None);
+        Ok(())
+    }
+
+    fn create_quick_marks_keymap_legend_config(&self) -> KeymapLegendConfig {
+        let single_entries = self.context.bookmarks().single_entries();
+        let mut bindings = Vec::new();
+        for (&key, paths) in single_entries {
+            if paths.is_empty() {
+                continue;
+            }
+            let name = if paths.len() == 1 {
+                let path = &paths[0];
+                let mut name = if let Some(file_name) = path.file_name() {
+                    file_name.to_string()
+                } else {
+                    path.display_absolute()
+                };
+                if path.to_path_buf().is_dir() && !name.ends_with('/') {
+                    name.push('/');
+                }
+                if name.len() > 10 {
+                    name.truncate(9);
+                    name.push('…');
+                }
+                name
+            } else {
+                let count_str = format!("({})", paths.len());
+                let first = &paths[0];
+                let mut file_name = if let Some(fn_str) = first.file_name() {
+                    fn_str.to_string()
+                } else {
+                    first.display_absolute()
+                };
+                if first.to_path_buf().is_dir() && !file_name.ends_with('/') {
+                    file_name.push('/');
+                }
+                let max_base_len = 10usize.saturating_sub(count_str.len());
+                if file_name.len() > max_base_len {
+                    file_name.truncate(max_base_len.saturating_sub(1));
+                    file_name.push('…');
+                }
+                format!("{file_name}{count_str}")
+            };
+            let mut modifiers = event::KeyModifiers::default();
+            if key.is_uppercase() {
+                modifiers.shift = true;
+            }
+            let event = event::KeyEvent::pressed(
+                crossterm::event::KeyCode::Char(key),
+                modifiers,
+            );
+            bindings.push(Keybinding::new_dynamic(
+                event,
+                name,
+                if paths.len() > 1 {
+                    Dispatch::OpenSearchableSingleBookmarkPicker(key)
+                } else {
+                    Dispatch::ActivateSingleBookmark(key)
+                },
+            ));
+        }
+        KeymapLegendConfig {
+            title: "≡ Quick-marks  (⇥ All)".to_string(),
+            keymap: Keymap::new(&bindings),
+        }
+    }
+
     fn open_bookmark_menu(&mut self) -> anyhow::Result<()> {
         self.context.reload_bookmarks_if_changed();
         self.bookmark_path.clear();
@@ -3289,6 +3408,55 @@ impl<T: Frontend> App<T> {
         )
     }
 
+    fn open_quick_marks_files_picker(&mut self) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        let files = self.context.bookmarks().all_single_files();
+
+        if files.is_empty() {
+            self.show_global_info(Info::new("No Quick-marks".to_string(), "No quick-marks have been created yet".to_string()));
+            return Ok(());
+        }
+
+        if files.len() == 1 {
+            let path = files.into_iter().next().unwrap();
+            return self.activate_bookmark_path(path);
+        }
+
+        let items = PromptItems::Precomputed(
+            files
+                .into_iter()
+                .enumerate()
+                .map(|(index, path)| {
+                    let is_dir = path.to_path_buf().is_dir();
+                    let mut display = path.display_absolute();
+                    if is_dir && !display.ends_with('/') {
+                        display.push('/');
+                    }
+                    let dispatches = if is_dir {
+                        Dispatches::one(Dispatch::ChangeWorkingDirectory(path))
+                    } else {
+                        Dispatches::one(Dispatch::OpenFileFromPathBuf {
+                            path: path.into_path_buf(),
+                            owner: BufferOwner::User,
+                            focus: true,
+                        })
+                    };
+                    DropdownItem::new(display)
+                        .set_dispatches(dispatches)
+                        .set_rank(Some(Box::new([index])))
+                })
+                .collect_vec(),
+        );
+
+        self.open_prompt(
+            PromptConfig::new(
+                "Quick-marks files (all)".to_string(),
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_show_all_when_empty(true),
+        )
+    }
+
     fn activate_bookmark_path(&mut self, path: AbsolutePath) -> anyhow::Result<()> {
         if !path.exists() {
             self.show_global_info(Info::new(
@@ -3351,6 +3519,20 @@ impl<T: Frontend> App<T> {
     }
 
     fn clear_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        if self.pending_is_quick_marks {
+            if self.context.remove_single_bookmark(key)? {
+                self.show_global_info(Info::new(
+                    "Quick-mark Cleared".to_string(),
+                    format!("Quick-mark '{key}' cleared"),
+                ));
+            } else {
+                self.show_global_info(Info::new(
+                    "Quick-mark Not Found".to_string(),
+                    format!("Quick-mark '{key}' is not assigned"),
+                ));
+            }
+            return Ok(());
+        }
         if self.context.remove_bookmark_at(&self.bookmark_path, key)? {
             self.show_global_info(Info::new(
                 "Bookmark Cleared".to_string(),
@@ -3365,7 +3547,122 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
-    fn open_assign_bookmark_prompt(
+    fn activate_single_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        let Some(paths) = self.context.get_single_bookmarks(key).cloned() else {
+            return Ok(());
+        };
+        if paths.len() == 1 {
+            self.activate_bookmark_path(paths[0].clone())?;
+        } else if paths.len() > 1 {
+            self.open_searchable_single_bookmark_picker(key)?;
+        }
+        Ok(())
+    }
+
+    fn open_searchable_single_bookmark_picker(&mut self, key: char) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        let paths = self.context.get_single_bookmarks(key).cloned().unwrap_or_default();
+        if paths.is_empty() {
+            self.show_global_info(Info::new(
+                "No Bookmarks".to_string(),
+                format!("Bookmark '{key}' is not assigned"),
+            ));
+            return Ok(());
+        }
+
+        let title = format!("Search bookmarks for '{key}' ({} items)", paths.len());
+        let items = PromptItems::Precomputed(
+            paths
+                .into_iter()
+                .enumerate()
+                .map(|(index, path)| {
+                    let is_dir = path.to_path_buf().is_dir();
+                    let mut display = path.display_absolute();
+                    if is_dir && !display.ends_with('/') {
+                        display.push('/');
+                    }
+                    let dispatches = if is_dir {
+                        Dispatches::one(Dispatch::ChangeWorkingDirectory(path))
+                    } else {
+                        Dispatches::one(Dispatch::OpenFileFromPathBuf {
+                            path: path.into_path_buf(),
+                            owner: BufferOwner::User,
+                            focus: true,
+                        })
+                    };
+                    DropdownItem::new(display)
+                        .set_dispatches(dispatches)
+                        .set_rank(Some(Box::new([index])))
+                })
+                .collect(),
+        );
+
+        self.open_prompt(
+            PromptConfig::new(
+                title,
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_show_all_when_empty(true),
+        )
+    }
+
+    fn open_manage_single_bookmarks_picker(&mut self, key: char) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        let paths = self.context.get_single_bookmarks(key).cloned().unwrap_or_default();
+        if paths.is_empty() {
+            self.show_global_info(Info::new(
+                "No Bookmarks".to_string(),
+                format!("Bookmark '{key}' is not assigned"),
+            ));
+            return Ok(());
+        }
+        let initial_lines = paths
+            .iter()
+            .map(|p| p.display_absolute())
+            .collect::<Vec<String>>();
+        let title = format!("Edit Bookmarks for '{key}' (Enter to open, editor keys to edit/delete, Esc to save)");
+        self.open_prompt(
+            PromptConfig::new(
+                title,
+                PromptOnEnter::ManageBookmarks {
+                    key,
+                    initial_lines,
+                },
+            ),
+        )
+    }
+
+    fn finish_manage_bookmarks(
+        &mut self,
+        key: char,
+        all_lines: String,
+        activate_line: Option<String>,
+    ) -> anyhow::Result<()> {
+        let mut new_paths = Vec::new();
+        for line in all_lines.lines() {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                if let Ok(abs) = AbsolutePath::try_from(trimmed) {
+                    if !new_paths.contains(&abs) {
+                        new_paths.push(abs);
+                    }
+                }
+            }
+        }
+        self.context.set_single_bookmarks(key, new_paths)?;
+
+        if let Some(line) = activate_line {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                if let Ok(abs) = AbsolutePath::try_from(trimmed) {
+                    self.activate_bookmark_path(abs)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn open_assign_quick_mark_prompt(
         &mut self,
         key: char,
         prefill_current_file: bool,
@@ -3374,6 +3671,7 @@ impl<T: Frontend> App<T> {
         self.pending_bookmark_key = Some(key);
         let current_path = self.get_current_file_path();
         self.pending_bookmark_default_path = current_path.clone();
+        self.pending_is_quick_marks = true;
         let working_directory = self.working_directory().clone();
         let items = PromptItems::BackgroundTask {
             task: PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory },
@@ -3383,6 +3681,46 @@ impl<T: Frontend> App<T> {
         } else {
             None
         };
+
+        let existing_count = self.context.get_single_bookmarks(key).map(|b| b.len()).unwrap_or(0);
+        let title = if existing_count > 0 {
+            format!("Add Quick-mark to '{key}' ({existing_count} existing)")
+        } else {
+            format!("Assign Quick-mark '{key}'")
+        };
+        self.open_prompt(
+            PromptConfig::new(
+                title,
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_initial_text(initial_text)
+            .set_on_cancelled(Some(Dispatches::one(Dispatch::CancelPendingBookmark)))
+            .set_on_change(Some(
+                PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile,
+            )),
+        )
+    }
+
+    fn open_assign_bookmark_prompt(
+        &mut self,
+        key: char,
+        prefill_current_file: bool,
+    ) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        self.pending_bookmark_key = Some(key);
+        let current_path = self.get_current_file_path();
+        self.pending_bookmark_default_path = current_path.clone();
+        self.pending_is_quick_marks = false;
+        let working_directory = self.working_directory().clone();
+        let items = PromptItems::BackgroundTask {
+            task: PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory },
+        };
+        let initial_text = if prefill_current_file {
+            current_path.map(|p| p.display_absolute())
+        } else {
+            None
+        };
+
         let on_empty_enter = Some(Dispatches::from(vec![
             Dispatch::CancelPendingBookmark,
             Dispatch::ClearBookmark(key),
@@ -5122,12 +5460,26 @@ pub enum Dispatch {
     GotoGlobalMark(Direction),
     OpenBookmarkMenu,
     OpenBookmarkFilesPicker,
+    OpenQuickMarksMenu,
+    OpenQuickMarksFilesPicker,
     OpenBookmark(char),
+    ActivateSingleBookmark(char),
+    OpenSearchableSingleBookmarkPicker(char),
+    OpenManageSingleBookmarksPicker(char),
+    FinishManageBookmarks {
+        key: char,
+        all_lines: String,
+        activate_line: Option<String>,
+    },
     CreateBookmarkSubmenu(char),
     EnterBookmarkSubmenu(char),
     BookmarkGoBack,
     ClearBookmark(char),
     OpenAssignBookmarkPrompt {
+        key: char,
+        prefill_current_file: bool,
+    },
+    OpenAssignQuickMarkPrompt {
         key: char,
         prefill_current_file: bool,
     },

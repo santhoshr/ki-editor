@@ -924,10 +924,11 @@
       </div>
 
       <div class="callout" style="margin-top: 16px;">
-        <strong>HUD Footer Information:</strong>
+        <strong>HUD Footer Information, Bookmarks &amp; Quick-marks:</strong>
         <ul>
           <li><strong>Space HUD Footer:</strong> Displays <code>* Pick Keyboard    \ Leader    - File Tree (current file)    shift+-/_ File Tree (cd)</code> directly underneath the keyboard matrix.</li>
-          <li><strong>Bookmarks HUD Footer:</strong> Displays contextual help: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>.</li>
+          <li><strong>Bookmarks HUD (<kbd>Shift+B</kbd> / <kbd>B</kbd>):</strong> Nested hierarchical submenus and files/directories. Footer displays contextual help: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>. Backed by <code>~/.config/ki/bookmarks.json</code>.</li>
+          <li><strong>Quick-marks HUD (<kbd>:</kbd> or <kbd>1</kbd>):</strong> Flat multiple-bookmark-per-key system. Footer displays contextual help: <code>Key Open/Pick, S-Key Search picker, Alt-Key Edit panel</code>. Backed by <code>~/.config/ki/quick_marks.json</code>. Pressing key opens (if 1) or opens searchable picker (if &gt;1). <kbd>Shift+key</kbd> opens searchable fuzzy picker; <kbd>Alt+key</kbd> opens editable panel in Normal line mode with the first item selected, allowing users to delete or edit one/many/all using standard editor keys (<kbd>r</kbd>/<kbd>x</kbd>/selections); <kbd>Enter</kbd> activates focused line and saves; <kbd>Esc</kbd> saves edits and exits.</li>
         </ul>
       </div>
 
@@ -1901,7 +1902,7 @@
   <span style="color: #79c0ff;">"icon_style"</span>: <span style="color: #a5d6ff;">"emoji"</span>,                <span style="color: #8b949e;">// "emoji", "nerd-font", or "none"</span>
   <span style="color: #79c0ff;">"show_key_in_keymap"</span>: <span style="color: #ff7b72;">false</span>,         <span style="color: #8b949e;">// Show key letters directly on keymap legend items</span>
   <span style="color: #79c0ff;">"command_menu_invocation"</span>: <span style="color: #a5d6ff;">"Space"</span>,  <span style="color: #8b949e;">// "Space", "c", "C", or ":"</span>
-  <span style="color: #79c0ff;">"bookmark_menu_invocation"</span>: <span style="color: #a5d6ff;">"B"</span>,      <span style="color: #8b949e;">// "B" (default) or ":"</span>
+  <span style="color: #79c0ff;">"quick_marks_menu_invocation"</span>: <span style="color: #a5d6ff;">":"</span>,   <span style="color: #8b949e;">// ":" (default) or "1" (fallback if command menu is ":")</span>
   <span style="color: #79c0ff;">"swap_key"</span>: <span style="color: #a5d6ff;">"/"</span>,                     <span style="color: #8b949e;">// "/" (default) or "x"</span>
   <span style="color: #79c0ff;">"e_normal_mode"</span>: <span style="color: #a5d6ff;">"buffer"</span>,           <span style="color: #8b949e;">// "buffer" (default) or "mark"</span>
   <span style="color: #79c0ff;">"filetree_open_with_path"</span>: <span style="color: #ff7b72;">false</span>,    <span style="color: #8b949e;">// false (direct tree) or true (prompt path first)</span>
@@ -2103,7 +2104,7 @@
           <h4><span>Core Actions</span> <span class="badge badge-action">Edit</span></h4>
           <p><code>Enter</code> &rarr; Save &amp; Format</p>
           <p><code>Space</code> &rarr; HUD Menu</p>
-          <p><code>Shift+b</code> &rarr; ≡ Bookmarks (Jump/assign; <code>Alt+key</code>: assign/clear; <code>=</code>: submenu; <code>Tab</code>: filter all; <code>Ctrl+o</code>/<code>Alt+o</code>: open all)</p>
+          <p><code>Shift+b</code> &rarr; ≡ Bookmarks (Nested: jump/assign, <code>Alt+key</code> assign/clear, <code>=</code> submenu; Single: jump/pick, <code>Shift+key</code> search picker, <code>Alt+key</code> edit panel; <code>Tab</code> filter all; <code>Ctrl+o</code> open all)</p>
           <p><code>Space</code> &rarr; <code>Shift+b</code> &rarr; ≡ Bookmarks</p>
           <p><code>Space</code> &rarr; <code>Shift+c</code> &rarr; CD to current file's directory</p>
           <p><code>Space</code> &rarr; <code>Shift+t</code> &rarr; Show Last Error</p>

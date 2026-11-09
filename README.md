@@ -124,12 +124,27 @@ Supported invocation keys:
 
 ### 3.3 Core Editing, Search & Motion
 
+The swap and cut key assignments are configurable via `"swap_key"` in `config.json` (`"/"` or `"x"`, defaulting to `"/"`):
+
+- **Default (`"swap_key": "/"`):**
+  - `/`: Unified cursor swap (`DispatchEditor::SwapCursor`).
+  - `x`: Cut momentary layer (`≡ Cut`) with tap action Cut One (`DispatchEditor::CutOne`), moved from `Shift+R`.
+  - `?`: Search text backward.
+  - Forward search remains available via `s d` / `S d`.
+
+- **Alternative (`"swap_key": "x"`):**
+  - `x`: Unified cursor swap (`DispatchEditor::SwapCursor`).
+  - `Shift+R` (`R`): Cut momentary layer (`≡ Cut`) with tap action Cut One (`DispatchEditor::CutOne`).
+  - `/`: Search text forward (`PromptHistoryKey::Search`).
+  - `?`: Search text backward.
+
 | Keybinding | Context | Action |
 | :--- | :--- | :--- |
-| `/` | Normal Mode | Search text forward (`PromptHistoryKey::Search`). |
+| `/` | Normal Mode (default) | Unified swap register and cursor operation (`"swap_key": "/"`). |
+| `x` | Normal Mode (default) | Cut line/selection (`≡ Cut` momentary layer, tap `Cut One`) when `"swap_key": "/"`. |
+| `x` | Normal Mode (alt) | Unified swap register and cursor operation when `"swap_key": "x"`. |
+| `Shift+R` | Normal Mode (alt) | Cut line/selection (`≡ Cut` momentary layer, tap `Cut One`) when `"swap_key": "x"`. |
 | `?` | Normal Mode | Search text backward. |
-| `x` | Normal / Selection | Unified swap register and swap character operation. |
-| `Shift+R` | Normal / Selection | Cut line to system clipboard (protecting standard paste registers). |
 | `Alt+/` | Normal Mode | Multi-window switcher: cycles focus between Editor, File Explorer, Git Blame, and Hunk Diff views. Falls back to Buffer Picker if only one view is open. |
 | `Shift+M` | Normal Mode | Jump to position: accepts `line:col` or `line col` (e.g. `42:15`), preserving active selection mode (e.g. Tree-sitter AST Node mode). |
 

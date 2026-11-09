@@ -1,5 +1,6 @@
 use crate::{
     app::{Dispatch, FilePickerKind, HistoryNavigationMovement, Scope, TabSide},
+    config::SwapKey,
     components::{
         editor::{
             Direction, DispatchEditor, Editor, IfCurrentNotFound, Movement, PriorChange, Reveal,
@@ -364,16 +365,17 @@ pub fn normal_mode_keymap_legend_config(
     editor: &Editor,
     normal_mode_override: Option<NormalModeOverride>,
     prior_change: Option<PriorChange>,
+    swap_key: SwapKey,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Normal".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, normal_mode_override, prior_change)
+            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key)
                 .into_iter()
                 .chain(Some(Keybinding::new_undocumented(
                     key!("f"),
                     "Extend",
-                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor)),
+                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key)),
                 )))
                 .collect_vec(),
         ),
@@ -748,11 +750,11 @@ pub fn keymap_transform() -> Vec<Keybinding> {
     )))
     .collect_vec()
 }
-pub fn extend_mode_keymap_legend_config(editor: &Editor) -> KeymapLegendConfig {
+pub fn extend_mode_keymap_legend_config(editor: &Editor, swap_key: SwapKey) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Extend".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, None, Some(PriorChange::EnableSelectionExtension))
+            &normal_mode_keymap(editor, None, Some(PriorChange::EnableSelectionExtension), swap_key)
                 .into_iter()
                 .chain(Some(Keybinding::new_undocumented(
                     key!("f"),
@@ -767,6 +769,7 @@ pub fn normal_mode_keymap(
     editor: &Editor,
     normal_mode_override: Option<NormalModeOverride>,
     prior_change: Option<PriorChange>,
+    swap_key: SwapKey,
 ) -> Vec<Keybinding> {
     let normal_mode_override = normal_mode_override
         .clone()
@@ -774,10 +777,10 @@ pub fn normal_mode_keymap(
         .unwrap_or_default();
     keymap_core_movements(prior_change)
         .into_iter()
-        .chain(keymap_other_movements())
+        .chain(keymap_other_movements(swap_key))
         .chain(keymap_primary_selection_modes(editor, prior_change))
         .chain(keymap_secondary_selection_modes_init(editor, prior_change))
-        .chain(keymap_actions(&normal_mode_override, false, editor))
+        .chain(keymap_actions(&normal_mode_override, false, editor, swap_key))
         .chain(keymap_others())
         .chain(keymap_universal())
         .collect_vec()
@@ -991,8 +994,9 @@ pub fn multicursor_momentary_layer_keymap(editor: &Editor) -> Keymap {
 pub fn keymap_overridable(
     normal_mode_override: &NormalModeOverride,
     none_if_no_override: bool,
+    swap_key: SwapKey,
 ) -> Vec<Keybinding> {
-    keymap_actions_overridable(normal_mode_override, none_if_no_override)
+    keymap_actions_overridable(normal_mode_override, none_if_no_override, swap_key)
         .into_iter()
         .chain(keymap_clipboard_related_actions_overridable(
             normal_mode_override.clone(),
@@ -1557,6 +1561,7 @@ pub fn keymap_actions(
     normal_mode_override: &NormalModeOverride,
     none_if_no_override: bool,
     editor: &Editor,
+    swap_key: SwapKey,
 ) -> Vec<Keybinding> {
     [
         Keybinding::new_undocumented(key!("I"), "Join", Dispatch::ToEditor(JoinSelection)),
@@ -1624,6 +1629,7 @@ pub fn keymap_actions(
     .chain(keymap_actions_overridable(
         normal_mode_override,
         none_if_no_override,
+        swap_key,
     ))
     .chain(keymap_clipboard_related_actions(
         normal_mode_override.clone(),
@@ -1663,7 +1669,27 @@ pub fn undo_redo_keymap() -> Keymap {
 pub fn keymap_actions_overridable(
     normal_mode_override: &NormalModeOverride,
     none_if_no_override: bool,
+    swap_key: SwapKey,
 ) -> Vec<Keybinding> {
+    let (swap_binding, cut_event) = match swap_key {
+        SwapKey::Slash => (
+            Keybinding::new_undocumented(
+                key!("/"),
+                "⇋ Swap",
+                Dispatch::ToEditor(DispatchEditor::SwapCursor),
+            ),
+            key!("x"),
+        ),
+        SwapKey::X => (
+            Keybinding::new_undocumented(
+                key!("x"),
+                "⇋ Swap",
+                Dispatch::ToEditor(DispatchEditor::SwapCursor),
+            ),
+            key!("R"),
+        ),
+    };
+
     [
         Keybinding::momentary_layer(MomentaryLayer {
             event: key!("g"),
@@ -1678,13 +1704,9 @@ pub fn keymap_actions_overridable(
             )),
         })
         .override_keymap(normal_mode_override.change.as_ref(), none_if_no_override),
-        Some(Keybinding::new_undocumented(
-            key!("x"),
-            "⇋ Swap",
-            Dispatch::ToEditor(DispatchEditor::SwapCursor),
-        )),
+        Some(swap_binding),
         Keybinding::momentary_layer(MomentaryLayer {
-            event: key!("R"),
+            event: cut_event,
             name: "≡ Cut".to_string(),
             config: KeymapLegendConfig {
                 title: "≡ Cut".to_string(),
@@ -1737,8 +1759,8 @@ pub fn keymap_actions_overridable(
     .flatten()
     .collect_vec()
 }
-pub fn keymap_other_movements() -> Vec<Keybinding> {
-    [
+pub fn keymap_other_movements(swap_key: SwapKey) -> Vec<Keybinding> {
+    let mut bindings = vec![
         Keybinding::new_undocumented(
             key!("alt+k"),
             "Scroll ↓",
@@ -1763,25 +1785,29 @@ pub fn keymap_other_movements() -> Vec<Keybinding> {
                 Dispatch::ToggleSelectionMark,
             )),
         }),
-        Keybinding::new_undocumented(
+    ];
+
+    if swap_key == SwapKey::X {
+        bindings.push(Keybinding::new_undocumented(
             key!("/"),
             "Search",
             Dispatch::OpenSearchPrompt {
                 scope: Scope::Local,
                 if_current_not_found: IfCurrentNotFound::LookForward,
             },
-        ),
-        Keybinding::new_undocumented(
-            key!("?"),
-            "Search (Bwd)",
-            Dispatch::OpenSearchPrompt {
-                scope: Scope::Local,
-                if_current_not_found: IfCurrentNotFound::LookBackward,
-            },
-        ),
-    ]
-    .into_iter()
-    .collect_vec()
+        ));
+    }
+
+    bindings.push(Keybinding::new_undocumented(
+        key!("?"),
+        "Search (Bwd)",
+        Dispatch::OpenSearchPrompt {
+            scope: Scope::Local,
+            if_current_not_found: IfCurrentNotFound::LookBackward,
+        },
+    ));
+
+    bindings
 }
 
 pub fn swap_keymap() -> Keymap {

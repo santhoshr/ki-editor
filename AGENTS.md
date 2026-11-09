@@ -1235,6 +1235,17 @@ Verified with `cargo check` and `cargo build`.
 In `command_keymap` (`src/keymap.rs`), when `context.command_menu_invocation() == CommandMenuInvocation::LowerC`, added the `Copy/≡ Dup` momentary layer (`Keybinding::momentary_layer(MomentaryLayer { event: key!("c"), name: "Copy/≡ Dup", ... })`) to `c`, preserving normal mode's copy/duplicate action within the Command menu.
 Verified with `cargo check` and `cargo build`.
 
+### Request 179
+> "give config option to 'swap_key' with configurable option '/' and 'x'; if '/' is used, move 'R' to 'x'; default to '/'"
+**Response:**
+1. Added `SwapKey` enum to `src/config.rs` (`#[serde(rename = "/")] Slash`, `#[serde(rename = "x", alias = "X")] X`, default `Slash`).
+2. Added `swap_key: SwapKey` to `AppConfig`, `RawConfig` (`#[serde(default)]`), and `Context`.
+3. Added lenient parsing for `swap_key` in `src/config/lenient.rs` and default configuration `"swap_key": "/"` in `src/config_default.json`.
+4. Configured normal mode keybindings:
+   - When `swap_key` is `"/"` (default): `key!("/")` dispatches `DispatchEditor::SwapCursor`; Cut (`≡ Cut` momentary layer with `CutOne` tap) moves from `R` to `key!("x")`.
+   - When `swap_key` is `"x"`: `key!("x")` dispatches `DispatchEditor::SwapCursor`; Cut remains on `key!("R")`; forward search prompt remains on `key!("/")`.
+5. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

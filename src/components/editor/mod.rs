@@ -391,7 +391,7 @@ impl Component for Editor {
             EnterNewline => return self.enter_newline(context),
             DeleteCurrentCursor(direction) => self.delete_current_cursor(direction),
             BreakSelection => return self.break_selection(context),
-            ShowHelp => return self.show_help(),
+            ShowHelp => return self.show_help(context),
             HandleEsc => {
                 self.disable_selection_extension();
                 self.mode = Mode::Normal;
@@ -1843,7 +1843,7 @@ impl Editor {
                         }
                         let translated_key_event =
                             context.keyboard_layout().make_combined_key_event(key_event);
-                        let keymap_legend_config = self.get_current_keymap_legend_config();
+                        let keymap_legend_config = self.get_current_keymap_legend_config(context);
 
                         if let Some(keybinding) =
                             keymap_legend_config.keymap().get(&translated_key_event)
@@ -4310,16 +4310,16 @@ impl Editor {
         self.normal_mode_override = Some(normal_mode_override);
     }
 
-    fn show_help(&self) -> Result<Dispatches, anyhow::Error> {
+    fn show_help(&self, context: &Context) -> Result<Dispatches, anyhow::Error> {
         Ok(Dispatches::one(Dispatch::ShowMenu(
-            self.get_current_keymap_legend_config(),
+            self.get_current_keymap_legend_config(context),
         )))
     }
 
-    fn get_current_keymap_legend_config(&self) -> super::keymap_legend::KeymapLegendConfig {
+    fn get_current_keymap_legend_config(&self, context: &Context) -> super::keymap_legend::KeymapLegendConfig {
         match self.mode {
             Mode::Insert => insert_mode_keymap_legend_config(true),
-            _ => normal_mode_keymap_legend_config(self, None, None),
+            _ => normal_mode_keymap_legend_config(self, None, None, context.swap_key()),
         }
     }
 

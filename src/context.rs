@@ -57,6 +57,7 @@ pub struct Context {
     indent_width: usize,
     format_on_save: bool,
     command_menu_invocation: crate::config::CommandMenuInvocation,
+    swap_key: crate::config::SwapKey,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -408,6 +409,7 @@ impl Context {
             indent_width: app_config.indent_width(),
             format_on_save: app_config.format_on_save(),
             command_menu_invocation: app_config.command_menu_invocation(),
+            swap_key: app_config.swap_key(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -484,6 +486,10 @@ impl Context {
 
     pub fn command_menu_invocation(&self) -> crate::config::CommandMenuInvocation {
         self.command_menu_invocation
+    }
+
+    pub fn swap_key(&self) -> crate::config::SwapKey {
+        self.swap_key
     }
 
     #[cfg(test)]

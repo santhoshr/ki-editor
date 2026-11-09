@@ -285,7 +285,7 @@ impl KeymapPrintSections {
             ),
             KeymapPrintSection::from_keymap(
                 "Normal".to_string(),
-                &Keymap::new(&normal_mode_keymap(&editor, None, None)),
+                &Keymap::new(&normal_mode_keymap(&editor, None, None, context.swap_key())),
             ),
             KeymapPrintSection::from_keymap(
                 "Movements".to_string(),
@@ -325,11 +325,12 @@ impl KeymapPrintSections {
                     &NormalModeOverride::default(),
                     false,
                     &editor,
+                    context.swap_key(),
                 )),
             ),
             KeymapPrintSection::from_keymap(
                 "Other Movements".to_string(),
-                &Keymap::new(&keymap_other_movements()),
+                &Keymap::new(&keymap_other_movements(context.swap_key())),
             ),
             KeymapPrintSection::from_keymap(
                 "Command".to_string(),
@@ -356,6 +357,7 @@ impl KeymapPrintSections {
                 &Keymap::new(&keymap_overridable(
                     &file_explorer_normal_mode_override(),
                     true,
+                    context.swap_key(),
                 )),
             ),
             KeymapPrintSection::from_keymap(

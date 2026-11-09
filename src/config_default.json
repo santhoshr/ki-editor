@@ -38,5 +38,6 @@
     "show_key_in_keymap": false,
     "format_on_save": false,
     "command_menu_invocation": "Space",
+    "swap_key": "/",
     "icon_style": "none"
 }

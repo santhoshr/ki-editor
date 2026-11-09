@@ -264,7 +264,8 @@ Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`, backed 
 ```
 
 ### 7.1 Workflow & Keybindings
-- **Access:** `Space b` (or `B` / `Shift+B` / `Shift+Space` in Space Command menu).
+- **Access:** `Space b` (or `B` / `Shift+B` / `Shift+Space` in Space Command menu, or `:` if configured).
+- **Invocation Config (`"bookmark_menu_invocation"`):** Configurable in `config.json` as `"B"` (default) or `":"`. When set to `":"`, `:` opens the Bookmarks menu. If both `command_menu_invocation` and `bookmark_menu_invocation` are set to `":"`, Ki reports a configuration conflict warning, defaults Bookmarks to `"B"`, and retains `":"` for the Command menu.
 - **Navigation:** Pressing any assigned alphanumeric key (`a`-`z`, `A`-`Z`, `0`-`9`) immediately opens the file or changes directory.
 - **Assignment:** Pressing `= <key>` clears any previous binding and opens the assignment prompt for `<key>`:
   - Default text is the current buffer path (or current directory if no file is open).

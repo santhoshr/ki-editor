@@ -1321,6 +1321,30 @@ Updated `README.md` and verified with `cargo check` and `cargo build`.
 2. In `space_keymap_legend_config` (`src/keymap.rs`), added `-` (`Dispatch::RevealCurrentInExplorer`), `_` / `shift+_` / `shift+-` (`Dispatch::RevealCurrentWorkingDirectoryInExplorer`) to ensure identical behavior in Space menu.
 3. Updated `README.md` and verified with `cargo check` and `cargo build`.
 
+### Request 189
+> "update @newdoc/index.html and @[newdoc/kustom-ki.html]"
+**Response:**
+1. Updated `newdoc/index.html`:
+   - Section 7: Updated to describe the two-column Space Command Menu, footer hints (`- File Tree (current file)    shift+-/_ File Tree (cd)` and bookmarks helper `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)`), and deep Space submenus.
+   - Section 8: Documented `e_normal_mode` (`"buffer"` vs `"mark"`), tab switching keys, and `y`/`p` local mark jumps.
+   - Section 13: Documented `-` / `_` file tree reveal bindings and `filetree_open_with_path`.
+   - Section 17: Added `command_menu_invocation`, `swap_key`, `e_normal_mode`, `filetree_open_with_path`, and `pick_menu_df_swap` to example configuration.
+2. Updated `newdoc/kustom-ki.html`:
+   - Added entries 19-22 with sidebar links covering Command Menu on Space, Persistent Hierarchical Bookmarks & HUD, `e_normal_mode` Mark/Buffer Modality, and Explorer Path Prompt / Key Swap configurations.
+
+### Request 190
+> "add config for bookmark key, bookmark_menu_invocation: 'B' or ':', default to 'B', if both command_menu_invocation and bookmark_menu_invocation is configured for ':' throw message, but default bookmark menu to 'B' and use ':' for Command menu"
+**Response:**
+1. Added `BookmarkMenuInvocation` enum (`B`, `Colon` with alias `"Shift+;"`, default `B`) and method `matches`.
+2. Added `bookmark_menu_invocation` to `AppConfig`, `RawConfig`, and `Context`.
+3. In `AppConfig::load_from_current_directory` and `AppConfig::try_from`:
+   - If both `command_menu_invocation` and `bookmark_menu_invocation` are configured for `':'`:
+     - Emits conflict warning in `load_errors` and GUI popup in `App::run`.
+     - Defaults `bookmark_menu_invocation` to `B` and retains `':'` for Command menu.
+4. In `src/components/editor/mod.rs` and `src/keymap.rs`, routed Normal mode and Space/Command menus to open Bookmarks on `:` when `bookmark_menu_invocation` is `Colon`.
+5. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+6. Verified cleanly via `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

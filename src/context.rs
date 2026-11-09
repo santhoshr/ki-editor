@@ -57,6 +57,7 @@ pub struct Context {
     indent_width: usize,
     format_on_save: bool,
     command_menu_invocation: crate::config::CommandMenuInvocation,
+    bookmark_menu_invocation: crate::config::BookmarkMenuInvocation,
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
@@ -412,6 +413,7 @@ impl Context {
             indent_width: app_config.indent_width(),
             format_on_save: app_config.format_on_save(),
             command_menu_invocation: app_config.command_menu_invocation(),
+            bookmark_menu_invocation: app_config.bookmark_menu_invocation(),
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
@@ -492,6 +494,10 @@ impl Context {
 
     pub fn command_menu_invocation(&self) -> crate::config::CommandMenuInvocation {
         self.command_menu_invocation
+    }
+
+    pub fn bookmark_menu_invocation(&self) -> crate::config::BookmarkMenuInvocation {
+        self.bookmark_menu_invocation
     }
 
     pub fn swap_key(&self) -> crate::config::SwapKey {

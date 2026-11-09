@@ -34,6 +34,7 @@ pub struct AppConfig {
     show_key_in_keymap: bool,
     format_on_save: bool,
     command_menu_invocation: CommandMenuInvocation,
+    bookmark_menu_invocation: BookmarkMenuInvocation,
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: ENormalMode,
@@ -59,6 +60,8 @@ pub struct RawConfig {
     format_on_save: bool,
     #[serde(default)]
     command_menu_invocation: CommandMenuInvocation,
+    #[serde(default)]
+    bookmark_menu_invocation: BookmarkMenuInvocation,
     #[serde(default)]
     swap_key: SwapKey,
     #[serde(default)]
@@ -123,6 +126,34 @@ impl CommandMenuInvocation {
                     && !event.modifiers.alt
             }
             Self::ShiftSemicolon => {
+                (event.code == crossterm::event::KeyCode::Char(':')
+                    || (event.code == crossterm::event::KeyCode::Char(';') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum BookmarkMenuInvocation {
+    #[default]
+    #[serde(rename = "B", alias = "b")]
+    B,
+    #[serde(rename = ":", alias = "Shift+;")]
+    Colon,
+}
+
+impl BookmarkMenuInvocation {
+    pub fn matches(&self, event: &event::KeyEvent) -> bool {
+        match self {
+            Self::B => {
+                (event.code == crossterm::event::KeyCode::Char('B')
+                    || (event.code == crossterm::event::KeyCode::Char('b') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::Colon => {
                 (event.code == crossterm::event::KeyCode::Char(':')
                     || (event.code == crossterm::event::KeyCode::Char(';') && event.modifiers.shift))
                     && !event.modifiers.ctrl
@@ -200,6 +231,13 @@ impl TryFrom<RawConfig> for AppConfig {
             show_key_in_keymap: value.show_key_in_keymap,
             format_on_save: value.format_on_save,
             command_menu_invocation: value.command_menu_invocation,
+            bookmark_menu_invocation: if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon
+                && value.bookmark_menu_invocation == BookmarkMenuInvocation::Colon
+            {
+                BookmarkMenuInvocation::B
+            } else {
+                value.bookmark_menu_invocation
+            },
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
             e_normal_mode: value.e_normal_mode,
@@ -453,6 +491,13 @@ impl AppConfig {
             errors: field_errors,
         } = extract_lenient(&figment);
 
+        let mut conflict_error = None;
+        if raw_config.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon
+            && raw_config.bookmark_menu_invocation == BookmarkMenuInvocation::Colon
+        {
+            conflict_error = Some("Both 'command_menu_invocation' and 'bookmark_menu_invocation' are configured for ':'. Defaulting bookmark_menu_invocation to 'B' and using ':' for Command menu.".to_string());
+        }
+
         let (app_config, apply_error) = match AppConfig::try_from(raw_config) {
             Ok(app_config) => (app_config, None),
             Err(error) => (
@@ -467,6 +512,7 @@ impl AppConfig {
             .chain(workspace_errors)
             .chain(field_errors)
             .chain(apply_error)
+            .chain(conflict_error)
             .collect();
 
         AppConfig {
@@ -541,6 +587,10 @@ impl AppConfig {
 
     pub fn command_menu_invocation(&self) -> CommandMenuInvocation {
         self.command_menu_invocation
+    }
+
+    pub fn bookmark_menu_invocation(&self) -> BookmarkMenuInvocation {
+        self.bookmark_menu_invocation
     }
 
     pub fn swap_key(&self) -> SwapKey {

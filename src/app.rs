@@ -355,6 +355,12 @@ impl<T: Frontend> App<T> {
             }
         }
 
+        for error in AppConfig::singleton().load_errors() {
+            if error.contains("bookmark_menu_invocation") {
+                self.show_global_info(Info::new("Config Warning".to_string(), error.clone()));
+            }
+        }
+
         self.render()?;
 
         while let Ok(message) = crossbeam_channel::select_biased! {

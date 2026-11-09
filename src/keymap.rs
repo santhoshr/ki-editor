@@ -367,16 +367,17 @@ pub fn normal_mode_keymap_legend_config(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Normal".to_string(),
         keymap: Keymap::new(
-            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key, e_normal_mode)
+            &normal_mode_keymap(editor, normal_mode_override, prior_change, swap_key, e_normal_mode, bookmark_invocation)
                 .into_iter()
                 .chain(Some(Keybinding::new_undocumented(
                     key!("f"),
                     "Extend",
-                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key, e_normal_mode)),
+                    Dispatch::ShowMenu(extend_mode_keymap_legend_config(editor, swap_key, e_normal_mode, bookmark_invocation)),
                 )))
                 .collect_vec(),
         ),
@@ -487,16 +488,32 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                     "Last Error",
                     Dispatch::ShowLastError,
                 ),
-                Keybinding::new_undocumented(
-                    key!("B"),
-                    "Bookmark",
-                    Dispatch::OpenBookmarkMenu,
-                ),
-                Keybinding::new_undocumented(
-                    key!("shift+b"),
-                    "Bookmark",
-                    Dispatch::OpenBookmarkMenu,
-                ),
+                if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+                    Keybinding::new_undocumented(
+                        key!(":"),
+                        "Bookmark",
+                        Dispatch::OpenBookmarkMenu,
+                    )
+                } else {
+                    Keybinding::new_undocumented(
+                        key!("B"),
+                        "Bookmark",
+                        Dispatch::OpenBookmarkMenu,
+                    )
+                },
+                if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+                    Keybinding::new_undocumented(
+                        key!("shift+;"),
+                        "Bookmark",
+                        Dispatch::OpenBookmarkMenu,
+                    )
+                } else {
+                    Keybinding::new_undocumented(
+                        key!("shift+b"),
+                        "Bookmark",
+                        Dispatch::OpenBookmarkMenu,
+                    )
+                },
                 Keybinding::new_undocumented(
                     key!("C"),
                     "Current File Dir",
@@ -789,6 +806,7 @@ pub fn extend_mode_keymap_legend_config(
     editor: &Editor,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Extend".to_string(),
@@ -799,6 +817,7 @@ pub fn extend_mode_keymap_legend_config(
                 Some(PriorChange::EnableSelectionExtension),
                 swap_key,
                 e_normal_mode,
+                bookmark_invocation,
             )
             .into_iter()
             .chain(Some(Keybinding::new_undocumented(
@@ -816,6 +835,7 @@ pub fn normal_mode_keymap(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> Vec<Keybinding> {
     let normal_mode_override = normal_mode_override
         .clone()
@@ -827,7 +847,7 @@ pub fn normal_mode_keymap(
         .chain(keymap_primary_selection_modes(editor, prior_change))
         .chain(keymap_secondary_selection_modes_init(editor, prior_change))
         .chain(keymap_actions(&normal_mode_override, false, editor, swap_key))
-        .chain(keymap_others())
+        .chain(keymap_others(bookmark_invocation))
         .chain(keymap_universal())
         .collect_vec()
 }
@@ -1166,16 +1186,32 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             "Last Error",
             Dispatch::ShowLastError,
         ),
-        Keybinding::new_undocumented(
-            key!("B"),
-            "Bookmark",
-            Dispatch::OpenBookmarkMenu,
-        ),
-        Keybinding::new_undocumented(
-            key!("shift+b"),
-            "Bookmark",
-            Dispatch::OpenBookmarkMenu,
-        ),
+        if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+            Keybinding::new_undocumented(
+                key!(":"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        } else {
+            Keybinding::new_undocumented(
+                key!("B"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        },
+        if context.bookmark_menu_invocation() == crate::config::BookmarkMenuInvocation::Colon {
+            Keybinding::new_undocumented(
+                key!("shift+;"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        } else {
+            Keybinding::new_undocumented(
+                key!("shift+b"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        },
         Keybinding::new_undocumented(
             key!("C"),
             "Current File Dir",
@@ -1252,23 +1288,39 @@ pub fn command_keymap_legend_config(editor: &Editor, context: &Context) -> Keyma
     }
 }
 
-pub fn keymap_others() -> Vec<Keybinding> {
+pub fn keymap_others(bookmark_invocation: crate::config::BookmarkMenuInvocation) -> Vec<Keybinding> {
     [
         Keybinding::new_undocumented(
             key!("space"),
             "Space",
             Dispatch::ToEditor(DispatchEditor::PressSpace),
         ),
-        Keybinding::new_undocumented(
-            key!("B"),
-            "Bookmark",
-            Dispatch::OpenBookmarkMenu,
-        ),
-        Keybinding::new_undocumented(
-            key!("shift+b"),
-            "Bookmark",
-            Dispatch::OpenBookmarkMenu,
-        ),
+        if bookmark_invocation == crate::config::BookmarkMenuInvocation::Colon {
+            Keybinding::new_undocumented(
+                key!(":"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        } else {
+            Keybinding::new_undocumented(
+                key!("B"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        },
+        if bookmark_invocation == crate::config::BookmarkMenuInvocation::Colon {
+            Keybinding::new_undocumented(
+                key!("shift+;"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        } else {
+            Keybinding::new_undocumented(
+                key!("shift+b"),
+                "Bookmark",
+                Dispatch::OpenBookmarkMenu,
+            )
+        },
         Keybinding::new_undocumented(
             key!("shift+space"),
             "Bookmark",

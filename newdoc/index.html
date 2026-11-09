@@ -885,16 +885,62 @@
 
     <!-- SECTION 7: SPACE MENU -->
     <section id="space-menu">
-      <h2>7. Space Menu (<kbd>Space</kbd>)</h2>
-      <p>Pressing <kbd>Space</kbd> brings up the central command HUD:</p>
+      <h2>7. Space Command Menu (<kbd>Space</kbd>)</h2>
+      <p>In Normal mode, pressing <kbd>Space</kbd> opens the unified two-column Command HUD (configured via <code>"command_menu_invocation"</code>: <code>"Space"</code>, <code>"c"</code>, <code>"C"</code>, or <code>":"</code>). High-frequency actions, buffer tabs, and bookmarks are directly accessible:</p>
+      
       <div class="grid">
         <div class="card">
-          <h4><span>Right Hand Menus</span> <span class="badge badge-action">Menus</span></h4>
+          <h4><span>Commands (Left Column)</span> <span class="badge badge-action">Commands</span></h4>
           <ul>
-            <li><kbd>k</kbd> &rarr; <strong>Pick</strong> (Open file, buffer, symbols, theme, branch)</li>
+            <li><kbd>f</kbd> &rarr; Open File (or CD prompt)</li>
+            <li><kbd>b</kbd> &rarr; Buffer List Picker</li>
+            <li><kbd>T</kbd> / <kbd>Shift+t</kbd> &rarr; Show Last Error (ephemeral recall)</li>
+            <li><kbd>B</kbd> / <kbd>Shift+Space</kbd> &rarr; ≡ Bookmarks Menu (or <kbd>:</kbd> if configured)</li>
+            <li><kbd>C</kbd> / <kbd>Shift+c</kbd> &rarr; Set Working Dir to Current File</li>
+            <li><kbd>-</kbd> &rarr; Reveal Current File in File Explorer</li>
+            <li><kbd>_</kbd> / <kbd>Shift+-</kbd> &rarr; Reveal Working Dir (cd) in Explorer</li>
+            <li><kbd>w</kbd> &rarr; Close Window / Tab</li>
+            <li><kbd>q</kbd> &rarr; Safe Quit (guards unsaved changes)</li>
+            <li><kbd>v</kbd> &rarr; Quit Without Saving (forced)</li>
+            <li><kbd>Enter</kbd> &rarr; Toggle Selection Mark</li>
+            <li><kbd>Space</kbd> &rarr; Open Full Deep Space Menu of Legends</li>
+            <li><kbd>/</kbd> &rarr; Show Full Keymap Help</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span>Buffers &amp; Tabs (Right Column)</span> <span class="badge badge-mode">Tabs</span></h4>
+          <ul>
+            <li><kbd>j</kbd> / <kbd>l</kbd> &rarr; Marked File Tab &lt;&lt; (Prev) / &gt;&gt; (Next)</li>
+            <li><kbd>y</kbd> / <kbd>p</kbd> &rarr; First Marked Tab |&lt; / Last Tab &gt;|</li>
+            <li><kbd>k</kbd> / <kbd>m</kbd> &rarr; Cycle Marked File &uarr; / Unmarked &darr;</li>
+            <li><kbd>u</kbd> &rarr; Alternate Buffer (jump to previous file)</li>
+            <li><kbd>s</kbd> &rarr; Save Current Buffer</li>
+            <li><kbd>a</kbd> &rarr; Save Buffer As</li>
+            <li><kbd>d</kbd> &rarr; Force Reload File from Disk</li>
+            <li><kbd>h</kbd> &rarr; Open New Untitled Buffer Left &lt;</li>
+            <li><kbd>;</kbd> &rarr; Open New Untitled Buffer Right &gt;</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout" style="margin-top: 16px;">
+        <strong>HUD Footer Information:</strong>
+        <ul>
+          <li><strong>Space HUD Footer:</strong> Displays <code>* Pick Keyboard    \ Leader    - File Tree (current file)    shift+-/_ File Tree (cd)</code> directly underneath the keyboard matrix.</li>
+          <li><strong>Bookmarks HUD Footer:</strong> Displays contextual help: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>.</li>
+        </ul>
+      </div>
+
+      <h3 style="margin-top: 24px; margin-bottom: 12px;">Deep Space Menu (<kbd>Space</kbd> &rarr; <kbd>Space</kbd>)</h3>
+      <p>Pressing <kbd>Space</kbd> again inside the Command Menu opens the full legacy Space Menu of Legends (MoL):</p>
+      <div class="grid">
+        <div class="card">
+          <h4><span>Submenus</span> <span class="badge badge-action">Menus</span></h4>
+          <ul>
+            <li><kbd>k</kbd> &rarr; <strong>Pick</strong> (File, buffer, symbols, theme, branch)</li>
             <li><kbd>j</kbd> &rarr; <strong>Editor</strong> (Save all, reload, restart LSP, quit)</li>
             <li><kbd>l</kbd> &rarr; <strong>Context</strong> (LSP hover, rename, code actions, blame)</li>
-            <li><kbd>;</kbd> &rarr; <strong>Explorer</strong> (Reveal file in tree)</li>
+            <li><kbd>;</kbd> &rarr; <strong>File Tree</strong> (Direct reveal, or path prompt if <code>filetree_open_with_path: true</code>)</li>
             <li><kbd>/</kbd> &rarr; <strong>Help</strong> (Display full keymap on screen)</li>
           </ul>
         </div>
@@ -904,28 +950,6 @@
             <li><kbd>u</kbd> &rarr; <code>&divide; Selection</code> (Tile view over all active selection matches)</li>
             <li><kbd>i</kbd> &rarr; <code>&divide; Cursor</code> (Tile view across all cursor positions)</li>
             <li><kbd>o</kbd> &rarr; <code>&divide; Mark</code> (Tile view across all marked buffers)</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h4><span>Picker Shortcuts (Space k)</span> <span class="badge badge-universal">Pickers</span></h4>
-          <ul>
-            <li><kbd>f</kbd> &rarr; Open File (fuzzy search via Nucleo)</li>
-            <li><kbd>d</kbd> &rarr; Open Buffer (switch opened files)</li>
-            <li><kbd>s</kbd> &rarr; LSP Document Symbols (<kbd>Shift+s</kbd>: Workspace Symbols)</li>
-            <li><kbd>g</kbd> &rarr; Git Status changed files</li>
-            <li><kbd>b</kbd> &rarr; Git Branch switch</li>
-            <li><kbd>a</kbd> &rarr; Themes switcher</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h4><span>Editor Actions (Space j)</span> <span class="badge badge-action">System</span></h4>
-          <ul>
-            <li><kbd>q</kbd> &rarr; Quit Ki (guards against unsaved files)</li>
-            <li><kbd>v</kbd> &rarr; Quit without saving (forced)</li>
-            <li><kbd>c</kbd> &rarr; Save All files</li>
-            <li><kbd>r</kbd> &rarr; Restart LSP server</li>
-            <li><kbd>e</kbd> &rarr; Reload all modified files from disk</li>
-            <li><kbd>x</kbd> &rarr; Global Project Replace</li>
           </ul>
         </div>
       </div>
@@ -1109,58 +1133,33 @@
     </section>
 
     <section id="mol-buffer">
-      <h3>≡ Mark &amp; Tabs (<kbd>e</kbd> / <kbd>Space Space e</kbd>)</h3>
-      <p>Hold <kbd>e</kbd> (or open the Mark sub-menu via <kbd>Space Space e</kbd>) to navigate marks and manage files/tabs:</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Key Combo</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><kbd>e</kbd> (tap)</td>
-            <td>Toggle selection mark at cursor.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>j</kbd> / <kbd>l</kbd></td>
-            <td>Local mark navigation: jump to previous (<kbd>j</kbd>) or next (<kbd>l</kbd>) mark in current file.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>u</kbd> / <kbd>o</kbd></td>
-            <td>Global mark navigation: jump to previous (<kbd>u</kbd>) or next (<kbd>o</kbd>) mark across all workspace files.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>k</kbd></td>
-            <td>Toggle Mark File (pin/unpin tab for current file).</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>i</kbd></td>
-            <td>Unmark all other files (closes other tabs).</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>n</kbd></td>
-            <td>Close current buffer without saving.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>m</kbd></td>
-            <td>Alternate: Jump to previously visited file.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>y</kbd> / <kbd>p</kbd></td>
-            <td>Switch to first (<kbd>y</kbd>) / last (<kbd>p</kbd>) marked file tab.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>h</kbd></td>
-            <td>Open new Untitled file to the left of current tab.</td>
-          </tr>
-          <tr>
-            <td><kbd>e</kbd> + <kbd>;</kbd></td>
-            <td>Open new Untitled file to the right of current tab.</td>
-          </tr>
-        </tbody>
-      </table>
+      <h3>≡ Mark &amp; Buffer Layer (<kbd>e</kbd> / <kbd>Space Space e</kbd>)</h3>
+      <p>The behavior of <kbd>e</kbd> in Normal mode is configurable via <code>"e_normal_mode"</code>: <code>"buffer"</code> (default) or <code>"mark"</code>:</p>
+      
+      <div class="card" style="margin-bottom: 16px;">
+        <h4><span>Default: Buffer Mode (<code>"e_normal_mode": "buffer"</code>)</span></h4>
+        <ul>
+          <li><kbd>e</kbd> (tap) &rarr; Toggle selection mark at cursor.</li>
+          <li><kbd>e</kbd> + <kbd>j</kbd> / <kbd>l</kbd> &rarr; Marked File Tab &lt;&lt; (Prev) / &gt;&gt; (Next).</li>
+          <li><kbd>e</kbd> + <kbd>y</kbd> / <kbd>p</kbd> &rarr; Switch to First |&lt; / Last &gt;| marked file tab.</li>
+          <li><kbd>e</kbd> + <kbd>k</kbd> / <kbd>m</kbd> &rarr; Cycle Marked File &uarr; / Unmarked &darr;.</li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-bottom: 16px;">
+        <h4><span>Alternative: Mark Mode (<code>"e_normal_mode": "mark"</code>)</span></h4>
+        <ul>
+          <li><kbd>e</kbd> (tap) &rarr; Toggle selection mark at cursor.</li>
+          <li><kbd>e</kbd> + <kbd>j</kbd> / <kbd>l</kbd> &rarr; Local mark: jump to previous (<kbd>j</kbd>) or next (<kbd>l</kbd>) mark in current file.</li>
+          <li><kbd>e</kbd> + <kbd>u</kbd> / <kbd>o</kbd> &rarr; Global mark: jump to previous (<kbd>u</kbd>) or next (<kbd>o</kbd>) mark across workspace.</li>
+          <li><kbd>e</kbd> + <kbd>y</kbd> / <kbd>p</kbd> &rarr; First local mark |&lt; (<kbd>y</kbd>) / Last local mark &gt;| (<kbd>p</kbd>).</li>
+          <li><kbd>e</kbd> + <kbd>k</kbd> &rarr; Toggle Mark File (pin/unpin tab for current file).</li>
+          <li><kbd>e</kbd> + <kbd>i</kbd> &rarr; Unmark all other files (closes other tabs).</li>
+          <li><kbd>e</kbd> + <kbd>n</kbd> &rarr; Close current buffer without saving.</li>
+          <li><kbd>e</kbd> + <kbd>m</kbd> &rarr; Alternate: Jump to previously visited file.</li>
+          <li><kbd>e</kbd> + <kbd>h</kbd> / <kbd>;</kbd> &rarr; Open new Untitled buffer to the Left (<kbd>h</kbd>) / Right (<kbd>;</kbd>).</li>
+        </ul>
+      </div>
     </section>
 
     <section id="mol-multicursor">
@@ -1648,7 +1647,14 @@
     <!-- SECTION 13: FILE EXPLORER -->
     <section id="file-explorer">
       <h2>13. File Explorer (<kbd>-</kbd> / File Reveal)</h2>
-      <p>Press <kbd>-</kbd> in Normal mode to open the file explorer and automatically reveal and highlight the current file in the project tree. (Alternatively, <kbd>Space</kbd> &rarr; <kbd>;</kbd> opens the fuzzy file picker). The file tree is presented as an editable YAML structure:</p>
+      <p>Ki includes a full-featured tree explorer presented as an editable YAML structure:</p>
+      <ul>
+        <li><kbd>-</kbd> in Normal mode or Space Command menu opens the file explorer and reveals the current buffer's file.</li>
+        <li><kbd>_</kbd> or <kbd>Shift+-</kbd> opens the file explorer rooted at the current working directory (<code>cd</code>).</li>
+        <li><kbd>Space</kbd> &rarr; <kbd>;</kbd> in deep Space menu opens the file tree directly by default, or prompts for a directory path first when <code>"filetree_open_with_path": true</code> is set.</li>
+        <li>Pressing <kbd>Tab</kbd> on any node in the explorer opens the "Open File (or CD)" prompt rooted at that item.</li>
+      </ul>
+      <p style="margin-top: 10px;">Tree editing operations:</p>
       <table>
         <thead>
           <tr>
@@ -1894,6 +1900,12 @@
   <span style="color: #79c0ff;">"indent_char"</span>: <span style="color: #a5d6ff;">"space"</span>,              <span style="color: #8b949e;">// "space" or "tab"</span>
   <span style="color: #79c0ff;">"icon_style"</span>: <span style="color: #a5d6ff;">"emoji"</span>,                <span style="color: #8b949e;">// "emoji", "nerd-font", or "none"</span>
   <span style="color: #79c0ff;">"show_key_in_keymap"</span>: <span style="color: #ff7b72;">false</span>,         <span style="color: #8b949e;">// Show key letters directly on keymap legend items</span>
+  <span style="color: #79c0ff;">"command_menu_invocation"</span>: <span style="color: #a5d6ff;">"Space"</span>,  <span style="color: #8b949e;">// "Space", "c", "C", or ":"</span>
+  <span style="color: #79c0ff;">"bookmark_menu_invocation"</span>: <span style="color: #a5d6ff;">"B"</span>,      <span style="color: #8b949e;">// "B" (default) or ":"</span>
+  <span style="color: #79c0ff;">"swap_key"</span>: <span style="color: #a5d6ff;">"/"</span>,                     <span style="color: #8b949e;">// "/" (default) or "x"</span>
+  <span style="color: #79c0ff;">"e_normal_mode"</span>: <span style="color: #a5d6ff;">"buffer"</span>,           <span style="color: #8b949e;">// "buffer" (default) or "mark"</span>
+  <span style="color: #79c0ff;">"filetree_open_with_path"</span>: <span style="color: #ff7b72;">false</span>,    <span style="color: #8b949e;">// false (direct tree) or true (prompt path first)</span>
+  <span style="color: #79c0ff;">"pick_menu_df_swap"</span>: <span style="color: #ff7b72;">false</span>,          <span style="color: #8b949e;">// false (f: File, d: Buffer) or true (swapped)</span>
 
   <span style="color: #79c0ff;">"languages"</span>: {
     <span style="color: #79c0ff;">"rust"</span>: {

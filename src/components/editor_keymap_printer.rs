@@ -307,6 +307,7 @@ impl KeymapPrintSections {
                     None,
                     context.swap_key(),
                     context.e_normal_mode(),
+                    context.bookmark_menu_invocation(),
                 )),
             ),
             KeymapPrintSection::from_keymap(

@@ -274,6 +274,10 @@
         <li><a href="#pipe-to-shell">16. Pipe to Shell Execution (|)</a></li>
         <li><a href="#alt-slash-fallback">17. Fallback Alt+/ to Buffer Picker</a></li>
         <li><a href="#picker-multi-batch">18. Multi-Open, Batch Close &amp; Reveal Navigation</a></li>
+        <li><a href="#space-command-menu">19. Command Menu on Space &amp; Invocations</a></li>
+        <li><a href="#persistent-bookmarks">20. Persistent Hierarchical Bookmarks &amp; HUD</a></li>
+        <li><a href="#mark-buffer-modality">21. Mark / Buffer Modality (e_normal_mode)</a></li>
+        <li><a href="#filetree-pick-config">22. Explorer Path Prompt &amp; Picker Key Swap</a></li>
       </ul>
     </nav>
   </aside>
@@ -748,6 +752,120 @@
               </ul>
             </li>
             <li><strong>Filter Query Syntax:</strong> Documented selection filter modes (<code>l </code>, <code>c </code>, <code>w </code>, <code>s </code>, <code>r </code>, <code>rc </code>, <code>rw </code>, <code>n </code>) and Nucleo fuzzy tokens (<code>^prefix</code>, <code>suffix$</code>, <code>'exact</code>, <code>!inverse</code>).</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 19 -->
+    <article class="change-entry" id="space-command-menu">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">19. Command Menu on Space &amp; Invocations</span>
+        </div>
+        <span class="commit-hash">2344754a6, ecf2b478a, bbb4507ae</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>High-frequency editor actions and tab management originally required navigating deep submenus (e.g. <code>Space j d</code> to reload, <code>Space k d</code> to switch buffers). A unified two-column Command HUD on Space directly exposes common operations while retaining access to all nested menus.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li><strong>Command HUD:</strong> Pressing <kbd>Space</kbd> in Normal mode opens the two-column Command HUD: Commands on the left (<kbd>f</kbd>, <kbd>b</kbd>, <kbd>T</kbd>, <kbd>B</kbd>, <kbd>C</kbd>, <kbd>-</kbd>, <kbd>_</kbd>, <kbd>w</kbd>, <kbd>q</kbd>, <kbd>v</kbd>, <kbd>/</kbd>) and Buffers on the right (<kbd>j</kbd>/<kbd>l</kbd> prev/next, <kbd>y</kbd>/<kbd>p</kbd> first/last, <kbd>k</kbd>/<kbd>m</kbd> cycle, <kbd>u</kbd> alternate, <kbd>s</kbd> save, <kbd>a</kbd> save as, <kbd>d</kbd> reload, <kbd>h</kbd>/<kbd>;</kbd> new tab).</li>
+            <li><strong>Invocation Key:</strong> Configurable via <code>"command_menu_invocation"</code>: <code>"Space"</code> (default), <code>"c"</code>, <code>"C"</code>, or <code>":"</code>. When set to <code>"c"</code>, normal mode <kbd>c</kbd> (Copy/Dup) moves into the menu under <kbd>c</kbd>, and <kbd>Space</kbd> opens the original Space menu directly.</li>
+            <li><strong>Space HUD Footer:</strong> Displays extended navigation help after Leader: <code>* Pick Keyboard    \ Leader    - File Tree (current file)    shift+-/_ File Tree (cd)</code>.</li>
+            <li><strong>File Tree Bindings:</strong> Pressing <kbd>-</kbd> reveals current file in explorer; <kbd>_</kbd> or <kbd>Shift+-</kbd> reveals current working directory (<code>cd</code>) in explorer.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 20 -->
+    <article class="change-entry" id="persistent-bookmarks">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">20. Persistent Hierarchical Bookmarks &amp; Contextual HUD</span>
+        </div>
+        <span class="commit-hash">39ea1914c, bbb4507ae</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Users require fast, persistent access to critical files and project directories across editing sessions without keeping dozens of open tabs. Bookmark menus also need clear, visible key hints on how to assign, nest, and clear entries.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li><strong>Persistent Storage:</strong> Backed by <code>~/.config/ki/bookmarks.json</code> with live disk watcher reload on external file modifications.</li>
+            <li><strong>Access:</strong> Bound to <kbd>Space b</kbd> (or <kbd>B</kbd> / <kbd>Shift+Space</kbd> in Command menu, or <kbd>:</kbd> if configured).</li>
+            <li><strong>Invocation Key:</strong> Added <code>"bookmark_menu_invocation"</code> (<code>"B"</code> or <code>":"</code>, default <code>"B"</code>). When set to <code>":"</code>, <kbd>:</kbd> opens the Bookmarks menu. If both <code>command_menu_invocation</code> and <code>bookmark_menu_invocation</code> are set to <code>":"</code>, Ki emits a configuration conflict warning, defaults Bookmarks to <code>"B"</code>, and retains <code>":"</code> for the Command menu.</li>
+            <li><strong>Mnemonic Jumps:</strong> Pressing any assigned character (<kbd>a</kbd>&ndash;<kbd>z</kbd>, <kbd>A</kbd>&ndash;<kbd>Z</kbd>, <kbd>0</kbd>&ndash;<kbd>9</kbd>) instantly opens the file or switches working directory.</li>
+            <li><strong>Assignment &amp; Submenus:</strong> Pressing <code>= &lt;key&gt;</code> clears prior binding and prompts for path. Trailing <code>/</code> or typing <code>=</code> creates a recursive nested submenu.</li>
+            <li><strong>Searchable Filter:</strong> <kbd>Tab</kbd> in any bookmark level opens a Nucleo fuzzy picker displaying all absolute paths with <kbd>Ctrl+o</kbd> batch open support.</li>
+            <li><strong>Contextual HUD Footer:</strong> Replaces standard footer text in the Bookmarks HUD with: <code>Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 21 -->
+    <article class="change-entry" id="mark-buffer-modality">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">21. Mark / Buffer Menu Modality (e_normal_mode)</span>
+        </div>
+        <span class="commit-hash">a31890c34</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Some users prioritize buffer/tab navigation when pressing <kbd>e</kbd> in Normal mode, while others prefer granular text mark jumping and custom tab management actions.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li><strong>Configurable Modality:</strong> Added <code>"e_normal_mode"</code> configuration: <code>"buffer"</code> (default) or <code>"mark"</code>.</li>
+            <li><strong>When set to "buffer" (default):</strong> <kbd>e</kbd> opens the original Buffer menu (<kbd>j</kbd>/<kbd>l</kbd> prev/next marked tab, <kbd>y</kbd>/<kbd>p</kbd> first/last marked tab, <kbd>k</kbd>/<kbd>m</kbd> cycle marked/unmarked).</li>
+            <li><strong>When set to "mark":</strong> <kbd>e</kbd> opens the customized Mark menu (<kbd>j</kbd>/<kbd>l</kbd> local marks, <kbd>u</kbd>/<kbd>o</kbd> global marks, <kbd>y</kbd>/<kbd>p</kbd> jump to first/last local mark, <kbd>k</kbd> toggle mark, <kbd>i</kbd> unmark others, <kbd>n</kbd> close buffer, <kbd>m</kbd> alternate, <kbd>h</kbd>/<kbd>;</kbd> new tab).</li>
+            <li><strong>Tap Retention:</strong> Tapping <kbd>e</kbd> continues to toggle a selection mark at the current cursor in both modes.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- ENTRY 22 -->
+    <article class="change-entry" id="filetree-pick-config">
+      <div class="change-header">
+        <div>
+          <span class="badge badge-feat">Feature</span>
+          <span class="change-title">22. Explorer Path Prompt, Key Swap &amp; Picker Configs</span>
+        </div>
+        <span class="commit-hash">1be0b0407, 35b82eefb, 115312eaa</span>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Motive (Rationale)</div>
+        <div class="field-body">
+          <p>Different workflows require configuring whether the file tree prompts for a directory path, customizing cursor swap keys, or swapping mnemonic keys in pick menus.</p>
+        </div>
+      </div>
+      <div class="field-block">
+        <div class="field-label">Update Note</div>
+        <div class="field-body">
+          <ul>
+            <li><strong>File Tree Prompt:</strong> Added <code>"filetree_open_with_path"</code> (boolean, default <code>false</code>). When <code>false</code>, <kbd>Space</kbd> &rarr; <kbd>;</kbd> opens the file tree directly rooted at the current file or working directory (original behavior). When <code>true</code>, prompts for a path before opening.</li>
+            <li><strong>Picker Swap:</strong> Added <code>"pick_menu_df_swap"</code> (boolean, default <code>false</code>). Controls whether <kbd>Space</kbd> &rarr; <kbd>k</kbd> maps <kbd>f</kbd> to File and <kbd>d</kbd> to Buffer (<code>false</code>), or swaps them (<code>true</code>).</li>
+            <li><strong>Swap / Cut Key:</strong> Added <code>"swap_key"</code> (<code>"/"</code> or <code>"x"</code>, default <code>"/"</code>). When <code>"/"</code>, <kbd>/</kbd> triggers cursor swap and <kbd>x</kbd> triggers cut. When <code>"x"</code>, <kbd>x</kbd> triggers cursor swap and <kbd>Shift+R</kbd> triggers cut.</li>
           </ul>
         </div>
       </div>

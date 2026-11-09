@@ -88,6 +88,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         extract_field!(format_on_save, "format_on_save");
     let (command_menu_invocation, command_menu_invocation_error) =
         extract_field!(command_menu_invocation, "command_menu_invocation");
+    let (bookmark_menu_invocation, bookmark_menu_invocation_error) =
+        extract_field!(bookmark_menu_invocation, "bookmark_menu_invocation");
     let (swap_key, swap_key_error) = extract_field!(swap_key, "swap_key");
     let (pick_menu_df_swap, pick_menu_df_swap_error) =
         extract_field!(pick_menu_df_swap, "pick_menu_df_swap");
@@ -108,6 +110,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         show_key_in_keymap,
         format_on_save,
         command_menu_invocation,
+        bookmark_menu_invocation,
         swap_key,
         pick_menu_df_swap,
         e_normal_mode,
@@ -127,6 +130,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(show_key_in_keymap_error)
         .chain(format_on_save_error)
         .chain(command_menu_invocation_error)
+        .chain(bookmark_menu_invocation_error)
         .chain(swap_key_error)
         .chain(pick_menu_df_swap_error)
         .chain(e_normal_mode_error)

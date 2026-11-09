@@ -18,8 +18,9 @@ use crate::{
     grid::LINE_NUMBER_VERTICAL_BORDER,
     keymap::{
         command_keymap_legend_config, insert_mode_keymap_legend_config,
-        normal_mode_keymap_legend_config,
+        normal_mode_keymap_legend_config, space_keymap_legend_config,
     },
+    config::CommandMenuInvocation,
     keymap_override::{
         find_one::FindOneCharKeymapOverride,
         jump::{JumpKeymapOverride, JumpLandingAction},
@@ -1829,6 +1830,17 @@ impl Editor {
                     if let Mode::Insert = self.mode {
                         self.handle_insert_mode(combined_key_event)
                     } else {
+                        if self.mode == Mode::Normal && key_event.kind == KeyEventKind::Press {
+                            let invocation = context.command_menu_invocation();
+                            if invocation != CommandMenuInvocation::Space
+                                && (invocation.matches(&key_event)
+                                    || invocation.matches(&combined_key_event.translated))
+                            {
+                                return Ok(Dispatches::one(Dispatch::ShowMenu(
+                                    command_keymap_legend_config(self, context),
+                                )));
+                            }
+                        }
                         let translated_key_event =
                             context.keyboard_layout().make_combined_key_event(key_event);
                         let keymap_legend_config = self.get_current_keymap_legend_config();
@@ -4821,9 +4833,14 @@ impl Editor {
 
     fn press_space(&self, context: &Context) -> Dispatches {
         match self.mode {
-            Mode::Normal => Dispatches::one(Dispatch::ShowMenu(command_keymap_legend_config(
-                self, context,
-            ))),
+            Mode::Normal => match context.command_menu_invocation() {
+                CommandMenuInvocation::Space => Dispatches::one(Dispatch::ShowMenu(
+                    command_keymap_legend_config(self, context),
+                )),
+                _ => Dispatches::one(Dispatch::ShowMenu(space_keymap_legend_config(
+                    self, context,
+                ))),
+            },
             Mode::Insert => Dispatches::default(),
             _ => Dispatches::one(Dispatch::ToEditor(EnterNormalMode)),
         }

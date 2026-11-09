@@ -1207,6 +1207,28 @@ Verified with `cargo check`.
 4. Updated `Buffer::save` (`src/buffer.rs`) to check `context.format_on_save() && (force || self.dirty(context))`, making formatting on save disabled by default and configurable.
 Verified with `cargo check` and `cargo build`.
 
+### Request 175
+> "before that commit current change"
+**Response:**
+Committed changes as `f5f8e9cce` (*"feat(config): add format_on_save config option (default disabled) and add KustomKi.md"*).
+
+### Request 176
+> "also move the KustomKi.md content to top of @[README.md] and remove the file"
+**Response:**
+Prepended the full contents of `KustomKi.md` to the top of `README.md` and removed `KustomKi.md`.
+
+### Request 177
+> "Make command menu configurable, command_menu_invocation, can be set to, 'c' or 'C' or 'Space' or 'Shift+;', default to 'Space', if non space is used, them make space invoke Space menu"
+**Response:**
+1. Added `CommandMenuInvocation` enum (`Space`, `LowerC` (`'c'`), `UpperC` (`'C'`), `ShiftSemicolon` (`'Shift+;'` / `':'`)) in `src/config.rs` with `matches(&event)` helper.
+2. Added `"command_menu_invocation": "Space"` to `src/config_default.json`, `RawConfig`, `AppConfig`, and lenient config parser (`src/config/lenient.rs`).
+3. Exposed `command_menu_invocation` on `Context` (`src/context.rs`).
+4. In `src/components/editor/mod.rs`:
+   - Updated `press_space`: when invocation is `Space`, opens `command_keymap_legend_config`; when non-space, opens `space_keymap_legend_config`.
+   - Updated `handle_key_event`: in Normal mode, if invocation is non-space and matches the key event, intercepts and opens `command_keymap_legend_config`.
+5. In `src/keymap_override/menu.rs`: enabled dismissal of Command menu when pressing the configured non-space invocation key again.
+Verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

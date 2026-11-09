@@ -37,5 +37,6 @@
     "indent_char": "space",
     "show_key_in_keymap": false,
     "format_on_save": false,
+    "command_menu_invocation": "Space",
     "icon_style": "none"
 }

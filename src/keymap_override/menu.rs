@@ -17,7 +17,7 @@ pub struct MenuKeymapOverride {
 impl KeymapOverrideTrait for MenuKeymapOverride {
     fn handle_press(
         &mut self,
-        _context: &Context,
+        context: &Context,
         key_event: CombinedKeyEvent,
     ) -> anyhow::Result<Dispatches> {
         let close_dispatches = Dispatches::from(vec![
@@ -48,6 +48,15 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
 
         if key_event.original == key!("space") {
             return Ok(close_dispatches);
+        }
+
+        if self.config.title == "Command" {
+            let invocation = context.command_menu_invocation();
+            if invocation != crate::config::CommandMenuInvocation::Space
+                && (invocation.matches(&key_event.original) || invocation.matches(&key_event.translated))
+            {
+                return Ok(close_dispatches);
+            }
         }
 
         Ok(Dispatches::default())

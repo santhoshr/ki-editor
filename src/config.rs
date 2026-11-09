@@ -33,6 +33,7 @@ pub struct AppConfig {
     indent_width: usize,
     show_key_in_keymap: bool,
     format_on_save: bool,
+    command_menu_invocation: CommandMenuInvocation,
     icon_config: shared::icons::IconsConfig,
     load_errors: Vec<String>,
 }
@@ -53,7 +54,52 @@ pub struct RawConfig {
     #[serde(default)]
     format_on_save: bool,
     #[serde(default)]
+    command_menu_invocation: CommandMenuInvocation,
+    #[serde(default)]
     icon_style: shared::icons::IconStyle,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum CommandMenuInvocation {
+    #[default]
+    #[serde(rename = "Space", alias = "space")]
+    Space,
+    #[serde(rename = "c")]
+    LowerC,
+    #[serde(rename = "C")]
+    UpperC,
+    #[serde(rename = "Shift+;", alias = ":")]
+    ShiftSemicolon,
+}
+
+impl CommandMenuInvocation {
+    pub fn matches(&self, event: &event::KeyEvent) -> bool {
+        match self {
+            Self::Space => {
+                event.code == crossterm::event::KeyCode::Char(' ')
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::LowerC => {
+                event.code == crossterm::event::KeyCode::Char('c')
+                    && !event.modifiers.shift
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::UpperC => {
+                (event.code == crossterm::event::KeyCode::Char('C')
+                    || (event.code == crossterm::event::KeyCode::Char('c') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::ShiftSemicolon => {
+                (event.code == crossterm::event::KeyCode::Char(':')
+                    || (event.code == crossterm::event::KeyCode::Char(';') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -123,6 +169,7 @@ impl TryFrom<RawConfig> for AppConfig {
             indent_width: value.indent_width,
             show_key_in_keymap: value.show_key_in_keymap,
             format_on_save: value.format_on_save,
+            command_menu_invocation: value.command_menu_invocation,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             load_errors: Vec::new(),
         })
@@ -456,6 +503,10 @@ impl AppConfig {
 
     pub fn format_on_save(&self) -> bool {
         self.format_on_save
+    }
+
+    pub fn command_menu_invocation(&self) -> CommandMenuInvocation {
+        self.command_menu_invocation
     }
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {

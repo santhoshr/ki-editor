@@ -56,6 +56,7 @@ pub struct Context {
     indent_char: char,
     indent_width: usize,
     format_on_save: bool,
+    command_menu_invocation: crate::config::CommandMenuInvocation,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -406,6 +407,7 @@ impl Context {
             indent_char: app_config.indent_char(),
             indent_width: app_config.indent_width(),
             format_on_save: app_config.format_on_save(),
+            command_menu_invocation: app_config.command_menu_invocation(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -478,6 +480,10 @@ impl Context {
 
     pub fn format_on_save(&self) -> bool {
         self.format_on_save
+    }
+
+    pub fn command_menu_invocation(&self) -> crate::config::CommandMenuInvocation {
+        self.command_menu_invocation
     }
 
     #[cfg(test)]

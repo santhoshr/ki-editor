@@ -276,6 +276,7 @@ impl Context {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuickfixListKind {
     Mark,
 }

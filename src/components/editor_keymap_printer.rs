@@ -17,7 +17,7 @@ use crate::{
         buffer_keymap, command_keymap, cut_keymap, delete_keymap, duplicate_keymap, eat_keymap,
         insert_mode_delete_keymap, keymap_actions, keymap_core_movements, keymap_other_movements,
         keymap_overridable, keymap_primary_selection_modes, keymap_secondary_selection_modes_init,
-        keymap_surround, keymap_transform, keymap_universal, movement_history_keymap,
+        keymap_surround, keymap_transform, keymap_universal, mark_keymap, movement_history_keymap,
         multicursor_menu_keymap, multicursor_momentary_layer_keymap, normal_mode_keymap,
         open_keymap, paste_keymap, secondary_selection_modes_keymap_legend_config,
         space_context_keymap_legend_config, space_editor_keymap_legend_config,
@@ -388,6 +388,7 @@ impl KeymapPrintSections {
             KeymapPrintSection::from_keymap("Undo-Redo".to_string(), &undo_redo_keymap()),
             KeymapPrintSection::from_keymap("Open".to_string(), &open_keymap()),
             KeymapPrintSection::from_keymap("Buffer".to_string(), &buffer_keymap(false)),
+            KeymapPrintSection::from_keymap("Mark".to_string(), &mark_keymap(false)),
             KeymapPrintSection::from_keymap(
                 "Movement History".to_string(),
                 &movement_history_keymap(),

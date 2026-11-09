@@ -956,6 +956,45 @@ Added `PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile` to handle d
 **Response:**
 Committed changes: recursive file & directory discovery in `Space f`, directory `cd` action, dynamic path navigation for `/`, `~`, and `..`, unselected first child at directory boundaries, and `ctrl+o` batch-open support.
 
+### Request 140
+> "space space e / bufffer menu, keep e tap to mark, then make local next/previous, and global next/previous, before change let me know if there is already direct navigation among marks is already coded, also let me know which keys fit for local and global next/prev among u/o or j/k which set you choose for which conceptually"
+**Response:**
+Analyzed codebase: marks were stored in `context.marks`, but direct previous/next navigation was not implemented. Recommended `j/l` for local mark navigation (within current buffer) and `u/o` for global mark navigation (across files), reserving `k` for `Mark File` (`ToggleFileMark`).
+
+### Request 141
+> "space space e / bufffer menu, create new mark menu, keep e tap to mark, then make local next/previous, and global next/previous, before change let me know if there is already direct navigation among marks is already coded, also anything called Mark menu?, also let me know which keys fit for local and global next/prev among u/o or j/k which set you choose for which conceptually, also keep i/k/n/m functionality"
+**Response:**
+Confirmed there was previously no dedicated `Mark` menu (only `≡ Buffer` backed by `buffer_keymap`, and `Space Space e` opened quickfix list for marks). Outlined key assignments preserving `i` (`Unmark Others`), `k` (`Mark File`), `n` (`Close No Save`), `m` (`Alternate`), and `e` tap for `ToggleSelectionMark`.
+
+### Request 142
+> "I meant j/l but typed j/k. Let us create dedicated sub-menu Mark, and create j/l local and u/o global mark navigation"
+**Response:**
+Created dedicated `Mark` submenu (`mark_keymap`, `mark_keymap_legend_config` titled `"≡ Mark"`):
+1. `Space Space e` now opens the `≡ Mark` submenu.
+2. Momentary layers for `e` (Normal mode) and `Alt+e` (Insert mode) updated to `"≡ Mark"`.
+3. In `Mark` menu:
+   - `j`: `Local Mark <` (`Dispatch::GotoLocalMark(Direction::Start)`)
+   - `l`: `> Local Mark` (`Dispatch::GotoLocalMark(Direction::End)`)
+   - `u`: `Global Mark <` (`Dispatch::GotoGlobalMark(Direction::Start)`)
+   - `o`: `> Global Mark` (`Dispatch::GotoGlobalMark(Direction::End)`)
+   - `e`: `Toggle Mark` (`Dispatch::ToggleSelectionMark`)
+   - Retained `k` (`Mark File`), `i` (`Unmark Others`), `n` (`Close No Save`), `m` (`Alternate`), `y`/`p` (first/last marked file), `h`/`;` (open untitled file).
+4. Implemented `goto_local_mark` and `goto_global_mark` in `App`:
+   - `goto_local_mark`: navigates sorted marks within current buffer forward/backward, wrapping around bounds.
+   - `goto_global_mark`: navigates all marks workspace-wide sorted by `(path, range.start)` across files, jumping directly to target file and range, updating quickfix list index if active.
+
+### Request 143
+> "why Command menu j/l/u/o changed?"
+> "didn't asked you that earlier when I asked you to create dedicated Mark menu?"
+**Response:**
+Acknowledged oversight: `buffer_keymap` was previously aliased to `mark_keymap`, causing `command_keymap` (which inherits `buffer_keymap`) to pick up the mark navigation keys. Restored `buffer_keymap` as a standalone keymap preserving its original marked file / tab cycling bindings (`<< Marked File`, `Marked File >>`, `Marked File >`, `< Marked File`) for the Command menu, while keeping `mark_keymap` dedicated to `≡ Mark`.
+
+### Request 144
+> "what is the difference between buffer j/l and u/o"
+> "commit it"
+**Response:**
+Explained the difference: in `calculate_next_index`, `j`/`l` strictly cycle through marked/pinned tabs (`[-]`) with wraparound, whereas `u`/`o` step linearly across all opened buffers (including unmarked preview buffers `[ ]`) without wrapping. Committed dedicated `Mark` submenu, direct local/global mark navigation, and separate `Buffer` vs `Mark` keymaps.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

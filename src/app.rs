@@ -1402,6 +1402,8 @@ impl<T: Frontend> App<T> {
                 }
             }
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
+            Dispatch::GotoLocalMark(direction) => self.goto_local_mark(direction)?,
+            Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenAlternateFile => self.open_alternate_file()?,
             Dispatch::PushPromptHistory { key, line } => self.push_history_prompt(key, line),
             Dispatch::OpenThemePicker => self.open_theme_picker()?,
@@ -2945,6 +2947,109 @@ impl<T: Frontend> App<T> {
                 self.cycle_marked_file(movement)?;
             }
         }
+        Ok(())
+    }
+
+    fn goto_local_mark(&mut self, direction: Direction) -> anyhow::Result<()> {
+        let Some(current_path) = self.get_current_file_path() else {
+            return Ok(());
+        };
+        let mut marks = self.context.get_marks(Some(current_path.clone()));
+        if marks.is_empty() {
+            return Ok(());
+        }
+        marks.sort_by_key(|r| r.start);
+
+        let current_pos = self
+            .current_component()
+            .borrow()
+            .editor()
+            .current_selection_range()
+            .start;
+
+        let target_range = match direction {
+            Direction::End => marks
+                .iter()
+                .find(|m| m.start > current_pos)
+                .unwrap_or_else(|| marks.first().unwrap()),
+            Direction::Start => marks
+                .iter()
+                .filter(|m| m.start < current_pos)
+                .last()
+                .unwrap_or_else(|| marks.last().unwrap()),
+        };
+
+        let location = Location {
+            path: current_path,
+            range: *target_range,
+        };
+        self.go_to_location(&location, true)?;
+        Ok(())
+    }
+
+    fn goto_global_mark(&mut self, direction: Direction) -> anyhow::Result<()> {
+        let mut all_marks: Vec<Location> = self
+            .context
+            .marks()
+            .iter()
+            .flat_map(|(path, marks)| {
+                marks.iter().map(|range| Location {
+                    path: path.clone(),
+                    range: *range,
+                })
+            })
+            .collect();
+
+        if all_marks.is_empty() {
+            return Ok(());
+        }
+
+        all_marks.sort();
+
+        let current_path = self.get_current_file_path();
+        let current_pos = if current_path.is_some() {
+            self.current_component()
+                .borrow()
+                .editor()
+                .current_selection_range()
+                .start
+        } else {
+            CharIndex(0)
+        };
+
+        let target = match direction {
+            Direction::End => all_marks
+                .iter()
+                .find(|m| {
+                    if let Some(cp) = &current_path {
+                        &m.path > cp || (&m.path == cp && m.range.start > current_pos)
+                    } else {
+                        true
+                    }
+                })
+                .unwrap_or_else(|| all_marks.first().unwrap()),
+            Direction::Start => all_marks
+                .iter()
+                .filter(|m| {
+                    if let Some(cp) = &current_path {
+                        &m.path < cp || (&m.path == cp && m.range.start < current_pos)
+                    } else {
+                        true
+                    }
+                })
+                .last()
+                .unwrap_or_else(|| all_marks.last().unwrap()),
+        };
+
+        let target_location = target.clone();
+        self.go_to_location(&target_location, true)?;
+
+        if self.context.quickfix_list().kind() == &Some(QuickfixListKind::Mark) {
+            if let Some(pos) = all_marks.iter().position(|m| m == &target_location) {
+                self.context.quickfix_list_mut().set_current_item_index(pos);
+            }
+        }
+
         Ok(())
     }
 
@@ -4589,6 +4694,8 @@ pub enum Dispatch {
     },
     CloseAppKeymapLegend,
     CycleMarkedFile(Movement),
+    GotoLocalMark(Direction),
+    GotoGlobalMark(Direction),
     OpenAlternateFile,
     PushPromptHistory {
         key: PromptHistoryKey,

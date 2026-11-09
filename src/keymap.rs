@@ -124,7 +124,7 @@ fn secondary_selection_modes_keybindings(
             key!("e"),
             "Mark",
             match scope {
-                Scope::Global => Dispatch::SetQuickfixList(QuickfixListType::Mark),
+                Scope::Global => Dispatch::ShowMenu(mark_keymap_legend_config()),
                 Scope::Local => Dispatch::ToEditor(SetSelectionModeWithPriorChange(
                     if_current_not_found,
                     Mark,
@@ -1358,10 +1358,10 @@ pub fn insert_mode_keymap_legend_config(include_universal_keymap: bool) -> Keyma
             })
             .chain([Keybinding::momentary_layer(MomentaryLayer {
                 event: key!("alt+e"),
-                name: "≡ Buffer".to_string(),
+                name: "≡ Mark".to_string(),
                 config: KeymapLegendConfig {
-                    title: "≡ Buffer".to_string(),
-                    keymap: buffer_keymap(true),
+                    title: "≡ Mark".to_string(),
+                    keymap: mark_keymap(true),
                 },
                 on_tap: Some(OnTap::new(
                     "Toggle Selection Mark",
@@ -1635,11 +1635,8 @@ pub fn keymap_other_movements() -> Vec<Keybinding> {
         }),
         Keybinding::app_momentary_layer(MomentaryLayer {
             event: key!("e"),
-            name: "≡ Buffer".to_string(),
-            config: KeymapLegendConfig {
-                title: "≡ Buffer".to_string(),
-                keymap: buffer_keymap(false),
-            },
+            name: "≡ Mark".to_string(),
+            config: mark_keymap_legend_config(),
             on_tap: Some(OnTap::new(
                 "Toggle Selection Mark",
                 Dispatch::ToggleSelectionMark,
@@ -1940,6 +1937,87 @@ pub fn cut_keymap() -> Keymap {
             },
         ),
     ])
+}
+
+pub fn mark_keymap(is_alted: bool) -> Keymap {
+    Keymap::new(
+        &[
+            Keybinding::new_undocumented(
+                possibly_alted(key!("j"), is_alted),
+                "Local Mark <",
+                Dispatch::GotoLocalMark(Direction::Start),
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("l"), is_alted),
+                "> Local Mark",
+                Dispatch::GotoLocalMark(Direction::End),
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("u"), is_alted),
+                "Global Mark <",
+                Dispatch::GotoGlobalMark(Direction::Start),
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("o"), is_alted),
+                "> Global Mark",
+                Dispatch::GotoGlobalMark(Direction::End),
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("e"), is_alted),
+                "Toggle Mark",
+                Dispatch::ToggleSelectionMark,
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("y"), is_alted),
+                "|< Marked File",
+                Dispatch::CycleMarkedFile(Movement::First),
+            ),
+            Keybinding::new_undocumented(
+                possibly_alted(key!("p"), is_alted),
+                "Marked File >|",
+                Dispatch::CycleMarkedFile(Movement::Last),
+            ),
+        ]
+        .into_iter()
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("k"), is_alted),
+            "Mark File",
+            Dispatch::ToggleFileMark,
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("n"), is_alted),
+            "Close No Save",
+            Dispatch::CloseNoSave,
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("i"), is_alted),
+            "Unmark Others",
+            Dispatch::UnmarkAllOthers,
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("m"), is_alted),
+            "Alternate",
+            Dispatch::OpenAlternateFile,
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!("h"), is_alted),
+            "< Untitled",
+            Dispatch::OpenUntitledFile(TabSide::Left),
+        )))
+        .chain(Some(Keybinding::new_undocumented(
+            possibly_alted(key!(";"), is_alted),
+            "Untitled >",
+            Dispatch::OpenUntitledFile(TabSide::Right),
+        )))
+        .collect_vec(),
+    )
+}
+
+pub fn mark_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Mark".to_string(),
+        keymap: mark_keymap(false),
+    }
 }
 
 pub fn buffer_keymap(is_alted: bool) -> Keymap {

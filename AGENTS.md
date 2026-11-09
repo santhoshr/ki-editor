@@ -1187,6 +1187,26 @@ Identified that `ignore::WalkBuilder` emits raw directory entry `FileType`s wher
 Updated `src/list/mod.rs` (`get_non_git_ignored_files`, `get_non_git_ignored_files_and_directories`, and `find_in_files`) to accept symlinks pointing to existing files/directories (`file_type.is_symlink() && (path.is_file() || path.is_dir())`), and updated `FileExplorer::get_nodes` (`src/components/file_explorer.rs`) to detect symlinked directories via `path.is_dir()`.
 Verified with `cargo check` and `cargo build`.
 
+### Request 172
+> "add KustomKi.md with all the changes done in the branch, with features, bug fixes, enhancements, etc. keep vimdoc like professional tone, be comprehensive this is used to present to developers of editor"
+**Response:**
+Authored initial draft of `KustomKi.md` documenting architecture, buffers, pickers, symlinks, and keymaps.
+
+### Request 173
+> "I wanted tone to be vim like not format, make it text, also this is more technical, summarize my requests into professional lines, also verify the changes  (:) Command menu have been moved to Space, include all those menu/key changes as well"
+**Response:**
+Rewrote `KustomKi.md` as a clean Markdown technical specification without vimdoc tags. Summarized all 172 user requests into professional engineering domains. Fully verified that `:` was removed and the Command Menu was mapped directly to `Space` in Normal mode (`src/keymap.rs`, `src/components/editor/mod.rs`), embedding buffer navigation directly into the Space HUD. Documented the complete Command Menu table, embedded buffer operations, universal escape chords (`ctrl+g`, `ctrl+[`, `jk`), search mappings (`/`, `?`), swap/cut unifications (`x`, `Shift+R`), and all menu/key modifications.
+Verified with `cargo check`.
+
+### Request 174
+> "move format on save to config, make it default disabled"
+**Response:**
+1. Added `"format_on_save": false` to `src/config_default.json`.
+2. Added `format_on_save: bool` to `AppConfig`, `RawConfig` (`#[serde(default)]`), and lenient config extraction in `src/config.rs` and `src/config/lenient.rs`.
+3. Added `format_on_save: bool` field and getter to `Context` (`src/context.rs`).
+4. Updated `Buffer::save` (`src/buffer.rs`) to check `context.format_on_save() && (force || self.dirty(context))`, making formatting on save disabled by default and configurable.
+Verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

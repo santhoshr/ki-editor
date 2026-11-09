@@ -839,7 +839,7 @@ impl Buffer {
         force: bool,
         last_visible_line: usize,
     ) -> anyhow::Result<(Dispatches, Option<AbsolutePath>)> {
-        let extra_dispatches = if force || self.dirty(context) {
+        let extra_dispatches = if context.format_on_save() && (force || self.dirty(context)) {
             match self.get_formatted_content() {
                 Some(Ok(formatted_content)) => {
                     let dispatches = self.update_content(

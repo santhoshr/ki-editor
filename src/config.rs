@@ -32,6 +32,7 @@ pub struct AppConfig {
     indent_char: char,
     indent_width: usize,
     show_key_in_keymap: bool,
+    format_on_save: bool,
     icon_config: shared::icons::IconsConfig,
     load_errors: Vec<String>,
 }
@@ -49,6 +50,8 @@ pub struct RawConfig {
     indent_char: IndentChar,
     indent_width: usize,
     show_key_in_keymap: bool,
+    #[serde(default)]
+    format_on_save: bool,
     #[serde(default)]
     icon_style: shared::icons::IconStyle,
 }
@@ -119,6 +122,7 @@ impl TryFrom<RawConfig> for AppConfig {
             },
             indent_width: value.indent_width,
             show_key_in_keymap: value.show_key_in_keymap,
+            format_on_save: value.format_on_save,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             load_errors: Vec::new(),
         })
@@ -448,6 +452,10 @@ impl AppConfig {
 
     pub fn show_key_in_keymap(&self) -> bool {
         self.show_key_in_keymap
+    }
+
+    pub fn format_on_save(&self) -> bool {
+        self.format_on_save
     }
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {

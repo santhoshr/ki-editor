@@ -55,6 +55,7 @@ pub struct Context {
     file_dirty_status: HashMap<AbsolutePath, bool>,
     indent_char: char,
     indent_width: usize,
+    format_on_save: bool,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -404,6 +405,7 @@ impl Context {
             file_dirty_status: HashMap::new(),
             indent_char: app_config.indent_char(),
             indent_width: app_config.indent_width(),
+            format_on_save: app_config.format_on_save(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -472,6 +474,10 @@ impl Context {
 
     pub fn set_theme(&mut self, theme: Theme) {
         self.theme = theme;
+    }
+
+    pub fn format_on_save(&self) -> bool {
+        self.format_on_save
     }
 
     #[cfg(test)]

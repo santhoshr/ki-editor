@@ -265,9 +265,15 @@ Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`. Both sy
 | **HUD Footer** | `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)` | `Key Open/Pick, S-Key Search picker, Alt-Key Edit panel` |
 
 ### 7.2 Configuration & Invocations
-- **Bookmarks Invocation:** `Shift+B` (or `B` / `Shift+Space` in Space Command menu).
-- **Quick-marks Invocation:** Configurable via `"quick_marks_menu_invocation"` (or `"quick-marks_menu_invocation"`) in `config.json` as `":"` (default) or `"1"`.
-  - When `command_menu_invocation` is configured at `":"`, Quick-marks automatically defaults to `"1"`. If both are explicitly configured for `":"`, a configuration warning is recorded and Quick-marks falls back to `"1"`.
+- **Invocations:**
+  - `"bookmark_menu_invocation"`: `"B"` (default), `":"`, or `"1"`.
+  - `"quick_marks_menu_invocation"`: `":"` (default) or `"1"`.
+  - `"command_menu_invocation"`: `"Space"`, `"c"`, `"C"`, or `":"`.
+- **Conflict Resolution Priority:**
+  - If **Command menu** is configured for `":"`: Command menu gets `":"`, Quick-marks gets `"1"`, Bookmarks gets `"B"`.
+  - If both **Quick-marks** and **Bookmarks** are configured for `":"`: Quick-marks gets `":"` and Bookmarks gets `"1"`.
+  - If both **Quick-marks** and **Bookmarks** are configured for `"1"`: Quick-marks gets `"1"` and Bookmarks gets `":"`.
+  - Otherwise, each menu uses its configured invocation (or default).
 - **Filter Picker (<kbd>Tab</kbd>):** Pressing <kbd>Tab</kbd> in either HUD opens a searchable dropdown with full absolute paths across all marks in that system. Supports `<Ctrl-O>` for batch opening.
 - **Live Disk Synchronization:** Automatically detects modifications to `bookmarks.json` and `quick_marks.json` on disk via `notify` events and reloads state in real time.
 

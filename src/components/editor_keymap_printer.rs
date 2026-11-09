@@ -313,6 +313,7 @@ impl KeymapPrintSections {
                     context.swap_key(),
                     context.e_normal_mode(),
                     context.quick_marks_menu_invocation(),
+                    context.bookmark_menu_invocation(),
                 )),
             ),
             KeymapPrintSection::from_keymap(

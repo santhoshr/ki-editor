@@ -58,6 +58,7 @@ pub struct Context {
     format_on_save: bool,
     command_menu_invocation: crate::config::CommandMenuInvocation,
     quick_marks_menu_invocation: crate::config::QuickMarksMenuInvocation,
+    bookmark_menu_invocation: crate::config::BookmarkMenuInvocation,
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
@@ -458,6 +459,7 @@ impl Context {
             format_on_save: app_config.format_on_save(),
             command_menu_invocation: app_config.command_menu_invocation(),
             quick_marks_menu_invocation: app_config.quick_marks_menu_invocation(),
+            bookmark_menu_invocation: app_config.bookmark_menu_invocation(),
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
@@ -542,6 +544,10 @@ impl Context {
 
     pub fn quick_marks_menu_invocation(&self) -> crate::config::QuickMarksMenuInvocation {
         self.quick_marks_menu_invocation
+    }
+
+    pub fn bookmark_menu_invocation(&self) -> crate::config::BookmarkMenuInvocation {
+        self.bookmark_menu_invocation
     }
 
     pub fn swap_key(&self) -> crate::config::SwapKey {

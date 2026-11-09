@@ -35,6 +35,7 @@ pub struct AppConfig {
     format_on_save: bool,
     command_menu_invocation: CommandMenuInvocation,
     quick_marks_menu_invocation: QuickMarksMenuInvocation,
+    bookmark_menu_invocation: BookmarkMenuInvocation,
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: ENormalMode,
@@ -63,6 +64,9 @@ pub struct RawConfig {
     #[serde(default)]
     #[serde(alias = "quick-marks_menu_invocation")]
     quick_marks_menu_invocation: Option<QuickMarksMenuInvocation>,
+    #[serde(default)]
+    #[serde(alias = "bookmarks_menu_invocation")]
+    bookmark_menu_invocation: Option<BookmarkMenuInvocation>,
     #[serde(default)]
     swap_key: SwapKey,
     #[serde(default)]
@@ -171,6 +175,50 @@ impl QuickMarksMenuInvocation {
     }
 }
 
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum BookmarkMenuInvocation {
+    #[default]
+    #[serde(rename = "B", alias = "b")]
+    B,
+    #[serde(rename = ":", alias = "colon", alias = "Colon", alias = "Shift+;")]
+    Colon,
+    #[serde(rename = "1", alias = "One", alias = "one")]
+    One,
+}
+
+impl BookmarkMenuInvocation {
+    pub fn matches(&self, event: &event::KeyEvent) -> bool {
+        match self {
+            Self::B => {
+                (event.code == crossterm::event::KeyCode::Char('B')
+                    || (event.code == crossterm::event::KeyCode::Char('b') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::Colon => {
+                (event.code == crossterm::event::KeyCode::Char(':')
+                    || (event.code == crossterm::event::KeyCode::Char(';') && event.modifiers.shift))
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+            Self::One => {
+                event.code == crossterm::event::KeyCode::Char('1')
+                    && !event.modifiers.shift
+                    && !event.modifiers.ctrl
+                    && !event.modifiers.alt
+            }
+        }
+    }
+
+    pub fn display(&self) -> &'static str {
+        match self {
+            Self::B => "B",
+            Self::Colon => ":",
+            Self::One => "1",
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 enum IndentChar {
@@ -224,6 +272,39 @@ impl TryFrom<RawConfig> for AppConfig {
                 value.keyboard_layout,
                 keyboard_layouts.keys().collect::<Vec<_>>()
             ))?;
+        let (quick_marks_menu_invocation, bookmark_menu_invocation, load_errors) = {
+            if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
+                let mut errs = Vec::new();
+                if value.quick_marks_menu_invocation == Some(QuickMarksMenuInvocation::Colon)
+                    || value.bookmark_menu_invocation == Some(BookmarkMenuInvocation::Colon)
+                {
+                    errs.push("Command menu is configured for ':'; Quick-marks assigned '1' and Bookmarks assigned 'B'.".to_string());
+                }
+                (QuickMarksMenuInvocation::One, BookmarkMenuInvocation::B, errs)
+            } else {
+                let desired_quick = value.quick_marks_menu_invocation.unwrap_or(QuickMarksMenuInvocation::Colon);
+                let desired_bookmark = value.bookmark_menu_invocation.unwrap_or(BookmarkMenuInvocation::B);
+
+                match (desired_quick, desired_bookmark) {
+                    (QuickMarksMenuInvocation::Colon, BookmarkMenuInvocation::Colon) => {
+                        (
+                            QuickMarksMenuInvocation::Colon,
+                            BookmarkMenuInvocation::One,
+                            vec!["Both Quick-marks and Bookmarks configured for ':'; Quick-marks gets ':' and Bookmarks gets '1'.".to_string()],
+                        )
+                    }
+                    (QuickMarksMenuInvocation::One, BookmarkMenuInvocation::One) => {
+                        (
+                            QuickMarksMenuInvocation::One,
+                            BookmarkMenuInvocation::Colon,
+                            vec!["Both Quick-marks and Bookmarks configured for '1'; Quick-marks gets '1' and Bookmarks gets ':'.".to_string()],
+                        )
+                    }
+                    _ => (desired_quick, desired_bookmark, Vec::new()),
+                }
+            }
+        };
+
         Ok(Self {
             languages: value.languages,
             keyboard_layout: keyboard_layout.clone(),
@@ -239,29 +320,14 @@ impl TryFrom<RawConfig> for AppConfig {
             show_key_in_keymap: value.show_key_in_keymap,
             format_on_save: value.format_on_save,
             command_menu_invocation: value.command_menu_invocation,
-            quick_marks_menu_invocation: match value.quick_marks_menu_invocation {
-                Some(QuickMarksMenuInvocation::Colon) => {
-                    if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
-                        QuickMarksMenuInvocation::One
-                    } else {
-                        QuickMarksMenuInvocation::Colon
-                    }
-                }
-                Some(QuickMarksMenuInvocation::One) => QuickMarksMenuInvocation::One,
-                None => {
-                    if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
-                        QuickMarksMenuInvocation::One
-                    } else {
-                        QuickMarksMenuInvocation::Colon
-                    }
-                }
-            },
+            quick_marks_menu_invocation,
+            bookmark_menu_invocation,
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
             e_normal_mode: value.e_normal_mode,
             filetree_open_with_path: value.filetree_open_with_path,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
-            load_errors: Vec::new(),
+            load_errors,
         })
     }
 }
@@ -609,6 +675,10 @@ impl AppConfig {
 
     pub fn quick_marks_menu_invocation(&self) -> QuickMarksMenuInvocation {
         self.quick_marks_menu_invocation
+    }
+
+    pub fn bookmark_menu_invocation(&self) -> BookmarkMenuInvocation {
+        self.bookmark_menu_invocation
     }
 
     pub fn swap_key(&self) -> SwapKey {

@@ -35,13 +35,14 @@
     "languages": {},
     "indent_width": 4,
     "indent_char": "space",
-    "show_key_in_keymap": false,
+    "show_key_in_keymap": true,
     "format_on_save": false,
-    "command_menu_invocation": "Space",
-    "quick_marks_menu_invocation": ":",
-    "swap_key": "/",
-    "pick_menu_df_swap": false,
-    "e_normal_mode": "buffer",
-    "filetree_open_with_path": false,
-    "icon_style": "none"
+    "command_menu_invocation": "c",
+    "quick_marks_menu_invocation": "1",
+    "bookmark_menu_invocation": ":",
+    "swap_key": "x",
+    "pick_menu_df_swap": true,
+    "e_normal_mode": "mark",
+    "filetree_open_with_path": true,
+    "icon_style": "nerd-font"
 }

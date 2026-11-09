@@ -818,10 +818,17 @@
               </ul>
             </li>
             <li><strong>Persistent Storage:</strong> Backed by <code>~/.config/ki/bookmarks.json</code> and <code>~/.config/ki/quick_marks.json</code> with live disk watcher reload on external file modifications.</li>
-            <li><strong>Invocations &amp; Config:</strong>
+            <li><strong>Invocations &amp; Conflict Resolution:</strong>
               <ul>
-                <li><strong>Bookmarks:</strong> <kbd>Shift+B</kbd> (or <kbd>B</kbd> / <kbd>Shift+Space</kbd> in Space Command menu).</li>
-                <li><strong>Quick-marks:</strong> Configurable via <code>"quick_marks_menu_invocation"</code>: <code>":"</code> (default) or <code>"1"</code>. Automatically defaults to <code>"1"</code> if <code>command_menu_invocation</code> is set to <code>":"</code>.</li>
+                <li><strong>Bookmarks:</strong> Configurable via <code>"bookmark_menu_invocation"</code>: <code>"B"</code> (default), <code>":"</code>, or <code>"1"</code>.</li>
+                <li><strong>Quick-marks:</strong> Configurable via <code>"quick_marks_menu_invocation"</code>: <code>":"</code> (default) or <code>"1"</code>.</li>
+                <li><strong>Conflict Resolution:</strong>
+                  <ul>
+                    <li>If Command menu is <code>":"</code>: Command gets <code>":"</code>, Quick-marks gets <code>"1"</code>, Bookmarks gets <code>"B"</code>.</li>
+                    <li>If both Quick-marks and Bookmarks are <code>":"</code>: Quick-marks gets <code>":"</code>, Bookmarks gets <code>"1"</code>.</li>
+                    <li>If both Quick-marks and Bookmarks are <code>"1"</code>: Quick-marks gets <code>"1"</code>, Bookmarks gets <code>":"</code>.</li>
+                  </ul>
+                </li>
               </ul>
             </li>
             <li><strong>Mnemonic Jumps:</strong> Pressing any assigned character (<kbd>a</kbd>&ndash;<kbd>z</kbd>, <kbd>A</kbd>&ndash;<kbd>Z</kbd>, <kbd>0</kbd>&ndash;<kbd>9</kbd>) instantly opens the file or switches working directory.</li>

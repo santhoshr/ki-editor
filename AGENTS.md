@@ -1411,6 +1411,38 @@ Cleanly finished wiring in `src/app.rs`, updated documentation, and compiled wit
 **Response:**
 Staged all changes and committed as `feat(bookmarks): support simultaneous Bookmarks (nested) and Quick-marks (single)`.
 
+### Request 197
+> "let us have bookmarks_menu_invocation as well the values are 1/B/:, if both quick and bookmarks configured for : then quick gets : and bookmarks gets 1, if both configured for 1, quick gets 1, bookmarks gets :; if Command menu configured for : then Command menu gets :, quick gets 1, bookmarks gets B;"
+**Response:**
+1. Added `BookmarkMenuInvocation` enum (`B`, `Colon`, `One`, default `B`) in `src/config.rs` and added `bookmark_menu_invocation` configuration option across `RawConfig`, `AppConfig`, `src/config/lenient.rs`, `src/config_default.json`, and `Context`.
+2. Implemented the exact conflict resolution hierarchy in `TryFrom<RawConfig> for AppConfig`:
+   - If Command menu is `:`; Command gets `:`, Quick-marks gets `1`, Bookmarks gets `B`.
+   - If both Quick-marks and Bookmarks configured for `:`; Quick gets `:`, Bookmarks gets `1`.
+   - If both Quick-marks and Bookmarks configured for `1`; Quick gets `1`, Bookmarks gets `:`.
+3. Updated keybindings in `src/keymap.rs`, `src/components/editor/mod.rs`, and `src/components/editor_keymap_printer.rs` to dynamically bind Bookmarks to `B`/`:`/`1` and Quick-marks to `:`/`1`.
+4. Updated documentation and verified with `cargo build`.
+
+### Request 198
+> "configure this as default
+> \"filetree_open_with_path\": true,
+>   \"e_normal_mode\": \"mark\",
+>   \"pick_menu_df_swap\": true,
+>   \"swap_key\": \"x\",
+>   \"command_menu_invocation\": \"c\",
+>   \"quick_marks_menu_invocation\": \"1\",
+>   \"bookmark_menu_invocation\": \":\",
+>   \"format_on_save\": false,
+>   \"show_key_in_keymap\": true,
+>   \"icon-style\": \"nerd-font\""
+> "just the default json, no other code change"
+**Response:**
+Updated `src/config_default.json` with all specified default values and verified with `cargo build`.
+
+### Request 199
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(config): support bookmarks_menu_invocation with resolution hierarchy and set new defaults`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

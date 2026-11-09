@@ -8,7 +8,7 @@ use crate::{
 use itertools::Itertools;
 
 use nucleo_matcher::Utf32Str;
-use shared::{absolute_path::AbsolutePath, icons::format_with_icon};
+use shared::absolute_path::AbsolutePath;
 
 use super::suggestive_editor::{Decoration, Info};
 
@@ -103,9 +103,7 @@ impl DropdownItem {
             if is_dir && !name.ends_with('/') {
                 name.push('/');
             }
-            let icon_config = crate::config::AppConfig::singleton().icon_config();
-            let icon = shared::absolute_path::get_path_icon(&path, icon_config);
-            format_with_icon(icon, &name)
+            name
         })
         .set_dispatches(if is_dir {
             if let Ok(abs_path) = AbsolutePath::try_from(path.clone()) {
@@ -136,21 +134,20 @@ impl DropdownItem {
 
 impl From<AbsolutePath> for DropdownItem {
     fn from(value: AbsolutePath) -> Self {
-        let icon_config = crate::config::AppConfig::singleton().icon_config();
-        DropdownItem::new({
-            let name = value
+        DropdownItem::new(
+            value
                 .to_path_buf()
                 .file_name()
                 .unwrap_or_default()
                 .to_string_lossy()
-                .to_string();
-            let icon = value.icon(icon_config);
-            format_with_icon(icon, &name)
-        })
+                .to_string(),
+        )
         .set_group(
-            value.parent().ok().flatten().map(|parent| {
-                format_with_icon(&icon_config.folder, &parent.try_display_relative())
-            }),
+            value
+                .parent()
+                .ok()
+                .flatten()
+                .map(|parent| parent.try_display_relative()),
         )
         .set_dispatches(Dispatches::one(crate::app::Dispatch::OpenFile {
             path: value,

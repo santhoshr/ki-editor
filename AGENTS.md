@@ -1102,6 +1102,68 @@ Explained that keeping the layer open requires holding `Alt` with the thumb, whi
 **Response:**
 Committed working tree changes for bookmarks, `_` working directory reveal, extended text replacement/deletion in editor, and mark keymap hold stability.
 
+### Request 161
+> "in bookmarks menu we don't have cd to file path right? since it is already available in Command menu, it will be redundant, right?"
+**Response:**
+Confirmed: dedicated `cd` keys were removed from the bookmark menu so uppercase letters remain assignable bookmarks; folders already `cd` on open; and `Space C` (`Shift+C`) / `Space j f` handle directory navigation globally.
+
+### Request 162
+> "I want to have nested bookmarks, how can we design it, for e.g. we have small, caps, one level inside, for e.g. you can press . go into (.x1) and use any letters inside; or press another . (.x2), any ideas, because pressing . will show file picker, shift . will show file picker, how we can configure to enter sub menu"
+> "how about giving = in file picker make the key clear existing bindings for small/caps if assigned and enters bookmark submenu, in submenu too one can make any key submenu or assigned"
+> "yes"
+**Response:**
+Implemented nested bookmark submenus:
+1. Converted `Bookmarks` (`src/bookmarks.rs`) to a recursive tree of `BookmarkNode::File(AbsolutePath)` and `BookmarkNode::Submenu(BTreeMap<char, BookmarkNode>)`, retaining JSON backward-compatibility.
+2. In `PromptConfig` and `Prompt` (`src/components/prompt.rs`), added `on_equal_enter`.
+3. In the bookmark assignment prompt (`src/app.rs`), submitting `=` clears any previous bindings on that key and creates a clean `BookmarkNode::Submenu`, immediately entering that submenu.
+4. In `BookmarkKeymapOverride` (`src/keymap_override/bookmark.rs`), pressing a submenu key opens that submenu, displaying breadcrumbs `≡ Bookmark > . (⌫ Back)` and button labels `> (N)`. Pressing `Backspace` navigates back up one level (or exits at root). All keys inside submenus can be files or further nested submenus recursively.
+Verified with `cargo check` and `cargo build`.
+
+### Request 163
+> "don't show icons/nerd-icons etc performance is terrible"
+> "don't show icons/nerd-icons etc in auto completion picker performance is terrible"
+**Response:**
+Completely disabled icons in auto-completion pickers, dropdowns, and default config:
+1. In `src/components/prompt.rs` (`get_auto_completion_items`) and `src/components/dropdown_sync.rs` (`from_path_and_is_dir`, `From<AbsolutePath> for DropdownItem`), removed `get_path_icon` and `format_with_icon`, eliminating filesystem `stat` calls and hash table lookups per item.
+2. In `src/components/suggestive_editor.rs` (`From<CompletionItem> for DropdownItem`) and `src/lsp/symbols.rs` (`Symbol::display`), removed `emoji()` and icon formatting, providing clean raw text labels.
+3. Changed default `icon_style` in `src/config_default.json` and `shared/src/icons.rs` (`IconStyle`) from `Emoji` to `None`.
+4. Updated `shared::icons::format_with_icon` so an empty icon string returns the unmodified text without leading spacing.
+Verified with `cargo check` and `cargo build`.
+
+### Request 164
+> "on press of tab in Bookmarks menu, make all bookmark files names available for filter (no hard caps like 50) and pick, just like recent files picker make ctrl+o there is also alt+ combination to open all filtered/listed files"
+**Response:**
+1. Added `Bookmarks::all_files(&self)` (`src/bookmarks.rs`) to recursively collect all file paths across all bookmarks and submenus into a deduplicated set with zero hard caps.
+2. In `BookmarkKeymapOverride` (`src/keymap_override/bookmark.rs`), mapped `Tab` to `Dispatch::OpenBookmarkFilesPicker`.
+3. In `App` (`src/app.rs`), implemented `open_bookmark_files_picker`: opens a precomputed prompt listing all bookmarked files with `show_all_when_empty: true` for instant fuzzy filtering and picking. Updated HUD title to indicate `(⇥ All)`.
+4. In `Prompt::handle_key_event` (`src/components/prompt.rs`), added `alt+o` alongside `ctrl+o` and `alt+g`, and ensured both `Dispatch::OpenFile` and `Dispatch::OpenFileFromPathBuf` are collected to open and mark all filtered/listed files.
+Verified with `cargo check` and `cargo build`.
+
+### Request 165
+> "at top level show all files, when inside any sub menu, tab should show only those listed files, when only file/cd is present, it should activate it (open file or cd)"
+**Response:**
+1. Added `Bookmarks::files_at(&self, path: &[char])` (`src/bookmarks.rs`) to collect file/directory paths directly listed in a given submenu.
+2. In `App::open_bookmark_files_picker` (`src/app.rs`):
+   - At top level (`bookmark_path.is_empty()`), collects all bookmark files recursively (`all_files()`).
+   - Inside any submenu, scopes strictly to files directly listed in that submenu (`files_at(&self.bookmark_path)`).
+   - If only 1 file or directory is present in scope, immediately activates it (opens and marks file or changes working directory) without opening the picker prompt.
+   - If multiple files are present, opens the picker prompt scoped to those files.
+Verified with `cargo check` and `cargo build`.
+
+### Request 166
+> "in bookmarks tab filter, show all files in full path"
+**Response:**
+Updated `App::open_bookmark_files_picker` (`src/app.rs`) to format each dropdown item using `path.display_absolute()` (with a trailing `/` for directories) instead of relative working-directory paths, so all items display their complete full paths in the filter picker.
+Verified with `cargo check` and `cargo build`.
+
+### Request 167
+> "read bookmarks json for changes, let us do this before commiting"
+**Response:**
+Implemented automatic disk change detection and reloading for `bookmarks.json`:
+1. In `Bookmarks` (`src/bookmarks.rs`), tracked `last_modified: Option<SystemTime>` and added `reload_if_changed(&mut self) -> bool`.
+2. Updated `App` (`src/app.rs`) to reload bookmarks from disk on `open_bookmark_menu`, `open_bookmark_files_picker`, `open_assign_bookmark_prompt`, and via `FileWatcherEvent::ContentModified`. External edits or manual changes to `~/.config/ki/bookmarks.json` are now automatically detected and applied without restarting Ki.
+Verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

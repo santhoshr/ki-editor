@@ -50,6 +50,7 @@ pub struct Prompt {
     on_change: Option<PromptOnChangeDispatch>,
     on_cancelled: Option<Dispatches>,
     on_empty_enter: Option<Dispatches>,
+    on_equal_enter: Option<Dispatches>,
     last_line: std::cell::RefCell<Option<String>>,
     ignore_completion_on_enter: bool,
     workspace_items: std::sync::Arc<std::sync::Mutex<Vec<DropdownItem>>>,
@@ -193,7 +194,6 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
         return Vec::new();
     };
 
-    let icon_config = crate::config::AppConfig::singleton().icon_config();
     let mut formatted_items = Vec::new();
 
     for entry in entries.filter_map(|e| e.ok()) {
@@ -264,9 +264,6 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
             }
         };
 
-        let icon = shared::absolute_path::get_path_icon(&path, icon_config);
-        let display_with_icon = shared::icons::format_with_icon(icon, &display_str);
-
         let dispatches = if is_dir {
             if let Ok(abs_path) = AbsolutePath::try_from(path.clone()) {
                 Dispatches::one(Dispatch::ChangeWorkingDirectory(abs_path))
@@ -282,8 +279,8 @@ fn get_child_paths_and_files_for_prompt(line: &str) -> Vec<DropdownItem> {
         };
 
         formatted_items.push((
-            display_str,
-            DropdownItem::new(display_with_icon).set_dispatches(dispatches),
+            display_str.clone(),
+            DropdownItem::new(display_str).set_dispatches(dispatches),
         ));
     }
 
@@ -319,6 +316,7 @@ pub struct PromptConfig {
     pub auto_select_at_dir: bool,
     pub initial_text: Option<String>,
     pub on_empty_enter: Option<Dispatches>,
+    pub on_equal_enter: Option<Dispatches>,
 }
 
 impl PromptConfig {
@@ -334,6 +332,7 @@ impl PromptConfig {
             auto_select_at_dir,
             initial_text: None,
             on_empty_enter: None,
+            on_equal_enter: None,
         }
     }
 
@@ -347,6 +346,13 @@ impl PromptConfig {
     pub fn set_on_empty_enter(self, on_empty_enter: Option<Dispatches>) -> Self {
         Self {
             on_empty_enter,
+            ..self
+        }
+    }
+
+    pub fn set_on_equal_enter(self, on_equal_enter: Option<Dispatches>) -> Self {
+        Self {
+            on_equal_enter,
             ..self
         }
     }
@@ -597,6 +603,7 @@ impl Prompt {
                 on_cancelled: config.on_cancelled,
                 on_change: config.on_change,
                 on_empty_enter: config.on_empty_enter,
+                on_equal_enter: config.on_equal_enter,
                 last_line: std::cell::RefCell::new(None),
                 ignore_completion_on_enter: config.ignore_completion_on_enter,
                 workspace_items,
@@ -774,18 +781,26 @@ impl Component for Prompt {
                     Ok(Dispatches::empty())
                 }
             }
-            key!("ctrl+o") | key!("alt+g") => {
+            key!("ctrl+o") | key!("alt+g") | key!("alt+o") => {
                 let all_items = self.editor.completion_dropdown_all_filtered_items();
                 if !all_items.is_empty() {
                     let mut paths: Vec<AbsolutePath> = Vec::new();
                     for item in &all_items {
                         for dispatch in item.dispatches.clone().into_vec() {
-                            if let Dispatch::OpenFileFromPathBuf { path, .. } = dispatch {
-                                if let Ok(abs_path) = AbsolutePath::try_from(path) {
-                                    if !abs_path.to_path_buf().is_dir() {
-                                        paths.push(abs_path);
+                            match dispatch {
+                                Dispatch::OpenFileFromPathBuf { path, .. } => {
+                                    if let Ok(abs_path) = AbsolutePath::try_from(path) {
+                                        if !abs_path.to_path_buf().is_dir() {
+                                            paths.push(abs_path);
+                                        }
                                     }
                                 }
+                                Dispatch::OpenFile { path, .. } => {
+                                    if !path.to_path_buf().is_dir() {
+                                        paths.push(path);
+                                    }
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -809,6 +824,11 @@ impl Component for Prompt {
                     PromptOnEnter::SelectsFirstMatchingItem { .. } => {
                         let line = self.editor().current_line().unwrap_or_default();
                         let text = line.trim();
+                        if text == "=" {
+                            if let Some(on_equal) = &self.on_equal_enter {
+                                return Ok(Dispatches::one(Dispatch::CloseCurrentWindow).chain(on_equal.clone()));
+                            }
+                        }
                         if text.is_empty() {
                             if let Some(on_empty) = &self.on_empty_enter {
                                 return Ok(Dispatches::one(Dispatch::CloseCurrentWindow).chain(on_empty.clone()));

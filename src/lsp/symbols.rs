@@ -172,13 +172,7 @@ pub struct Symbol {
 }
 impl Symbol {
     pub fn display(&self) -> String {
-        let icon = crate::config::AppConfig::singleton()
-            .icon_config()
-            .completion
-            .get(&format!("{:?}", self.kind))
-            .map(|s| s.as_str())
-            .unwrap_or_default();
-        shared::icons::format_with_icon(icon, &self.name)
+        self.name.clone()
     }
 }
 

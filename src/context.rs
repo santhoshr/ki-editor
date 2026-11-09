@@ -8,7 +8,7 @@ use shared::absolute_path::AbsolutePath;
 
 use crate::{
     app::{GlobalSearchConfigUpdate, LocalSearchConfigUpdate, Scope},
-    bookmarks::Bookmarks,
+    bookmarks::{BookmarkNode, Bookmarks},
     char_index_range::CharIndexRange,
     clipboard::{Clipboard, RingHistory, Texts},
     components::{editor_keymap::KeyboardLayout, prompt::PromptHistoryKey},
@@ -191,20 +191,49 @@ impl Context {
         &mut self.bookmarks
     }
 
-    pub fn get_bookmark(&self, key: char) -> Option<&AbsolutePath> {
-        self.bookmarks.get(key)
+    pub fn reload_bookmarks_if_changed(&mut self) -> bool {
+        self.bookmarks.reload_if_changed()
+    }
+
+    pub fn get_bookmark_at(&self, path: &[char], key: char) -> Option<&BookmarkNode> {
+        self.bookmarks.get_at(path, key)
+    }
+
+    pub fn has_bookmark_at(&self, path: &[char], key: char) -> bool {
+        self.bookmarks.contains_at(path, key)
+    }
+
+    pub fn set_bookmark_file(
+        &mut self,
+        path: &[char],
+        key: char,
+        file: AbsolutePath,
+    ) -> anyhow::Result<()> {
+        self.bookmarks.set_file(path, key, file)
+    }
+
+    pub fn set_bookmark_submenu(&mut self, path: &[char], key: char) -> anyhow::Result<()> {
+        self.bookmarks.set_submenu(path, key)
+    }
+
+    pub fn remove_bookmark_at(&mut self, path: &[char], key: char) -> anyhow::Result<bool> {
+        self.bookmarks.remove_at(path, key)
+    }
+
+    pub fn get_bookmark(&self, key: char) -> Option<&BookmarkNode> {
+        self.bookmarks.get_at(&[], key)
     }
 
     pub fn has_bookmark(&self, key: char) -> bool {
-        self.bookmarks.contains(key)
+        self.bookmarks.contains_at(&[], key)
     }
 
     pub fn set_bookmark(&mut self, key: char, path: AbsolutePath) -> anyhow::Result<()> {
-        self.bookmarks.set(key, path)
+        self.bookmarks.set_file(&[], key, path)
     }
 
     pub fn remove_bookmark(&mut self, key: char) -> anyhow::Result<bool> {
-        self.bookmarks.remove(key)
+        self.bookmarks.remove_at(&[], key)
     }
 
     pub fn handle_file_renamed(&mut self, source: std::path::PathBuf, destination: AbsolutePath) {

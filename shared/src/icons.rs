@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum IconStyle {
-    /// Emoji icons (default). No special font required.
-    #[default]
+    /// Emoji icons. No special font required.
     Emoji,
     /// Nerd Font icons. Requires a Nerd Font (<https://www.nerdfonts.com/>) to be installed.
     NerdFont,
-    /// Disable icons entirely.
+    /// Disable icons entirely (default).
+    #[default]
     None,
 }
 
@@ -55,7 +55,11 @@ pub fn build_icon_config(style: &IconStyle) -> IconsConfig {
 /// specific icon is unavailable but icons are generally enabled; use
 /// [`format_without_icon`] when the icon feature is fully disabled.
 pub fn format_with_icon(icon: &str, text: &str) -> String {
-    format!("{icon} {text}")
+    if icon.is_empty() {
+        text.to_string()
+    } else {
+        format!("{icon} {text}")
+    }
 }
 
 /// Format `text` without any icon or alignment space.  Use this when the icon

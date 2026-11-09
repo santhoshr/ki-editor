@@ -20,6 +20,7 @@ use crate::{
             DispatchSuggestiveEditor, Info, SuggestiveEditor, SuggestiveEditorFilter,
         },
     },
+    bookmarks::BookmarkNode,
     config::AppConfig,
     context::{
         Context, FormatterCommand, GlobalMode, GlobalSearchConfig, LocalSearchConfigMode,
@@ -132,6 +133,7 @@ pub struct App<T: Frontend> {
     last_terminal_title: Option<String>,
     pending_bookmark_key: Option<char>,
     pending_bookmark_default_path: Option<AbsolutePath>,
+    pub bookmark_path: Vec<char>,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -279,6 +281,7 @@ impl<T: Frontend> App<T> {
             last_terminal_title: None,
             pending_bookmark_key: None,
             pending_bookmark_default_path: None,
+            bookmark_path: Vec::new(),
         };
 
         app.restore_session();
@@ -937,7 +940,7 @@ impl<T: Frontend> App<T> {
                     } else {
                         canonicalized_path
                     };
-                    self.context.set_bookmark(key, bookmark_path.clone())?;
+                    self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
                     let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
                     self.show_global_info(Info::new(
                         "Bookmark Assigned".to_string(),
@@ -1438,7 +1441,11 @@ impl<T: Frontend> App<T> {
             Dispatch::GotoLocalMark(direction) => self.goto_local_mark(direction)?,
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
+            Dispatch::OpenBookmarkFilesPicker => self.open_bookmark_files_picker()?,
             Dispatch::OpenBookmark(key) => self.open_bookmark(key)?,
+            Dispatch::CreateBookmarkSubmenu(key) => self.create_bookmark_submenu(key)?,
+            Dispatch::EnterBookmarkSubmenu(key) => self.enter_bookmark_submenu(key)?,
+            Dispatch::BookmarkGoBack => self.bookmark_go_back()?,
             Dispatch::ClearBookmark(key) => self.clear_bookmark(key)?,
             Dispatch::OpenAssignBookmarkPrompt {
                 key,
@@ -1539,7 +1546,7 @@ impl<T: Frontend> App<T> {
                     } else {
                         first_path
                     };
-                    self.context.set_bookmark(key, bookmark_path.clone())?;
+                    self.context.set_bookmark_file(&self.bookmark_path, key, bookmark_path.clone())?;
                     let kind_str = if bookmark_path.to_path_buf().is_dir() { "directory" } else { "file" };
                     self.show_global_info(Info::new(
                         "Bookmark Assigned".to_string(),
@@ -1552,7 +1559,7 @@ impl<T: Frontend> App<T> {
             Dispatch::ToggleOrOpenPaths => self.toggle_or_open_paths()?,
             Dispatch::ChangeWorkingDirectory(path) => {
                 if let Some(key) = self.pending_bookmark_key.take() {
-                    self.context.set_bookmark(key, path.clone())?;
+                    self.context.set_bookmark_file(&self.bookmark_path, key, path.clone())?;
                     self.show_global_info(Info::new(
                         "Bookmark Assigned".to_string(),
                         format!("Bookmark '{key}' assigned to directory {}", path.display_absolute()),
@@ -3133,63 +3140,153 @@ impl<T: Frontend> App<T> {
     }
 
     fn open_bookmark_menu(&mut self) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        self.bookmark_path.clear();
+        self.show_bookmark_menu_at_current_path()
+    }
+
+    fn show_bookmark_menu_at_current_path(&mut self) -> anyhow::Result<()> {
         let config = self.create_bookmark_keymap_legend_config();
         self.layout.close_keymap_legend();
         self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(Some(
-            EditorKeymapOverride::Bookmark(BookmarkKeymapOverride::new(config.clone())),
+            EditorKeymapOverride::Bookmark(BookmarkKeymapOverride::new(config.clone(), self.bookmark_path.clone())),
         )))?;
         self.show_keymap_legend(false, config, None);
         Ok(())
     }
 
     fn create_bookmark_keymap_legend_config(&self) -> KeymapLegendConfig {
+        let entries = self.context.bookmarks().entries_at(&self.bookmark_path);
         let mut bindings = Vec::new();
-        for (&key, path) in self.context.bookmarks().entries() {
-            let mut name = if let Some(file_name) = path.file_name() {
-                file_name.to_string()
-            } else {
-                path.display_absolute()
-            };
-            if path.to_path_buf().is_dir() && !name.ends_with('/') {
-                name.push('/');
+        if let Some(entries) = entries {
+            for (&key, node) in entries {
+                let name = match node {
+                    BookmarkNode::File(path) => {
+                        let mut name = if let Some(file_name) = path.file_name() {
+                            file_name.to_string()
+                        } else {
+                            path.display_absolute()
+                        };
+                        if path.to_path_buf().is_dir() && !name.ends_with('/') {
+                            name.push('/');
+                        }
+                        if name.len() > 10 {
+                            name.truncate(9);
+                            name.push('…');
+                        }
+                        name
+                    }
+                    BookmarkNode::Submenu(submap) => {
+                        format!("> ({})", submap.len())
+                    }
+                };
+                let mut modifiers = event::KeyModifiers::default();
+                if key.is_uppercase() {
+                    modifiers.shift = true;
+                }
+                let event = event::KeyEvent::pressed(
+                    crossterm::event::KeyCode::Char(key),
+                    modifiers,
+                );
+                bindings.push(Keybinding::new_dynamic(
+                    event,
+                    name,
+                    Dispatch::OpenBookmark(key),
+                ));
             }
-            if name.len() > 10 {
-                name.truncate(9);
-                name.push('…');
-            }
-            let mut modifiers = event::KeyModifiers::default();
-            if key.is_uppercase() {
-                modifiers.shift = true;
-            }
-            let event = event::KeyEvent::pressed(
-                crossterm::event::KeyCode::Char(key),
-                modifiers,
-            );
-            bindings.push(Keybinding::new_dynamic(
-                event,
-                name,
-                Dispatch::OpenBookmark(key),
-            ));
         }
+        let title = if self.bookmark_path.is_empty() {
+            "≡ Bookmark  (⇥ All)".to_string()
+        } else {
+            let path_str: String = self.bookmark_path.iter().map(|c| format!(" > {c}")).collect();
+            format!("≡ Bookmark{}  (⌫ Back, ⇥ Filter)", path_str)
+        };
         KeymapLegendConfig {
-            title: "≡ Bookmark".to_string(),
+            title,
             keymap: Keymap::new(&bindings),
         }
     }
 
-    fn open_bookmark(&mut self, key: char) -> anyhow::Result<()> {
-        let Some(path) = self.context.get_bookmark(key).cloned() else {
-            return Ok(());
+    fn open_bookmark_files_picker(&mut self) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
+        let is_root = self.bookmark_path.is_empty();
+        let files = if is_root {
+            self.context.bookmarks().all_files()
+        } else {
+            self.context.bookmarks().files_at(&self.bookmark_path)
         };
+
+        if files.is_empty() {
+            let msg = if is_root {
+                "No bookmarks have been created yet".to_string()
+            } else {
+                "No bookmark files in this submenu".to_string()
+            };
+            self.show_global_info(Info::new("No Bookmarks".to_string(), msg));
+            return Ok(());
+        }
+
+        if files.len() == 1 {
+            let path = files.into_iter().next().unwrap();
+            return self.activate_bookmark_path(path);
+        }
+
+        let title = if is_root {
+            "Bookmark files (all)".to_string()
+        } else {
+            let path_str: String = self.bookmark_path.iter().map(|c| format!(" > {c}")).collect();
+            format!("Bookmark files{}", path_str)
+        };
+
+        let items = PromptItems::Precomputed(
+            files
+                .into_iter()
+                .enumerate()
+                .map(|(index, path)| {
+                    let is_dir = path.to_path_buf().is_dir();
+                    let mut display = path.display_absolute();
+                    if is_dir && !display.ends_with('/') {
+                        display.push('/');
+                    }
+                    let dispatches = if is_dir {
+                        Dispatches::one(Dispatch::ChangeWorkingDirectory(path))
+                    } else {
+                        Dispatches::one(Dispatch::OpenFileFromPathBuf {
+                            path: path.into_path_buf(),
+                            owner: BufferOwner::User,
+                            focus: true,
+                        })
+                    };
+                    DropdownItem::new(display)
+                        .set_dispatches(dispatches)
+                        .set_rank(Some(Box::new([index])))
+                })
+                .collect_vec(),
+        );
+
+        self.open_prompt(
+            PromptConfig::new(
+                title,
+                PromptOnEnter::SelectsFirstMatchingItem { items },
+            )
+            .set_show_all_when_empty(true),
+        )
+    }
+
+    fn activate_bookmark_path(&mut self, path: AbsolutePath) -> anyhow::Result<()> {
         if !path.exists() {
             self.show_global_info(Info::new(
                 "Bookmark Not Found".to_string(),
-                format!("Bookmark '{key}' path does not exist: {}", path.display_absolute()),
+                format!("Bookmark path does not exist: {}", path.display_absolute()),
             ));
             return Ok(());
         }
         if path.to_path_buf().is_dir() {
-            self.change_working_directory(path)?;
+            self.change_working_directory(path.clone())?;
+            self.show_global_info(Info::new(
+                "Working Directory Changed".to_string(),
+                format!("Changed working directory to {}", path.display_absolute()),
+            ));
         } else {
             self.context.mark_file(path.clone());
             self.open_file(&path, BufferOwner::User, true, true)?;
@@ -3197,8 +3294,48 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
+    fn open_bookmark(&mut self, key: char) -> anyhow::Result<()> {
+        let Some(node) = self.context.get_bookmark_at(&self.bookmark_path, key).cloned() else {
+            return Ok(());
+        };
+        match node {
+            BookmarkNode::File(path) => {
+                self.activate_bookmark_path(path)?;
+            }
+            BookmarkNode::Submenu(_) => {
+                self.bookmark_path.push(key);
+                self.show_bookmark_menu_at_current_path()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn create_bookmark_submenu(&mut self, key: char) -> anyhow::Result<()> {
+        self.context.set_bookmark_submenu(&self.bookmark_path, key)?;
+        self.bookmark_path.push(key);
+        self.show_bookmark_menu_at_current_path()?;
+        self.show_global_info(Info::new(
+            "Bookmark Submenu Created".to_string(),
+            format!("Submenu '{key}' created. Press any key to assign, or Backspace to go back."),
+        ));
+        Ok(())
+    }
+
+    fn enter_bookmark_submenu(&mut self, key: char) -> anyhow::Result<()> {
+        self.bookmark_path.push(key);
+        self.show_bookmark_menu_at_current_path()?;
+        Ok(())
+    }
+
+    fn bookmark_go_back(&mut self) -> anyhow::Result<()> {
+        if self.bookmark_path.pop().is_some() {
+            self.show_bookmark_menu_at_current_path()?;
+        }
+        Ok(())
+    }
+
     fn clear_bookmark(&mut self, key: char) -> anyhow::Result<()> {
-        if self.context.remove_bookmark(key)? {
+        if self.context.remove_bookmark_at(&self.bookmark_path, key)? {
             self.show_global_info(Info::new(
                 "Bookmark Cleared".to_string(),
                 format!("Bookmark '{key}' cleared"),
@@ -3217,6 +3354,7 @@ impl<T: Frontend> App<T> {
         key: char,
         prefill_current_file: bool,
     ) -> anyhow::Result<()> {
+        self.context.reload_bookmarks_if_changed();
         self.pending_bookmark_key = Some(key);
         let current_path = self.get_current_file_path();
         self.pending_bookmark_default_path = current_path.clone();
@@ -3233,10 +3371,14 @@ impl<T: Frontend> App<T> {
             Dispatch::CancelPendingBookmark,
             Dispatch::ClearBookmark(key),
         ]));
+        let on_equal_enter = Some(Dispatches::from(vec![
+            Dispatch::CancelPendingBookmark,
+            Dispatch::CreateBookmarkSubmenu(key),
+        ]));
         let title = if prefill_current_file {
-            format!("Assign Bookmark '{key}' (or clear if empty)")
+            format!("Assign Bookmark '{key}' (or clear if empty, = for Submenu)")
         } else {
-            format!("Assign Bookmark '{key}' (or CD)")
+            format!("Assign Bookmark '{key}' (= for Submenu)")
         };
         self.open_prompt(
             PromptConfig::new(
@@ -3245,6 +3387,7 @@ impl<T: Frontend> App<T> {
             )
             .set_initial_text(initial_text)
             .set_on_empty_enter(on_empty_enter)
+            .set_on_equal_enter(on_equal_enter)
             .set_on_change(Some(
                 PromptOnChangeDispatch::UpdateSuggestedItemsForArbitraryFile,
             ))
@@ -3253,12 +3396,22 @@ impl<T: Frontend> App<T> {
     }
 
     fn change_working_directory_to_bookmark(&mut self, key: char) -> anyhow::Result<()> {
-        let Some(path) = self.context.get_bookmark(key).cloned() else {
+        let Some(node) = self.context.get_bookmark_at(&self.bookmark_path, key).cloned() else {
             self.show_global_info(Info::new(
                 "Bookmark Not Found".to_string(),
                 format!("Bookmark '{key}' is not assigned"),
             ));
             return Ok(());
+        };
+        let path = match node {
+            BookmarkNode::File(path) => path,
+            BookmarkNode::Submenu(_) => {
+                self.show_global_info(Info::new(
+                    "Bookmark is Submenu".to_string(),
+                    format!("Bookmark '{key}' is a submenu, not a file/directory"),
+                ));
+                return Ok(());
+            }
         };
         if !path.exists() {
             self.show_global_info(Info::new(
@@ -4268,6 +4421,9 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
         log::info!("Received file watcher event: {event:?}");
         match event {
             FileWatcherEvent::ContentModified(path) => {
+                if path.to_path_buf() == self.context.bookmarks().file_path() {
+                    self.context.reload_bookmarks_if_changed();
+                }
                 if path.is_file()
                     && self
                         .layout
@@ -4946,7 +5102,11 @@ pub enum Dispatch {
     GotoLocalMark(Direction),
     GotoGlobalMark(Direction),
     OpenBookmarkMenu,
+    OpenBookmarkFilesPicker,
     OpenBookmark(char),
+    CreateBookmarkSubmenu(char),
+    EnterBookmarkSubmenu(char),
+    BookmarkGoBack,
     ClearBookmark(char),
     OpenAssignBookmarkPrompt {
         key: char,

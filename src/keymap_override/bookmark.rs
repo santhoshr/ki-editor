@@ -11,15 +11,20 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct BookmarkKeymapOverride {
     config: KeymapLegendConfig,
+    current_path: Vec<char>,
 }
 
 impl BookmarkKeymapOverride {
-    pub fn new(config: KeymapLegendConfig) -> Self {
-        Self { config }
+    pub fn new(config: KeymapLegendConfig, current_path: Vec<char>) -> Self {
+        Self { config, current_path }
     }
 
     pub fn config(&self) -> &KeymapLegendConfig {
         &self.config
+    }
+
+    pub fn current_path(&self) -> &[char] {
+        &self.current_path
     }
 }
 
@@ -36,6 +41,14 @@ impl KeymapOverrideTrait for BookmarkKeymapOverride {
 
         if key_event.original == key!("esc") || key_event.original == key!("space") {
             return Ok(close_dispatches);
+        }
+
+        if key_event.original == key!("backspace") {
+            return Ok(close_dispatches.chain(Dispatches::one(Dispatch::BookmarkGoBack)));
+        }
+
+        if key_event.original == key!("tab") || key_event.translated == key!("tab") {
+            return Ok(close_dispatches.chain(Dispatches::one(Dispatch::OpenBookmarkFilesPicker)));
         }
 
         let is_alt = key_event.original.modifiers.alt || key_event.translated.modifiers.alt;
@@ -72,7 +85,7 @@ impl KeymapOverrideTrait for BookmarkKeymapOverride {
             }
 
             // Normal key or Shift+key:
-            if context.has_bookmark(target_char) {
+            if context.has_bookmark_at(&self.current_path, target_char) {
                 return Ok(close_dispatches.chain(Dispatches::one(Dispatch::OpenBookmark(target_char))));
             } else {
                 // Initial assignment: also prefill and preselect file name

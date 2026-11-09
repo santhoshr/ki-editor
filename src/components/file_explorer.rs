@@ -209,7 +209,7 @@ fn get_nodes(path: &AbsolutePath) -> anyhow::Result<Vec<Node>> {
         .flatten()
         .flat_map(|entry| -> anyhow::Result<Node> {
             let path: AbsolutePath = entry.path().try_into()?;
-            let kind = if entry.file_type()?.is_dir() {
+            let kind = if path.is_dir() {
                 NodeKind::Directory {
                     open: false,
                     children: None,
@@ -541,8 +541,24 @@ impl Component for FileExplorer {
     ) -> Result<Dispatches, anyhow::Error> {
         match event {
             key!("enter") => self.toggle_or_open_paths(context),
+            key!("tab") => self.open_file_prompt_for_current_node(),
             _ => self.editor.handle_key_event(context, event),
         }
+    }
+}
+
+impl FileExplorer {
+    fn open_file_prompt_for_current_node(&self) -> Result<Dispatches, anyhow::Error> {
+        let Some(node) = self.get_current_node()? else {
+            return Ok(Dispatches::default());
+        };
+        let target_dir = match node.kind {
+            NodeKind::File => {
+                node.path.parent().ok().flatten().unwrap_or(node.path.clone())
+            }
+            NodeKind::Directory { .. } | NodeKind::ParentDirectory => node.path.clone(),
+        };
+        Ok(Dispatches::one(Dispatch::OpenArbitraryFilePromptAt(target_dir)))
     }
 }
 

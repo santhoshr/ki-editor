@@ -1164,6 +1164,29 @@ Implemented automatic disk change detection and reloading for `bookmarks.json`:
 2. Updated `App` (`src/app.rs`) to reload bookmarks from disk on `open_bookmark_menu`, `open_bookmark_files_picker`, `open_assign_bookmark_prompt`, and via `FileWatcherEvent::ContentModified`. External edits or manual changes to `~/.config/ki/bookmarks.json` are now automatically detected and applied without restarting Ki.
 Verified with `cargo check` and `cargo build`.
 
+### Request 168
+> "tab key on file tree should result if file then its parent path if directory then the directory path, file open like Command menu f should be shown"
+**Response:**
+In `FileExplorer::handle_key_event` (`src/components/file_explorer.rs`), bound <kbd>Tab</kbd> to inspect the currently focused node. If a `File`, resolves to its parent directory; if a `Directory` or `ParentDirectory`, resolves to the directory path itself. Dispatches `Dispatch::OpenArbitraryFilePromptAt` with the resolved target directory.
+
+### Request 169
+> "file tree filter list seems different from open file/cd from command menu, I want it exactly like command menu open file/cd, also close the tree first before showing picker, use the same function, just choose the path from file tree as discussed"
+**Response:**
+1. In `open_arbitrary_file_prompt` (`src/app.rs`), closed the file tree first before opening the prompt (`if self.layout.is_file_explorer_open() { self.layout.close_file_explorer(&self.context); }`).
+2. Configured `open_arbitrary_file_prompt` to use the target path from the file tree directly as `working_directory` in `PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories`, matching the exact function, format, and behavior of Command menu `f` without modifying `prompt.rs`.
+Verified with `cargo check` and `cargo build`.
+
+### Request 170
+> "why this folder ~/.conkerorrc init.js and few files are not shown in picker?"
+**Response:**
+Identified that `ignore::WalkBuilder` emits raw directory entry `FileType`s where symlinks return `is_symlink() == true` while `is_file()` and `is_dir()` evaluate to `false`. As `src/list/mod.rs` checked only `file_type.is_file() || file_type.is_dir()`, symlinks (such as `~/.conkerorrc/init.js`) were filtered out.
+
+### Request 171
+> "you figured it I think it is symlinks are not shown"
+**Response:**
+Updated `src/list/mod.rs` (`get_non_git_ignored_files`, `get_non_git_ignored_files_and_directories`, and `find_in_files`) to accept symlinks pointing to existing files/directories (`file_type.is_symlink() && (path.is_file() || path.is_dir())`), and updated `FileExplorer::get_nodes` (`src/components/file_explorer.rs`) to detect symlinked directories via `path.is_dir()`.
+Verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

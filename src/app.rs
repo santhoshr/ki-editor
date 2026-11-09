@@ -1576,7 +1576,14 @@ impl<T: Frontend> App<T> {
                 self.layout.close_app_keymap_legend();
                 self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
                 self.keymap_override = None;
-                self.open_arbitrary_file_prompt()?;
+                self.open_arbitrary_file_prompt(None)?;
+            }
+            Dispatch::OpenArbitraryFilePromptAt(dir) => {
+                self.layout.close_keymap_legend();
+                self.layout.close_app_keymap_legend();
+                self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
+                self.keymap_override = None;
+                self.open_arbitrary_file_prompt(Some(dir))?;
             }
             Dispatch::OpenQuickfixItemsPicker => self.open_quickfix_item_picker()?,
             Dispatch::ShowLastError => self.show_last_error(),
@@ -4643,8 +4650,11 @@ Conflict markers will be injected in areas that cannot be merged gracefully."
         )
     }
 
-    fn open_arbitrary_file_prompt(&mut self) -> anyhow::Result<()> {
-        let working_directory = self.working_directory().clone();
+    fn open_arbitrary_file_prompt(&mut self, directory: Option<AbsolutePath>) -> anyhow::Result<()> {
+        if self.layout.is_file_explorer_open() {
+            self.layout.close_file_explorer(&self.context);
+        }
+        let working_directory = directory.unwrap_or_else(|| self.working_directory().clone());
         let items = PromptItems::BackgroundTask {
             task: PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories { working_directory },
         };
@@ -5192,6 +5202,7 @@ pub enum Dispatch {
     ChangeWorkingDirectory(AbsolutePath),
     OpenChangeWorkingDirectoryPrompt,
     OpenArbitraryFilePrompt,
+    OpenArbitraryFilePromptAt(AbsolutePath),
     OpenQuickfixItemsPicker,
     ShowLastError,
     RaiseFormatterNotExist(FormatterCommand),

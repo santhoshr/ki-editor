@@ -119,7 +119,7 @@ impl WalkBuilderConfig {
                     if let Ok(path) = path {
                         if path
                             .file_type()
-                            .is_some_and(|file_type| file_type.is_file())
+                            .is_some_and(|file_type| file_type.is_file() || (file_type.is_symlink() && path.path().is_file()))
                         {
                             let path = path.path().into();
                             if let Err(error) = f(path, sender.clone()) {
@@ -182,7 +182,7 @@ impl WalkBuilderConfig {
                 .filter_map(|path| path.ok())
                 .filter(|path| {
                     path.file_type()
-                        .is_some_and(|file_type| file_type.is_file())
+                        .is_some_and(|file_type| file_type.is_file() || (file_type.is_symlink() && path.path().is_file()))
                 })
                 .filter_map(move |path| {
                     let path: PathBuf = path.path().into();
@@ -219,7 +219,7 @@ impl WalkBuilderConfig {
                     if let Ok(path) = path {
                         if path
                             .file_type()
-                            .is_some_and(|file_type| file_type.is_file())
+                            .is_some_and(|file_type| file_type.is_file() || (file_type.is_symlink() && path.path().is_file()))
                         {
                             let path: PathBuf = path.path().into();
                             on_entry(path);
@@ -248,7 +248,10 @@ impl WalkBuilderConfig {
                         }
                         if entry.depth() > 0 {
                             if let Some(file_type) = entry.file_type() {
-                                if file_type.is_file() || file_type.is_dir() {
+                                if file_type.is_file()
+                                    || file_type.is_dir()
+                                    || (file_type.is_symlink() && (entry.path().is_file() || entry.path().is_dir()))
+                                {
                                     let path: PathBuf = entry.path().into();
                                     on_entry(path);
                                 }

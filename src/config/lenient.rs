@@ -89,6 +89,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
     let (command_menu_invocation, command_menu_invocation_error) =
         extract_field!(command_menu_invocation, "command_menu_invocation");
     let (swap_key, swap_key_error) = extract_field!(swap_key, "swap_key");
+    let (pick_menu_df_swap, pick_menu_df_swap_error) =
+        extract_field!(pick_menu_df_swap, "pick_menu_df_swap");
     let (icon_style, icon_style_error) = extract_field!(icon_style, "icon_style");
 
     let config = RawConfig {
@@ -104,6 +106,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         format_on_save,
         command_menu_invocation,
         swap_key,
+        pick_menu_df_swap,
         icon_style,
     };
 
@@ -120,6 +123,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(format_on_save_error)
         .chain(command_menu_invocation_error)
         .chain(swap_key_error)
+        .chain(pick_menu_df_swap_error)
         .chain(icon_style_error)
         .collect();
 

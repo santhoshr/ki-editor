@@ -32,7 +32,7 @@ The changes in `kustom_ki` address 172 iterative development requests, categoriz
 - Bind the primary Command Menu directly to `Space` in Normal mode (retiring the modal `:` keybinding).
 - Embed high-frequency Buffer operations directly onto the right side of the Space Command HUD.
 - Chain `Space` inside the Command Menu to open the secondary Space Menu of Legends.
-- Provide mnemonic key switches: `Space k f` for Files and `Space k d` for Buffers.
+- Provide configurable Pick menu mappings (`"pick_menu_df_swap"`): default `Space k d` for File and `Space k f` for Buffer; when swapped (`true`), `Space k f` for File and `Space k d` for Buffer.
 - Add `<Ctrl-O>` in file and bookmark pickers to batch-open all filtered matches simultaneously.
 
 ### Buffer Lifecycle & Tabstrip Management
@@ -190,6 +190,11 @@ Accessible via `f` from the Space Command menu (`Dispatch::OpenArbitraryFileProm
 - **Completion Icon Suppression (`src/components/dropdown_sync.rs`):** Suppresses slow Nerd Font glyph resolutions during rapid keystroke filtering in dropdowns.
 - **Query Precedence (`src/components/prompt.rs`):** Exact typed query text takes precedence over unselected completion rows when pressing Enter in text search prompts.
 - **History Isolation:** Segregated by `PromptHistoryKey`, preventing prompt queries from polluting document edit history rings, with persistence under `~/.config/ki/history/`.
+
+### 5.3 Pick Menu D/F Configuration (`src/config.rs`, `src/keymap.rs`)
+- **Config Key:** `"pick_menu_df_swap": false` (added to `config.json` and `src/config_default.json`).
+- **Default State (`false`):** In the Space Pick menu (`Space k`), `d` opens File picker (`FilePickerKind::NonGitIgnored`) and `f` opens Buffer picker (`FilePickerKind::Opened`).
+- **Swapped State (`true`):** In the Space Pick menu (`Space k`), `f` opens File picker (`FilePickerKind::NonGitIgnored`) and `d` opens Buffer picker (`FilePickerKind::Opened`).
 
 ---
 

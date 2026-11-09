@@ -1246,6 +1246,16 @@ Verified with `cargo check` and `cargo build`.
    - When `swap_key` is `"x"`: `key!("x")` dispatches `DispatchEditor::SwapCursor`; Cut remains on `key!("R")`; forward search prompt remains on `key!("/")`.
 5. Updated `README.md` and verified with `cargo check` and `cargo build`.
 
+### Request 180
+> "add config for pick menu d/f swap, pick_menu_df_swap: true/false, default to false"
+**Response:**
+1. Added `pick_menu_df_swap: bool` to `AppConfig`, `RawConfig` (`#[serde(default)]`), and `Context`.
+2. Added lenient parsing for `pick_menu_df_swap` in `src/config/lenient.rs` and `"pick_menu_df_swap": false` to `src/config_default.json`.
+3. In `src/keymap.rs`, updated `space_pick_keymap_legend_config(pick_menu_df_swap: bool)`:
+   - When `false` (default): `d` is File (`FilePickerKind::NonGitIgnored`) and `f` is Buffer (`FilePickerKind::Opened`).
+   - When `true`: `f` is File and `d` is Buffer.
+4. Updated `README.md` and verified with `cargo check` and `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

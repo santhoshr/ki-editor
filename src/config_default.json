@@ -39,5 +39,6 @@
     "format_on_save": false,
     "command_menu_invocation": "Space",
     "swap_key": "/",
+    "pick_menu_df_swap": false,
     "icon_style": "none"
 }

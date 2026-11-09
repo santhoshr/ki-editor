@@ -350,7 +350,7 @@ impl KeymapPrintSections {
             ),
             KeymapPrintSection::from_keymap(
                 "Space Pick".to_string(),
-                &space_pick_keymap_legend_config().keymap(),
+                &space_pick_keymap_legend_config(context.pick_menu_df_swap()).keymap(),
             ),
             KeymapPrintSection::from_keymap(
                 "File Explorer Actions".to_string(),

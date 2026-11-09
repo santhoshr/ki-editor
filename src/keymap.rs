@@ -422,7 +422,7 @@ pub fn leader_keymap_legend_config() -> KeymapLegendConfig {
         ),
     }
 }
-pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> KeymapLegendConfig {
+pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapLegendConfig {
     KeymapLegendConfig {
         title: "Space".to_string(),
 
@@ -451,7 +451,7 @@ pub fn space_keymap_legend_config(editor: &Editor, _context: &Context) -> Keymap
                 Keybinding::new_undocumented(
                     key!("k"),
                     "Pick",
-                    Dispatch::ShowMenu(space_pick_keymap_legend_config()),
+                    Dispatch::ShowMenu(space_pick_keymap_legend_config(context.pick_menu_df_swap())),
                 ),
                 Keybinding::new_undocumented(
                     key!("l"),
@@ -616,19 +616,25 @@ pub fn space_context_keymap_legend_config(editor: &Editor) -> KeymapLegendConfig
         ]),
     }
 }
-pub fn space_pick_keymap_legend_config() -> KeymapLegendConfig {
+pub fn space_pick_keymap_legend_config(pick_menu_df_swap: bool) -> KeymapLegendConfig {
+    let (file_key, buffer_key) = if pick_menu_df_swap {
+        (key!("f"), key!("d"))
+    } else {
+        (key!("d"), key!("f"))
+    };
+
     KeymapLegendConfig {
         title: "Pick".to_string(),
 
         keymap: Keymap::new(
             &[
                 Keybinding::new_undocumented(
-                    key!("f"),
+                    file_key,
                     "File",
                     Dispatch::OpenFilePicker(FilePickerKind::NonGitIgnored),
                 ),
                 Keybinding::new_undocumented(
-                    key!("d"),
+                    buffer_key,
                     "Buffer",
                     Dispatch::OpenFilePicker(FilePickerKind::Opened),
                 ),

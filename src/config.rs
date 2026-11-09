@@ -35,6 +35,7 @@ pub struct AppConfig {
     format_on_save: bool,
     command_menu_invocation: CommandMenuInvocation,
     swap_key: SwapKey,
+    pick_menu_df_swap: bool,
     icon_config: shared::icons::IconsConfig,
     load_errors: Vec<String>,
 }
@@ -58,6 +59,8 @@ pub struct RawConfig {
     command_menu_invocation: CommandMenuInvocation,
     #[serde(default)]
     swap_key: SwapKey,
+    #[serde(default)]
+    pick_menu_df_swap: bool,
     #[serde(default)]
     icon_style: shared::icons::IconStyle,
 }
@@ -183,6 +186,7 @@ impl TryFrom<RawConfig> for AppConfig {
             format_on_save: value.format_on_save,
             command_menu_invocation: value.command_menu_invocation,
             swap_key: value.swap_key,
+            pick_menu_df_swap: value.pick_menu_df_swap,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             load_errors: Vec::new(),
         })
@@ -524,6 +528,10 @@ impl AppConfig {
 
     pub fn swap_key(&self) -> SwapKey {
         self.swap_key
+    }
+
+    pub fn pick_menu_df_swap(&self) -> bool {
+        self.pick_menu_df_swap
     }
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {

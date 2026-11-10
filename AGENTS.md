@@ -1575,6 +1575,21 @@ Updated documentation in `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki
 **Response:**
 Staged all changes and committed as `refactor(config): clean up aliases, retain semicolon and lowercase colon/shift variants`.
 
+### Request 217
+> "when quit, all clean buffers should be closed and it should warn at first dirty buffer"
+> "when quit, all clean buffers should be closed and it should warn at first unsaved buffer"
+**Response:**
+Updated `App::safe_quit` in `src/app.rs`:
+- Closes, unmarks, and removes all clean buffers (`!context.is_dirty(path)`).
+- If all buffers are clean, Ki proceeds to quit immediately (`AppMessage::Quit`).
+- If any dirty/unsaved buffers exist, Ki focuses the first dirty buffer and displays a global info warning: `"The buffer {:?} has unsaved changes. Please save or discard changes before quitting."`
+Updated `README.md` and `newdoc/kustom-ki.html`.
+
+### Request 218
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(buffer): close clean buffers on quit and warn at first unsaved buffer`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -231,6 +231,7 @@ In both `"hjkl"` and `"jhlk"` modes, the three remaining key pairs (`y/;`, `i/o`
 - **CLI Ingestion (`src/cli.rs`, `src/app.rs`):** `ki file1.rs file2.rs ...` parses multiple arguments into `Vec<AbsolutePath>`, opens all files in the background, inserts them into `self.context.marked_files()`, and sets focus to the first file.
 - **Auto-marking on Modification (`src/app.rs`):** `set_file_dirty_status` detects when an unmarked preview buffer becomes dirty (`dirty_status == true`) and automatically adds it to `marked_files`. This guarantees preview buffers do not get overwritten by subsequent file opens.
 - **Close Safeguard (`src/app.rs`):** `close_current_window` and `toggle_file_mark` check buffer dirty status. If unsaved edits exist, Ki halts closure and requests user resolution.
+- **Safe Quit Workflow (`src/app.rs`):** When Quit (`q` / `Dispatch::SafeQuit`) is executed, all clean buffers are automatically closed and unmarked. If all buffers are clean, Ki exits immediately. If any unsaved buffers remain, Ki leaves them open, focuses the first unsaved buffer, and displays a warning prompt, enabling incremental save/discard iteration.
 - **Non-file Path Sanitization (`src/context.rs`):** Session mark restoration passes paths through `.filter(|p| p.is_file())` to prevent directory symlinks (e.g. `~/.nix-profile`) from corrupting the tab strip.
 
 ### 4.2 Dynamic Column-Grid Tabstrip (`src/components/render_editor.rs`)

@@ -60,7 +60,6 @@ use crate::{
     thread::{debounce, Callback, SendResult},
     ui_tree::{ComponentKind, KindedComponent},
 };
-use anyhow::ensure;
 use event::{event::Event, KeyEvent, KeyEventKind};
 use indexmap::{IndexMap, IndexSet};
 use itertools::{Either, Itertools};
@@ -2668,19 +2667,84 @@ impl<T: Frontend> App<T> {
         Ok(self.sender.send(AppMessage::Quit)?)
     }
 
-    pub fn safe_quit(&self) -> anyhow::Result<()> {
-        let dirty_files = self.context.get_dirty_files();
-        ensure!(
-            dirty_files.is_empty(),
-            "Cannot quit with unsaved files: {:?}",
-            dirty_files
-                .iter()
-                .map(|path| path
+    pub fn safe_quit(&mut self) -> anyhow::Result<()> {
+        self.layout.close_keymap_legend();
+        self.layout.close_app_keymap_legend();
+        let _ = self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None));
+        self.keymap_override = None;
+
+        let mut all_files = IndexSet::new();
+        for path in self.context.get_marked_files() {
+            all_files.insert(path.clone());
+        }
+        for path in self.layout.get_opened_files() {
+            all_files.insert(path);
+        }
+
+        let mut clean_files = Vec::new();
+        let mut dirty_files = Vec::new();
+
+        for path in &all_files {
+            if self.context.is_dirty(path) {
+                dirty_files.push(path.clone());
+            } else {
+                clean_files.push(path.clone());
+            }
+        }
+        for path in self.context.get_dirty_files() {
+            if !dirty_files.contains(path) {
+                dirty_files.push(path.clone());
+            }
+        }
+
+        // Close all clean buffers
+        for path in &clean_files {
+            if self.context.get_alternate_file() == Some(path) {
+                self.context.clear_alternate_file();
+            }
+            self.context.unregister_untitled_file(path);
+            self.context.unmark_path(path.clone());
+            self.layout.remove_suggestive_editor(path);
+        }
+
+        if !clean_files.is_empty() {
+            self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+                self.layout.get_opened_files(),
+            ));
+        }
+
+        if dirty_files.is_empty() {
+            // All buffers were clean and are now closed, proceed to quit
+            Ok(self.sender.send(AppMessage::Quit)?)
+        } else {
+            // Focus the first unsaved / dirty buffer and warn
+            let first_dirty = &dirty_files[0];
+            let _ = self.open_file(first_dirty, BufferOwner::User, true, true);
+
+            if let Some(alt) = self.context.get_alternate_file() {
+                if clean_files.contains(alt) {
+                    self.context.clear_alternate_file();
+                }
+            }
+
+            let display_name = if self.context.is_untitled_file(first_dirty) {
+                "[Untitled]".to_string()
+            } else {
+                first_dirty
                     .display_relative_to(self.context.current_working_directory())
-                    .unwrap_or(path.display_absolute()))
-                .collect::<Vec<_>>()
-        );
-        Ok(self.sender.send(AppMessage::Quit)?)
+                    .unwrap_or(first_dirty.display_absolute())
+            };
+
+            self.show_global_info(Info::new(
+                "Unsaved Buffer".to_string(),
+                format!(
+                    "The buffer {:?} has unsaved changes. Please save or discard changes before quitting.",
+                    display_name
+                ),
+            ));
+
+            Ok(())
+        }
     }
 
     fn save_all(&mut self) -> anyhow::Result<()> {

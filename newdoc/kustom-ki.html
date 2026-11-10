@@ -903,6 +903,7 @@
               Defaults: <kbd>y</kbd>/<kbd>;</kbd> &rarr; Insert ends, <kbd>i</kbd>/<kbd>o</kbd> &rarr; Prev/Next, <kbd>u</kbd>/<kbd>p</kbd> &rarr; First/Last. On collision or duplicate mappings, reverts cleanly to default after issuing a warning.
             </li>
             <li><strong>JHLK Inversion:</strong> Added <code>"jhlk_np_rl_inverse"</code> (boolean, default <code>false</code>). When <code>true</code> in <code>"jhlk"</code> mode, inverts Right/Left motions (<kbd>j</kbd> &rarr; Right, <kbd>k</kbd> &rarr; Left) and inverts the configured Next/Previous pair (<kbd>Next</kbd>/<kbd>Previous</kbd>). Up, Down, First/Last, and Insert actions remain unchanged.</li>
+            <li><strong>Safe Quit Workflow:</strong> When quitting (<kbd>q</kbd>), all clean buffers are automatically closed and unmarked. If all buffers were clean, Ki exits immediately. If any buffers have unsaved edits, Ki focuses the first unsaved buffer and displays a warning prompt.</li>
           </ul>
         </div>
       </div>

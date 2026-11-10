@@ -888,8 +888,13 @@
             <li><strong>File Tree Prompt:</strong> Added <code>"filetree_open_with_path"</code> (boolean, default <code>false</code>). When <code>false</code>, <kbd>Space</kbd> &rarr; <kbd>;</kbd> opens the file tree directly rooted at the current file or working directory (original behavior). When <code>true</code>, prompts for a path before opening.</li>
             <li><strong>Picker Swap:</strong> Added <code>"pick_menu_df_swap"</code> (boolean, default <code>false</code>). Controls whether <kbd>Space</kbd> &rarr; <kbd>k</kbd> maps <kbd>f</kbd> to File and <kbd>d</kbd> to Buffer (<code>false</code>), or swaps them (<code>true</code>).</li>
             <li><strong>Swap / Cut Key:</strong> Added <code>"swap_key"</code> (<code>"/"</code> or <code>"x"</code>, default <code>"/"</code>). When <code>"/"</code>, <kbd>/</kbd> triggers cursor swap and <kbd>x</kbd> triggers cut. When <code>"x"</code>, <kbd>x</kbd> triggers cursor swap and <kbd>Shift+R</kbd> triggers cut.</li>
-            <li><strong>Navigation Keys:</strong> Added <code>"navigation_keys"</code> (<code>"ijkl"</code> or <code>"hjkl"</code>, default <code>"ijkl"</code>). When set to <code>"hjkl"</code>, maps <code>h=j</code>, <code>j=k</code>, <code>k=i</code>, <code>l=l</code> for Left, Down, Up, Right across modes.</li>
-            <li><strong>HJKL Configurable Pairs:</strong> In <code>"hjkl"</code> mode, the roles for the remaining three key pairs are configurable via:
+            <li><strong>Navigation Keys:</strong> Added <code>"navigation_keys"</code> (<code>"ijkl"</code>, <code>"hjkl"</code>, or <code>"jhlk"</code>, default <code>"ijkl"</code>).
+              <ul>
+                <li>When set to <code>"hjkl"</code>: maps <code>h=j</code> (Left), <code>j=k</code> (Down), <code>k=i</code> (Up), <code>l=l</code> (Right).</li>
+                <li>When set to <code>"jhlk"</code>: maps <code>j=j</code> (Left), <code>k=l</code> (Right), <code>h=i</code> (Up), <code>l=k</code> (Down).</li>
+              </ul>
+            </li>
+            <li><strong>HJKL / JHLK Configurable Pairs:</strong> In both <code>"hjkl"</code> and <code>"jhlk"</code> modes, the roles for the remaining three key pairs are configurable via:
               <ul>
                 <li><code>"hjkl_y;_action"</code>: <code>"insert"</code> (default), <code>"fl"</code>, or <code>"np"</code>. Controls keys <kbd>y</kbd> and <kbd>;</kbd>.</li>
                 <li><code>"hjkl_io_action"</code>: <code>"np"</code> (default, Prev/Next), <code>"insert"</code>, or <code>"fl"</code>. Controls keys <kbd>i</kbd> and <kbd>o</kbd>.</li>
@@ -897,6 +902,7 @@
               </ul>
               Defaults: <kbd>y</kbd>/<kbd>;</kbd> &rarr; Insert ends, <kbd>i</kbd>/<kbd>o</kbd> &rarr; Prev/Next, <kbd>u</kbd>/<kbd>p</kbd> &rarr; First/Last. On collision or duplicate mappings, reverts cleanly to default after issuing a warning.
             </li>
+            <li><strong>JHLK Inversion:</strong> Added <code>"jhlk_np_rl_inverse"</code> (boolean, default <code>false</code>). When <code>true</code> in <code>"jhlk"</code> mode, inverts Right/Left motions (<kbd>j</kbd> &rarr; Right, <kbd>k</kbd> &rarr; Left) and inverts the configured Next/Previous pair (<kbd>Next</kbd>/<kbd>Previous</kbd>). Up, Down, First/Last, and Insert actions remain unchanged.</li>
           </ul>
         </div>
       </div>

@@ -25,8 +25,9 @@ The changes in `kustom_ki` address 172 iterative development requests, categoriz
 - Map text search forward to `/` and backward to `?`.
 - Unify register/character swapping to `x` and move line-cut to `Shift+R` to protect the primary clipboard.
 - Support `line:col` and `line col` jumping in `Shift+M` while preserving AST selection modes (e.g., Tree-sitter Node mode).
-- Support configurable navigation key layouts (`"navigation_keys"`: `"hjkl"` or `"ijkl"`), remapping home-row navigation (`h`=Left, `j`=Down, `k`=Up, `l`=Right) across normal, selection, extend, and modal layers.
-- Provide configurable pair roles for `y/;`, `i/o`, and `u/p` in `hjkl` mode (`"insert"`, `"np"`, `"fl"`) with automatic collision resolution and literal-slot HUD protection for Bookmarks and Quick-marks.
+- Support configurable navigation key layouts (`"navigation_keys"`: `"ijkl"`, `"hjkl"`, or `"jhlk"`), remapping home-row navigation across normal, selection, extend, and modal layers (`hjkl`: `h`=Left, `j`=Down, `k`=Up, `l`=Right; `jhlk`: `j`=Left, `h`=Up, `l`=Down, `k`=Right).
+- Provide configurable pair roles for `y/;`, `i/o`, and `u/p` in `hjkl` and `jhlk` modes (`"insert"`, `"np"`, `"fl"`) with automatic collision resolution and literal-slot HUD protection for Bookmarks and Quick-marks.
+- Support `"jhlk_np_rl_inverse"` option to invert Right/Left motions (`j`/`k`) and configured Next/Previous pair directions in `jhlk` mode.
 - Enable `Space` to dismiss open HUD menus without losing momentary hold/release semantics.
 - Allow `Enter` on momentary layers to execute tap actions and close the layer.
 
@@ -173,23 +174,28 @@ The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `confi
     - `h` / `;`: open untitled file left / right
   - **Tap `e`:** Toggles selection mark (`ToggleSelectionMark`).
 
-### 3.5 Configurable Navigation Keys (HJKL / IJKL) (`src/config.rs`, `src/components/editor_keymap.rs`)
+### 3.5 Configurable Navigation Keys (IJKL / HJKL / JHLK) (`src/config.rs`, `src/components/editor_keymap.rs`)
 
-Ki navigation can be set to either standard `ijkl` or classic Vim-style `hjkl` via `"navigation_keys"` in `config.json` (`"ijkl"` or `"hjkl"`, default `"ijkl"`).
+Ki navigation can be set via `"navigation_keys"` in `config.json` (`"ijkl"`, `"hjkl"`, or `"jhlk"`, default `"ijkl"`).
 
-#### Core Navigation in `"hjkl"` Mode
-- `h`: Left (`<<`) — functions as `j` in Ki
-- `j`: Down (`v`) — functions as `k` in Ki
-- `k`: Up (`^`) — functions as `i` in Ki
-- `l`: Right (`>>`) — functions as `l` in Ki
-- Modifiers map consistently across modes: Shift/Caps counterparts (`H`=Dedent, `J`=Break, `K`=Join, `L`=Indent) and Alt counterparts (`Alt+j`=Scroll Down, `Alt+k`=Scroll Up).
+#### Core Navigation Motions
+
+| Layout | Left (`<<`) | Down (`v`) | Up (`^`) | Right (`>>`) |
+| :--- | :--- | :--- | :--- | :--- |
+| `"ijkl"` (Ki standard) | `j` | `k` | `i` | `l` |
+| `"hjkl"` (Vim style) | `h` | `j` | `k` | `l` |
+| `"jhlk"` | `j` | `l` | `h` | `k` |
+
+- **Modifiers:** Shift/Caps counterparts (Dedent, Break, Join, Indent) and Alt counterparts (Scroll Down, Scroll Up) follow the mapped directions consistently across normal, selection, extend, and modal layers.
+  - In `"hjkl"`: `H`=Dedent, `J`=Break, `K`=Join, `L`=Indent, `Alt+j`=Scroll Down, `Alt+k`=Scroll Up.
+  - In `"jhlk"`: `J`=Dedent, `L`=Break, `H`=Join, `K`=Indent, `Alt+l`=Scroll Down, `Alt+h`=Scroll Up.
 
 #### Configurable Action Pairs (`hjkl_y;_action`, `hjkl_io_action`, `hjkl_up_action`)
-In `"hjkl"` mode, the three remaining key pairs (`y/;`, `i/o`, and `u/p`) are individually assignable to one of three roles (`"insert"`, `"np"`, `"fl"`):
+In both `"hjkl"` and `"jhlk"` modes, the three remaining key pairs (`y/;`, `i/o`, and `u/p`) are individually assignable to one of three roles (`"insert"`, `"np"`, `"fl"`):
 
 | Config Key | Default Role | Keys Controlled |
 | :--- | :--- | :--- |
-| `"hjkl_y;_action"` | `"insert"` | `y` and `;` |
+| `"hjkl_y;_action"` (or `"hjkl_j;_action"`) | `"insert"` | `y` and `;` |
 | `"hjkl_io_action"` | `"np"` (Prev/Next) | `i` and `o` |
 | `"hjkl_up_action"` | `"fl"` (First/Last) | `u` and `p` |
 
@@ -197,12 +203,23 @@ In `"hjkl"` mode, the three remaining key pairs (`y/;`, `i/o`, and `u/p`) are in
   - `"insert"`: First key acts as `h` (`← Insert`), second key acts as `;` (`Insert →`).
   - `"np"`: First key acts as `u` (`< Previous`), second key acts as `o` (`> Next`).
   - `"fl"`: First key acts as `y` (`|< First`), second key acts as `p` (`>| Last`).
-- **Default Layout (`y/;-insert, io-np, up-fl`):**
-  - Row 0: `y` (Insert ←), `u` (|< First), `i` (< Prev), `o` (> Next), `p` (>| Last)
-  - Row 1: `h` (<< Left), `j` (v Down), `k` (^ Up), `l` (>> Right), `;` (Insert →)
+- **Default Layouts:**
+  - In `"hjkl"` (`y/;-insert, io-np, up-fl`):
+    - Row 0: `y` (Insert ←), `u` (|< First), `i` (< Prev), `o` (> Next), `p` (>| Last)
+    - Row 1: `h` (<< Left), `j` (v Down), `k` (^ Up), `l` (>> Right), `;` (Insert →)
+  - In `"jhlk"` (`y/;-insert, io-np, up-fl`):
+    - Row 0: `y` (Insert ←), `u` (|< First), `i` (< Prev), `o` (> Next), `p` (>| Last)
+    - Row 1: `h` (^ Up), `j` (<< Left), `k` (>> Right), `l` (v Down), `;` (Insert →)
 - **Collision Guard:** If any of the three settings share the same role or collide, all three automatically revert to default (`insert`, `np`, `fl`) and a descriptive warning is added to `load_errors`.
 - **Text Insertion Safety:** Literal character typing in Insert mode (`original.code`) is unaffected.
 - **HUD Alignment:** Keymap HUDs reflect the remapped actions under each physical cell, while literal-slot keymaps (Quick-marks and Bookmarks) bypass navigation remapping to prevent letter jumbling.
+
+#### Right/Left and Next/Previous Inversion (`"jhlk_np_rl_inverse"`)
+- **Config Key:** `"jhlk_np_rl_inverse": false` (boolean, default `false`).
+- When set to `true` while using `"navigation_keys": "jhlk"`:
+  - Core Right/Left keys invert: `j` navigates Right (`l` in Ki) and `k` navigates Left (`j` in Ki), along with their Shift (Indent/Dedent) and Alt counterparts.
+  - The configured Next/Previous pair (whichever of `io`, `up`, or `y;` has the `"np"` action) inverts: the first key navigates Next (`o` in Ki) and the second key navigates Previous (`u` in Ki).
+  - Core Up (`h`), Down (`l`), First/Last (`"fl"`), and Insert (`"insert"`) actions remain unchanged.
 
 ---
 

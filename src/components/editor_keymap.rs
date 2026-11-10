@@ -303,7 +303,7 @@ pub fn remap_navigation_key(
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
 ) -> KeyEvent {
-    if navigation_keys != crate::config::NavigationKeys::Hjkl {
+    if navigation_keys == crate::config::NavigationKeys::Ijkl {
         return event;
     }
     // Do not remap if Ctrl is pressed
@@ -311,27 +311,57 @@ pub fn remap_navigation_key(
         return event;
     }
 
+    let inverse_np_rl = navigation_keys == crate::config::NavigationKeys::Jhlk
+        && hjkl_config.jhlk_np_rl_inverse;
+
     match event.code {
         KeyCode::Char(c) => {
             let is_shift = event.modifiers.shift || c.is_uppercase();
             let lower_c = c.to_ascii_lowercase();
             let target_char = match lower_c {
                 // Core navigation motions
-                'h' => 'j',
-                'j' => 'k',
-                'k' => 'i',
-                'l' => 'l',
+                'h' => match navigation_keys {
+                    crate::config::NavigationKeys::Hjkl => 'j', // Left
+                    crate::config::NavigationKeys::Jhlk => 'i', // Up
+                    _ => return event,
+                },
+                'j' => match navigation_keys {
+                    crate::config::NavigationKeys::Hjkl => 'k', // Down
+                    crate::config::NavigationKeys::Jhlk => {
+                        if inverse_np_rl {
+                            'l' // Right
+                        } else {
+                            'j' // Left
+                        }
+                    }
+                    _ => return event,
+                },
+                'k' => match navigation_keys {
+                    crate::config::NavigationKeys::Hjkl => 'i', // Up
+                    crate::config::NavigationKeys::Jhlk => {
+                        if inverse_np_rl {
+                            'j' // Left
+                        } else {
+                            'l' // Right
+                        }
+                    }
+                    _ => return event,
+                },
+                'l' => match navigation_keys {
+                    crate::config::NavigationKeys::Hjkl => 'l', // Right
+                    crate::config::NavigationKeys::Jhlk => 'k', // Down
+                    _ => return event,
+                },
 
                 // The 3 configurable pairs
-                'y' => hjkl_config.y_semicolon_action.start_target(),
-                ';' => hjkl_config.y_semicolon_action.end_target(),
-                ':' => hjkl_config.y_semicolon_action.end_target(),
+                'y' => hjkl_config.y_semicolon_action.start_target_with_inverse(inverse_np_rl),
+                ';' | ':' => hjkl_config.y_semicolon_action.end_target_with_inverse(inverse_np_rl),
 
-                'i' => hjkl_config.io_action.start_target(),
-                'o' => hjkl_config.io_action.end_target(),
+                'i' => hjkl_config.io_action.start_target_with_inverse(inverse_np_rl),
+                'o' => hjkl_config.io_action.end_target_with_inverse(inverse_np_rl),
 
-                'u' => hjkl_config.up_action.start_target(),
-                'p' => hjkl_config.up_action.end_target(),
+                'u' => hjkl_config.up_action.start_target_with_inverse(inverse_np_rl),
+                'p' => hjkl_config.up_action.end_target_with_inverse(inverse_np_rl),
 
                 _ => return event,
             };

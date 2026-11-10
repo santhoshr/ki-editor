@@ -82,7 +82,14 @@ pub struct RawConfig {
     #[serde(default)]
     navigation_keys: NavigationKeys,
     #[serde(default = "default_hjkl_y_semicolon_action")]
-    #[serde(rename = "hjkl_y;_action", alias = "hjkl_y_semicolon_action", alias = "hjkl_y_action")]
+    #[serde(
+        rename = "hjkl_y;_action",
+        alias = "hjkl_j;_action",
+        alias = "hjkl_y_semicolon_action",
+        alias = "hjkl_j_semicolon_action",
+        alias = "hjkl_y_action",
+        alias = "hjkl_j_action"
+    )]
     hjkl_y_semicolon_action: HjklPairAction,
     #[serde(default = "default_hjkl_io_action")]
     #[serde(rename = "hjkl_io_action", alias = "hjkl_i_o_action")]
@@ -90,6 +97,9 @@ pub struct RawConfig {
     #[serde(default = "default_hjkl_up_action")]
     #[serde(rename = "hjkl_up_action", alias = "hjkl_u_p_action")]
     hjkl_up_action: HjklPairAction,
+    #[serde(default)]
+    #[serde(rename = "jhlk_np_rl_inverse", alias = "jhlk_inverse")]
+    jhlk_np_rl_inverse: bool,
 }
 
 fn default_hjkl_y_semicolon_action() -> HjklPairAction {
@@ -116,17 +126,25 @@ pub enum HjklPairAction {
 
 impl HjklPairAction {
     pub fn start_target(&self) -> char {
+        self.start_target_with_inverse(false)
+    }
+
+    pub fn end_target(&self) -> char {
+        self.end_target_with_inverse(false)
+    }
+
+    pub fn start_target_with_inverse(&self, inverse_np: bool) -> char {
         match self {
             HjklPairAction::Insert => 'h',
-            HjklPairAction::Np => 'u',
+            HjklPairAction::Np => if inverse_np { 'o' } else { 'u' },
             HjklPairAction::Fl => 'y',
         }
     }
 
-    pub fn end_target(&self) -> char {
+    pub fn end_target_with_inverse(&self, inverse_np: bool) -> char {
         match self {
             HjklPairAction::Insert => ';',
-            HjklPairAction::Np => 'o',
+            HjklPairAction::Np => if inverse_np { 'u' } else { 'o' },
             HjklPairAction::Fl => 'p',
         }
     }
@@ -137,6 +155,7 @@ pub struct HjklConfig {
     pub y_semicolon_action: HjklPairAction,
     pub io_action: HjklPairAction,
     pub up_action: HjklPairAction,
+    pub jhlk_np_rl_inverse: bool,
 }
 
 impl Default for HjklConfig {
@@ -145,6 +164,7 @@ impl Default for HjklConfig {
             y_semicolon_action: HjklPairAction::Insert,
             io_action: HjklPairAction::Np,
             up_action: HjklPairAction::Fl,
+            jhlk_np_rl_inverse: false,
         }
     }
 }
@@ -156,6 +176,8 @@ pub enum NavigationKeys {
     Ijkl,
     #[serde(rename = "hjkl", alias = "HJKL")]
     Hjkl,
+    #[serde(rename = "jhlk", alias = "JHLK")]
+    Jhlk,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -357,6 +379,7 @@ impl TryFrom<RawConfig> for AppConfig {
             y_semicolon_action: hjkl_y_semicolon_action,
             io_action: hjkl_io_action,
             up_action: hjkl_up_action,
+            jhlk_np_rl_inverse: value.jhlk_np_rl_inverse,
         };
 
         let keyboard_layouts: HashMap<_, _> = builtin_layout_map()

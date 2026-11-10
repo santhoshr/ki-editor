@@ -48,5 +48,6 @@
     "navigation_keys": "ijkl",
     "hjkl_y;_action": "insert",
     "hjkl_io_action": "np",
-    "hjkl_up_action": "fl"
+    "hjkl_up_action": "fl",
+    "jhlk_np_rl_inverse": false
 }

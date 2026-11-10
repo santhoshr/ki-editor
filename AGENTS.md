@@ -1504,6 +1504,43 @@ Updated `README.md` with:
 **Response:**
 Staged all changes and committed as `docs: update README.md with configurable navigation keys (hjkl/ijkl)`.
 
+### Request 208
+> "create one more navigation keys, "jhlk" like "ijkl" and "hjkl", where j/k is right/left; h/l is up/down; it supports default and configurable, hjkl_j;_action, hjkl_io_action, hjkl_up_action for rest of the navigation"
+**Response:**
+1. Added `"jhlk"` variant to `NavigationKeys` in `src/config.rs` (`#[serde(rename = "jhlk", alias = "JHLK")]`).
+2. Supported aliases for `hjkl_y_semicolon_action` including `"hjkl_j;_action"`, `"hjkl_j_semicolon_action"`, and `"hjkl_j_action"` across strict serde and lenient parser (`src/config/lenient.rs`).
+3. Updated `remap_navigation_key` in `src/components/editor_keymap.rs` so that when `navigation_keys` is `Jhlk`:
+   - `j` maps to Right (`l`), `k` maps to Left (`j`).
+   - `h` maps to Up (`i`), `l` maps to Down (`k`).
+   - Shift and Alt modifiers follow mapped directions across normal, selection, extend, and modal layers.
+   - Pairs `y/;`, `i/o`, and `u/p` respect configured/default roles (`"insert"`, `"np"`, `"fl"`).
+4. Verified that literal-slot HUD rendering (Quick-marks, Bookmarks) and literal Insert mode typing remain protected.
+5. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html` with `"jhlk"` documentation.
+
+### Request 209
+> "make j map to left, k map to right in "jhlk""
+**Response:**
+Updated `remap_navigation_key` in `src/components/editor_keymap.rs` for `"jhlk"` so:
+- `j` maps to Left (`j`), `Shift+J` to Dedent (`J`), `Alt+J` to Alt+J.
+- `k` maps to Right (`l`), `Shift+K` to Indent (`L`), `Alt+K` to Alt+L.
+- `h` remains Up (`i`), `l` remains Down (`k`).
+Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+
+### Request 210
+> "provide jhlk_np_rl_inverse: true/false, default to false, if it is true, configured, right/left, next/previous, will navigate in opposite way, for e.g. so j/k navigate in right/left as well configure next/previous will also navigate previous/next, it could be one of io/up/y; pairs; up, down, first, last remains as it is"
+**Response:**
+Added `jhlk_np_rl_inverse: bool` (default `false`) in `src/config.rs`, `src/config/lenient.rs`, and `src/config_default.json`. In `src/components/editor_keymap.rs`:
+- When `navigation_keys == Jhlk` and `jhlk_np_rl_inverse == true`:
+  - `j` maps to Right (`l`) and `k` maps to Left (`j`), with their Shift (Indent/Dedent) and Alt motions.
+  - The configured Next/Previous pair (whichever of `y/;`, `i/o`, or `u/p` is assigned the `"np"` role) inverts its direction so the first key navigates Next (`o`) and the second key navigates Previous (`u`).
+  - Core Up (`h`), Down (`l`), First/Last (`"fl"`), and Insert (`"insert"`) actions remain unchanged.
+Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+
+### Request 211
+> "commit"
+**Response:**
+Staged all changes and committed as `feat(navigation): add jhlk navigation keys layout and jhlk_np_rl_inverse config`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -195,9 +195,11 @@ In both `"hjkl"` and `"jhlk"` modes, the three remaining key pairs (`y/;`, `i/o`
 
 | Config Key | Default Role | Keys Controlled |
 | :--- | :--- | :--- |
-| `"hjkl_y;_action"` (or `"hjkl_j;_action"`) | `"insert"` | `y` and `;` |
+| `"hjkl_y;_action"` | `"insert"` | `y` and `;` |
 | `"hjkl_io_action"` | `"np"` (Prev/Next) | `i` and `o` |
 | `"hjkl_up_action"` | `"fl"` (First/Last) | `u` and `p` |
+
+*(Note: `"hjkl_y_semicolon_action"` is also supported as an alias if JSON linters or tooling disallow literal semicolons in property keys.)*
 
 - **Role Definitions:**
   - `"insert"`: First key acts as `h` (`← Insert`), second key acts as `;` (`Insert →`).
@@ -316,9 +318,10 @@ Implemented in `src/bookmarks.rs` and `src/keymap_override/bookmark.rs`. Both sy
 
 ### 7.2 Configuration & Invocations
 - **Invocations:**
-  - `"bookmark_menu_invocation"`: `"B"` (default), `":"`, or `"1"`.
-  - `"quick_marks_menu_invocation"`: `":"` (default) or `"1"`.
-  - `"command_menu_invocation"`: `"Space"`, `"c"`, `"C"`, or `":"`.
+  - `"bookmark_menu_invocation"`: `"B"` (default), `":"` (or `"colon"`, `"shift+;"`, `"shift+semicolon"`), or `"1"`.
+  - `"quick_marks_menu_invocation"`: `":"` (default, or `"colon"`, `"shift+;"`, `"shift+semicolon"`) or `"1"`.
+  - `"command_menu_invocation"`: `"Space"`, `"c"`, `"C"`, or `":"` (or `"colon"`, `"shift+;"`, `"shift+semicolon"`).
+  - *(Note: For `:` invocations, `"colon"`, `"shift+;"`, or `"shift+semicolon"` can be used interchangeably in configs and CLI/shell scripts.)*
 - **Conflict Resolution Priority:**
   - If **Command menu** is configured for `":"`: Command menu gets `":"`, Quick-marks gets `"1"`, Bookmarks gets `"B"`.
   - If both **Quick-marks** and **Bookmarks** are configured for `":"`: Quick-marks gets `":"` and Bookmarks gets `"1"`.

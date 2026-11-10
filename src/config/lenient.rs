@@ -134,7 +134,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
     let (navigation_keys, navigation_keys_error) =
         extract_field!(navigation_keys, "navigation_keys");
     let (hjkl_y_semicolon_action, hjkl_y_semicolon_action_error) =
-        match figment.find_value("hjkl_y;_action").or_else(|_| figment.find_value("hjkl_j;_action")) {
+        match figment.find_value("hjkl_y;_action") {
             Ok(value) => match serde_path_to_error::deserialize(&value) {
                 Ok(deserialized) => (deserialized, None),
                 Err(error) => (
@@ -152,19 +152,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
     let (hjkl_up_action, hjkl_up_action_error) =
         extract_field!(hjkl_up_action, "hjkl_up_action");
     let (jhlk_np_rl_inverse, jhlk_np_rl_inverse_error) =
-        match figment.find_value("jhlk_np_rl_inverse").or_else(|_| figment.find_value("jhlk_inverse")) {
-            Ok(value) => match serde_path_to_error::deserialize(&value) {
-                Ok(deserialized) => (deserialized, None),
-                Err(error) => (
-                    default.jhlk_np_rl_inverse,
-                    Some(format!(
-                        "{}, using default value",
-                        describe_path_error(figment, value.tag(), "jhlk_np_rl_inverse", error)
-                    )),
-                ),
-            },
-            Err(_) => extract_field!(jhlk_np_rl_inverse, "jhlk_np_rl_inverse"),
-        };
+        extract_field!(jhlk_np_rl_inverse, "jhlk_np_rl_inverse");
 
     let config = RawConfig {
         languages,

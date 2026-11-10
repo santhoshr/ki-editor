@@ -1541,6 +1541,40 @@ Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
 **Response:**
 Staged all changes and committed as `feat(navigation): add jhlk navigation keys layout and jhlk_np_rl_inverse config`.
 
+### Request 212
+> "what is this config "hjkl_j;_action" ?"
+> "remove it"
+> "continue, let me know any other alias was added"
+**Response:**
+1. Removed `hjkl_j;_action`, `hjkl_j_semicolon_action`, and `hjkl_j_action` from `src/config.rs`, `src/config/lenient.rs`, and `README.md`.
+2. Audited and reported all remaining config field and enum aliases to the user.
+
+### Request 213
+> "keep the semicolon alias alone remove rest, mention it so if we get linter errors we can use this"
+**Response:**
+1. Retained `"hjkl_y_semicolon_action"` as the only alias for `"hjkl_y;_action"` in `src/config.rs` and `src/config/lenient.rs`.
+2. Removed all other pair and inversion aliases (`hjkl_y_action`, `hjkl_i_o_action`, `hjkl_u_p_action`, `jhlk_inverse`) from `src/config.rs` and `src/config/lenient.rs`.
+3. Documented `"hjkl_y_semicolon_action"` in `README.md` and `newdoc/kustom-ki.html` for JSON linter/validator compatibility.
+
+### Request 214
+> "should we also keep the : / colon alias?"
+> "yes keep colon and mention it"
+**Response:**
+Retained `: / colon / Shift+;` aliases on menu invocation types (`QuickMarksMenuInvocation`, `BookmarkMenuInvocation`, `CommandMenuInvocation`) in `src/config.rs`. Documented `"colon"` and `"Shift+;"` as supported alternatives to `":"` across `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+
+### Request 215
+> "remove Colon/Shift+;, add shift+semicolon along with :/colon/shift+;"
+**Response:**
+Updated menu invocation enums (`QuickMarksMenuInvocation`, `BookmarkMenuInvocation`, and `CommandMenuInvocation`) in `src/config.rs`:
+- Removed `"Colon"` (uppercase C) and `"Shift+;"` (uppercase S).
+- Configured supported keys: `":"`, `"colon"`, `"shift+;"`, and `"shift+semicolon"`.
+Updated documentation in `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+
+### Request 216
+> "commit"
+**Response:**
+Staged all changes and committed as `refactor(config): clean up aliases, retain semicolon and lowercase colon/shift variants`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

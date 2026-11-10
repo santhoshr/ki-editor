@@ -820,8 +820,8 @@
             <li><strong>Persistent Storage:</strong> Backed by <code>~/.config/ki/bookmarks.json</code> and <code>~/.config/ki/quick_marks.json</code> with live disk watcher reload on external file modifications.</li>
             <li><strong>Invocations &amp; Conflict Resolution:</strong>
               <ul>
-                <li><strong>Bookmarks:</strong> Configurable via <code>"bookmark_menu_invocation"</code>: <code>"B"</code> (default), <code>":"</code>, or <code>"1"</code>.</li>
-                <li><strong>Quick-marks:</strong> Configurable via <code>"quick_marks_menu_invocation"</code>: <code>":"</code> (default) or <code>"1"</code>.</li>
+                <li><strong>Bookmarks:</strong> Configurable via <code>"bookmark_menu_invocation"</code>: <code>"B"</code> (default), <code>":"</code> (or <code>"colon"</code> / <code>"shift+;"</code> / <code>"shift+semicolon"</code>), or <code>"1"</code>.</li>
+                <li><strong>Quick-marks:</strong> Configurable via <code>"quick_marks_menu_invocation"</code>: <code>":"</code> (default, or <code>"colon"</code> / <code>"shift+;"</code> / <code>"shift+semicolon"</code>) or <code>"1"</code>.</li>
                 <li><strong>Conflict Resolution:</strong>
                   <ul>
                     <li>If Command menu is <code>":"</code>: Command gets <code>":"</code>, Quick-marks gets <code>"1"</code>, Bookmarks gets <code>"B"</code>.</li>
@@ -896,7 +896,7 @@
             </li>
             <li><strong>HJKL / JHLK Configurable Pairs:</strong> In both <code>"hjkl"</code> and <code>"jhlk"</code> modes, the roles for the remaining three key pairs are configurable via:
               <ul>
-                <li><code>"hjkl_y;_action"</code>: <code>"insert"</code> (default), <code>"fl"</code>, or <code>"np"</code>. Controls keys <kbd>y</kbd> and <kbd>;</kbd>.</li>
+                <li><code>"hjkl_y;_action"</code> (or <code>"hjkl_y_semicolon_action"</code> for linter compatibility): <code>"insert"</code> (default), <code>"fl"</code>, or <code>"np"</code>. Controls keys <kbd>y</kbd> and <kbd>;</kbd>.</li>
                 <li><code>"hjkl_io_action"</code>: <code>"np"</code> (default, Prev/Next), <code>"insert"</code>, or <code>"fl"</code>. Controls keys <kbd>i</kbd> and <kbd>o</kbd>.</li>
                 <li><code>"hjkl_up_action"</code>: <code>"fl"</code> (default, First/Last), <code>"insert"</code>, or <code>"np"</code>. Controls keys <kbd>u</kbd> and <kbd>p</kbd>.</li>
               </ul>

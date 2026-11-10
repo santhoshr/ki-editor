@@ -82,23 +82,13 @@ pub struct RawConfig {
     #[serde(default)]
     navigation_keys: NavigationKeys,
     #[serde(default = "default_hjkl_y_semicolon_action")]
-    #[serde(
-        rename = "hjkl_y;_action",
-        alias = "hjkl_j;_action",
-        alias = "hjkl_y_semicolon_action",
-        alias = "hjkl_j_semicolon_action",
-        alias = "hjkl_y_action",
-        alias = "hjkl_j_action"
-    )]
+    #[serde(rename = "hjkl_y;_action", alias = "hjkl_y_semicolon_action")]
     hjkl_y_semicolon_action: HjklPairAction,
     #[serde(default = "default_hjkl_io_action")]
-    #[serde(rename = "hjkl_io_action", alias = "hjkl_i_o_action")]
     hjkl_io_action: HjklPairAction,
     #[serde(default = "default_hjkl_up_action")]
-    #[serde(rename = "hjkl_up_action", alias = "hjkl_u_p_action")]
     hjkl_up_action: HjklPairAction,
     #[serde(default)]
-    #[serde(rename = "jhlk_np_rl_inverse", alias = "jhlk_inverse")]
     jhlk_np_rl_inverse: bool,
 }
 
@@ -207,7 +197,7 @@ pub enum CommandMenuInvocation {
     LowerC,
     #[serde(rename = "C")]
     UpperC,
-    #[serde(rename = "Shift+;", alias = ":")]
+    #[serde(rename = ":", alias = "colon", alias = "shift+;", alias = "shift+semicolon")]
     ShiftSemicolon,
 }
 
@@ -244,7 +234,7 @@ impl CommandMenuInvocation {
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum QuickMarksMenuInvocation {
     #[default]
-    #[serde(rename = ":", alias = "colon", alias = "Colon", alias = "Shift+;")]
+    #[serde(rename = ":", alias = "colon", alias = "shift+;", alias = "shift+semicolon")]
     Colon,
     #[serde(rename = "1", alias = "One", alias = "one")]
     One,
@@ -281,7 +271,7 @@ pub enum BookmarkMenuInvocation {
     #[default]
     #[serde(rename = "B", alias = "b")]
     B,
-    #[serde(rename = ":", alias = "colon", alias = "Colon", alias = "Shift+;")]
+    #[serde(rename = ":", alias = "colon", alias = "shift+;", alias = "shift+semicolon")]
     Colon,
     #[serde(rename = "1", alias = "One", alias = "one")]
     One,

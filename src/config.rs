@@ -41,6 +41,8 @@ pub struct AppConfig {
     e_normal_mode: ENormalMode,
     filetree_open_with_path: bool,
     icon_config: shared::icons::IconsConfig,
+    navigation_keys: NavigationKeys,
+    hjkl_config: HjklConfig,
     load_errors: Vec<String>,
 }
 
@@ -77,6 +79,83 @@ pub struct RawConfig {
     filetree_open_with_path: bool,
     #[serde(default)]
     icon_style: shared::icons::IconStyle,
+    #[serde(default)]
+    navigation_keys: NavigationKeys,
+    #[serde(default = "default_hjkl_y_semicolon_action")]
+    #[serde(rename = "hjkl_y;_action", alias = "hjkl_y_semicolon_action", alias = "hjkl_y_action")]
+    hjkl_y_semicolon_action: HjklPairAction,
+    #[serde(default = "default_hjkl_io_action")]
+    #[serde(rename = "hjkl_io_action", alias = "hjkl_i_o_action")]
+    hjkl_io_action: HjklPairAction,
+    #[serde(default = "default_hjkl_up_action")]
+    #[serde(rename = "hjkl_up_action", alias = "hjkl_u_p_action")]
+    hjkl_up_action: HjklPairAction,
+}
+
+fn default_hjkl_y_semicolon_action() -> HjklPairAction {
+    HjklPairAction::Insert
+}
+
+fn default_hjkl_io_action() -> HjklPairAction {
+    HjklPairAction::Np
+}
+
+fn default_hjkl_up_action() -> HjklPairAction {
+    HjklPairAction::Fl
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HjklPairAction {
+    #[serde(rename = "insert", alias = "Insert", alias = "INSERT")]
+    Insert,
+    #[serde(rename = "fl", alias = "FL", alias = "first_last", alias = "first-last", alias = "FirstLast")]
+    Fl,
+    #[serde(rename = "np", alias = "NP", alias = "prev_next", alias = "prev-next", alias = "PrevNext", alias = "next_prev")]
+    Np,
+}
+
+impl HjklPairAction {
+    pub fn start_target(&self) -> char {
+        match self {
+            HjklPairAction::Insert => 'h',
+            HjklPairAction::Np => 'u',
+            HjklPairAction::Fl => 'y',
+        }
+    }
+
+    pub fn end_target(&self) -> char {
+        match self {
+            HjklPairAction::Insert => ';',
+            HjklPairAction::Np => 'o',
+            HjklPairAction::Fl => 'p',
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HjklConfig {
+    pub y_semicolon_action: HjklPairAction,
+    pub io_action: HjklPairAction,
+    pub up_action: HjklPairAction,
+}
+
+impl Default for HjklConfig {
+    fn default() -> Self {
+        Self {
+            y_semicolon_action: HjklPairAction::Insert,
+            io_action: HjklPairAction::Np,
+            up_action: HjklPairAction::Fl,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum NavigationKeys {
+    #[default]
+    #[serde(rename = "ijkl", alias = "IJKL")]
+    Ijkl,
+    #[serde(rename = "hjkl", alias = "HJKL")]
+    Hjkl,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -256,6 +335,30 @@ impl Default for RawConfig {
 impl TryFrom<RawConfig> for AppConfig {
     type Error = anyhow::Error;
     fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
+        let (hjkl_y_semicolon_action, hjkl_io_action, hjkl_up_action, collision_errors) = {
+            let y_act = value.hjkl_y_semicolon_action;
+            let io_act = value.hjkl_io_action;
+            let up_act = value.hjkl_up_action;
+            if y_act == io_act || y_act == up_act || io_act == up_act {
+                let msg = format!(
+                    "Collision in HJKL key action mappings: 'hjkl_y;_action' is {y_act:?}, 'hjkl_io_action' is {io_act:?}, 'hjkl_up_action' is {up_act:?}. Reverting all to default (y;=insert, io=np, up=fl)."
+                );
+                (
+                    HjklPairAction::Insert,
+                    HjklPairAction::Np,
+                    HjklPairAction::Fl,
+                    vec![msg],
+                )
+            } else {
+                (y_act, io_act, up_act, Vec::new())
+            }
+        };
+        let hjkl_config = HjklConfig {
+            y_semicolon_action: hjkl_y_semicolon_action,
+            io_action: hjkl_io_action,
+            up_action: hjkl_up_action,
+        };
+
         let keyboard_layouts: HashMap<_, _> = builtin_layout_map()
             .into_iter()
             .chain(
@@ -264,6 +367,11 @@ impl TryFrom<RawConfig> for AppConfig {
                     .into_iter()
                     .map(|(name, keys)| (name.clone(), KeyboardLayout::new(name, keys))),
             )
+            .map(|(name, mut layout)| {
+                layout.set_navigation_keys(value.navigation_keys);
+                layout.set_hjkl_config(hjkl_config);
+                (name, layout)
+            })
             .collect();
         let keyboard_layout = keyboard_layouts
             .get(&value.keyboard_layout)
@@ -271,8 +379,9 @@ impl TryFrom<RawConfig> for AppConfig {
                 "Unknown keyboard layout {}, possible values are {:?}",
                 value.keyboard_layout,
                 keyboard_layouts.keys().collect::<Vec<_>>()
-            ))?;
-        let (quick_marks_menu_invocation, bookmark_menu_invocation, load_errors) = {
+            ))?
+            .clone();
+        let (quick_marks_menu_invocation, bookmark_menu_invocation, mut load_errors) = {
             if value.command_menu_invocation == CommandMenuInvocation::ShiftSemicolon {
                 let mut errs = Vec::new();
                 if value.quick_marks_menu_invocation == Some(QuickMarksMenuInvocation::Colon)
@@ -304,6 +413,7 @@ impl TryFrom<RawConfig> for AppConfig {
                 }
             }
         };
+        load_errors.extend(collision_errors);
 
         Ok(Self {
             languages: value.languages,
@@ -327,6 +437,8 @@ impl TryFrom<RawConfig> for AppConfig {
             e_normal_mode: value.e_normal_mode,
             filetree_open_with_path: value.filetree_open_with_path,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
+            navigation_keys: value.navigation_keys,
+            hjkl_config,
             load_errors,
         })
     }
@@ -699,6 +811,14 @@ impl AppConfig {
 
     pub fn icon_config(&self) -> &shared::icons::IconsConfig {
         &self.icon_config
+    }
+
+    pub fn navigation_keys(&self) -> NavigationKeys {
+        self.navigation_keys
+    }
+
+    pub fn hjkl_config(&self) -> HjklConfig {
+        self.hjkl_config
     }
 }
 

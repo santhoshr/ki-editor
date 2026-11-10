@@ -95,11 +95,19 @@ impl Keymap {
         option: &KeymapDisplayOption,
         layout: Option<&KeyboardLayout>,
     ) -> String {
-        KeymapPrintSection::from_keymap("".to_string(), self).display(
-            terminal_width,
-            option,
-            layout,
+        let (navigation_keys, hjkl_config) = layout
+            .map(|l| (l.navigation_keys(), l.hjkl_config()))
+            .unwrap_or_else(|| {
+                let app_config = crate::config::AppConfig::singleton();
+                (app_config.navigation_keys(), app_config.hjkl_config())
+            });
+        KeymapPrintSection::from_keymap_with_navigation_keys(
+            "".to_string(),
+            self,
+            navigation_keys,
+            hjkl_config,
         )
+        .display(terminal_width, option, layout)
     }
     pub fn new(keybindings: &[Keybinding]) -> Self {
         Self(keybindings.to_vec())
@@ -125,11 +133,19 @@ impl KeymapLegendConfig {
         option: &KeymapDisplayOption,
         layout: Option<&KeyboardLayout>,
     ) -> String {
-        KeymapPrintSection::from_keymap(self.title.clone(), &self.keymap).display(
-            width,
-            option,
-            layout,
+        let (navigation_keys, hjkl_config) = layout
+            .map(|l| (l.navigation_keys(), l.hjkl_config()))
+            .unwrap_or_else(|| {
+                let app_config = crate::config::AppConfig::singleton();
+                (app_config.navigation_keys(), app_config.hjkl_config())
+            });
+        KeymapPrintSection::from_keymap_with_navigation_keys(
+            self.title.clone(),
+            &self.keymap,
+            navigation_keys,
+            hjkl_config,
         )
+        .display(width, option, layout)
     }
 
     pub fn keymap(&self) -> Keymap {

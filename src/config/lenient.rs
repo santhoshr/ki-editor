@@ -131,6 +131,26 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
     let (filetree_open_with_path, filetree_open_with_path_error) =
         extract_field!(filetree_open_with_path, "filetree_open_with_path");
     let (icon_style, icon_style_error) = extract_field!(icon_style, "icon_style");
+    let (navigation_keys, navigation_keys_error) =
+        extract_field!(navigation_keys, "navigation_keys");
+    let (hjkl_y_semicolon_action, hjkl_y_semicolon_action_error) =
+        match figment.find_value("hjkl_y;_action") {
+            Ok(value) => match serde_path_to_error::deserialize(&value) {
+                Ok(deserialized) => (deserialized, None),
+                Err(error) => (
+                    default.hjkl_y_semicolon_action,
+                    Some(format!(
+                        "{}, using default value",
+                        describe_path_error(figment, value.tag(), "hjkl_y;_action", error)
+                    )),
+                ),
+            },
+            Err(_) => extract_field!(hjkl_y_semicolon_action, "hjkl_y_semicolon_action"),
+        };
+    let (hjkl_io_action, hjkl_io_action_error) =
+        extract_field!(hjkl_io_action, "hjkl_io_action");
+    let (hjkl_up_action, hjkl_up_action_error) =
+        extract_field!(hjkl_up_action, "hjkl_up_action");
 
     let config = RawConfig {
         languages,
@@ -151,6 +171,10 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         e_normal_mode,
         filetree_open_with_path,
         icon_style,
+        navigation_keys,
+        hjkl_y_semicolon_action,
+        hjkl_io_action,
+        hjkl_up_action,
     };
 
     let errors = language_errors
@@ -172,6 +196,10 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(e_normal_mode_error)
         .chain(filetree_open_with_path_error)
         .chain(icon_style_error)
+        .chain(navigation_keys_error)
+        .chain(hjkl_y_semicolon_action_error)
+        .chain(hjkl_io_action_error)
+        .chain(hjkl_up_action_error)
         .collect();
 
     (config, errors).into()

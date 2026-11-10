@@ -1457,6 +1457,40 @@ In `src/keymap_override/bookmark.rs`:
 **Response:**
 Staged all changes and committed as `feat(quick_marks): shift+key prefills current file path for addition`.
 
+### Request 202
+> "create a navigation keys config, navigation_keys : "hjkl" / "ijkl", in hjkl, make hjkl function as ijkl, with h=j j=k k=i l=l, i=h, o=;, u=y, p=p; including their caps and alt counterpart"
+**Response:**
+- Added `NavigationKeys` enum (`"ijkl"` default, `"hjkl"`) in `src/config.rs`, `RawConfig`, `AppConfig`, `src/config/lenient.rs`, and `src/config_default.json`.
+- Threaded `navigation_keys` into `Context` and `KeyboardLayout`.
+- Implemented `remap_navigation_key` in `src/components/editor_keymap.rs` mapping:
+  - `h = j`, `j = k`, `k = i`, `l = l`, `i = h`, `o = ;`, `u = y`, `p = p`
+  - Shift/Caps counterparts: `H=J`, `J=K`, `K=I`, `L=L`, `I=H`, `O=:`, `U=Y`, `P=P`
+  - Alt counterparts: `Alt+h=Alt+j`, `Alt+j=Alt+k`, `Alt+k=Alt+i`, `Alt+l=Alt+l`, `Alt+i=Alt+h`, `Alt+o=Alt+;`, `Alt+u=Alt+y`, `Alt+p=Alt+p`
+  - Alt+Shift counterparts preserved, while preserving literal text insertion in Insert mode.
+- Updated `editor_keymap_printer.rs` (`KeymapPrintSection`) and `keymap_legend.rs` so that the HUD accurately displays the remapped target action under each physical key cell when `navigation_keys` is set to `"hjkl"`.
+- Updated documentation in `newdoc/index.html` and `newdoc/kustom-ki.html`.
+- Verified cleanly with `cargo build`.
+
+### Request 203
+> "we need to have configurable i/o and u/p and y/; in "hjkl" mode; default to y/; to insert ends, i/o prev/next, u/p to first and last. hjkl_y;_action/hjkl_io_action/hjkl_up_action : insert/fl/np. On collision and same mapping revert to default, after throwing warning."
+**Response:**
+- Added `HjklPairAction` enum (`insert`, `fl`, `np`) and `HjklConfig` struct (`y_semicolon_action`, `io_action`, `up_action`) in `src/config.rs`.
+- Configured JSON keys `hjkl_y;_action` (default `insert`), `hjkl_io_action` (default `np`), and `hjkl_up_action` (default `fl`) in `RawConfig`, `AppConfig`, `src/config/lenient.rs`, and `src/config_default.json`.
+- Added collision detection: if any mappings collide or share the same action, all revert to defaults and a warning is logged in `load_errors`.
+- Updated `remap_navigation_key` in `src/components/editor_keymap.rs` to dynamically map keys using `hjkl_config` (including caps and alt counterparts), and wired through `KeyboardLayout`, `Context`, `editor_keymap_printer.rs`, and `keymap_legend.rs`.
+- Updated `newdoc/index.html` and `newdoc/kustom-ki.html`.
+- Verified cleanly with `cargo build`.
+
+### Request 204
+> "these HUD changes also impact bookmarks/quickmarks letters are jumbled"
+**Response:**
+Identified that `from_keymap_with_navigation_keys` was applying navigation key remapping indiscriminately to literal-slot keymaps (Quick-marks and Bookmarks). Excluded literal keymaps (`is_literal_keymap`) in `src/components/editor_keymap_printer.rs` so physical keys in Quick-marks and Bookmarks display their exact literal slots without jumbling. Verified cleanly with `cargo build`.
+
+### Request 205
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(navigation): configurable navigation keys (hjkl/ijkl) with customizable pairs and HUD alignment`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

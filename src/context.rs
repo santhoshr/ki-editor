@@ -63,6 +63,8 @@ pub struct Context {
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
     filetree_open_with_path: bool,
+    navigation_keys: crate::config::NavigationKeys,
+    hjkl_config: crate::config::HjklConfig,
 
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
@@ -464,6 +466,8 @@ impl Context {
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
             filetree_open_with_path: app_config.filetree_open_with_path(),
+            navigation_keys: app_config.navigation_keys(),
+            hjkl_config: app_config.hjkl_config(),
             non_existent_formatter_commands: Vec::new(),
         }
     }
@@ -672,7 +676,17 @@ impl Context {
         &self.keyboard_layout
     }
 
-    pub fn set_keyboard_layout(&mut self, keyboard_layout: KeyboardLayout) {
+    pub fn navigation_keys(&self) -> crate::config::NavigationKeys {
+        self.navigation_keys
+    }
+
+    pub fn hjkl_config(&self) -> crate::config::HjklConfig {
+        self.hjkl_config
+    }
+
+    pub fn set_keyboard_layout(&mut self, mut keyboard_layout: KeyboardLayout) {
+        keyboard_layout.set_navigation_keys(self.navigation_keys);
+        keyboard_layout.set_hjkl_config(self.hjkl_config);
         self.keyboard_layout = keyboard_layout;
     }
 

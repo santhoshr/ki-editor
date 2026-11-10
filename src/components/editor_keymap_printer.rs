@@ -89,22 +89,54 @@ impl Key {
 
 impl KeymapPrintSection {
     pub fn from_keymap(name: String, keymap: &Keymap) -> Self {
+        let app_config = crate::config::AppConfig::singleton();
+        Self::from_keymap_with_navigation_keys(
+            name,
+            keymap,
+            app_config.navigation_keys(),
+            app_config.hjkl_config(),
+        )
+    }
+
+    pub fn from_keymap_with_navigation_keys(
+        name: String,
+        keymap: &Keymap,
+        navigation_keys: crate::config::NavigationKeys,
+        hjkl_config: crate::config::HjklConfig,
+    ) -> Self {
+        let is_literal_keymap = name.starts_with("≡ Quick-marks")
+            || name.to_lowercase().contains("quick-mark")
+            || name.to_lowercase().contains("quick_mark")
+            || name.starts_with("≡ Bookmark")
+            || name.to_lowercase().contains("bookmark");
+
         KeymapPrintSection {
             name,
             keys: QWERTY_EVENT
                 .iter()
                 .map(|row| {
                     row.iter()
-                        .map(|cell| Key {
-                            normal: keymap.iter().find(|keymap| keymap.event() == cell).cloned(),
-                            shifted: keymap
-                                .iter()
-                                .find(|keymap| keymap.event() == &shifted(*cell))
-                                .cloned(),
-                            alted: keymap
-                                .iter()
-                                .find(|keymap| keymap.event() == &alted(*cell))
-                                .cloned(),
+                        .map(|cell| {
+                            let (target_normal, target_shifted, target_alted) = if is_literal_keymap {
+                                (*cell, shifted(*cell), alted(*cell))
+                            } else {
+                                (
+                                    crate::components::editor_keymap::remap_navigation_key(*cell, navigation_keys, hjkl_config),
+                                    crate::components::editor_keymap::remap_navigation_key(shifted(*cell), navigation_keys, hjkl_config),
+                                    crate::components::editor_keymap::remap_navigation_key(alted(*cell), navigation_keys, hjkl_config),
+                                )
+                            };
+                            Key {
+                                normal: keymap.iter().find(|keymap| keymap.event() == &target_normal).cloned(),
+                                shifted: keymap
+                                    .iter()
+                                    .find(|keymap| keymap.event() == &target_shifted)
+                                    .cloned(),
+                                alted: keymap
+                                    .iter()
+                                    .find(|keymap| keymap.event() == &target_alted)
+                                    .cloned(),
+                            }
                         })
                         .collect()
                 })

@@ -207,6 +207,8 @@ pub struct KeyboardLayout {
     keys: KeyboardLayoutKeys,
     /// The characters produced when each key is pressed with Shift.
     shifted_keys: KeyboardLayoutKeys,
+    navigation_keys: crate::config::NavigationKeys,
+    hjkl_config: crate::config::HjklConfig,
 }
 
 impl KeyboardLayout {
@@ -215,7 +217,35 @@ impl KeyboardLayout {
             name,
             keys,
             shifted_keys: keys.map(|row| row.map(shifted_char)),
+            navigation_keys: crate::config::NavigationKeys::default(),
+            hjkl_config: crate::config::HjklConfig::default(),
         }
+    }
+
+    pub fn navigation_keys(&self) -> crate::config::NavigationKeys {
+        self.navigation_keys
+    }
+
+    pub fn hjkl_config(&self) -> crate::config::HjklConfig {
+        self.hjkl_config
+    }
+
+    pub fn with_navigation_keys(mut self, navigation_keys: crate::config::NavigationKeys) -> Self {
+        self.navigation_keys = navigation_keys;
+        self
+    }
+
+    pub fn set_navigation_keys(&mut self, navigation_keys: crate::config::NavigationKeys) {
+        self.navigation_keys = navigation_keys;
+    }
+
+    pub fn with_hjkl_config(mut self, hjkl_config: crate::config::HjklConfig) -> Self {
+        self.hjkl_config = hjkl_config;
+        self
+    }
+
+    pub fn set_hjkl_config(&mut self, hjkl_config: crate::config::HjklConfig) {
+        self.hjkl_config = hjkl_config;
     }
 
     fn with_shifted_keys(self, shifted_keys: KeyboardLayoutKeys) -> Self {
@@ -260,10 +290,66 @@ impl KeyboardLayout {
             }
             _ => event,
         };
+        let translated = remap_navigation_key(qwerty, self.navigation_keys, self.hjkl_config);
         CombinedKeyEvent {
             original: event,
-            translated: qwerty,
+            translated,
         }
+    }
+}
+
+pub fn remap_navigation_key(
+    mut event: KeyEvent,
+    navigation_keys: crate::config::NavigationKeys,
+    hjkl_config: crate::config::HjklConfig,
+) -> KeyEvent {
+    if navigation_keys != crate::config::NavigationKeys::Hjkl {
+        return event;
+    }
+    // Do not remap if Ctrl is pressed
+    if event.modifiers.ctrl {
+        return event;
+    }
+
+    match event.code {
+        KeyCode::Char(c) => {
+            let is_shift = event.modifiers.shift || c.is_uppercase();
+            let lower_c = c.to_ascii_lowercase();
+            let target_char = match lower_c {
+                // Core navigation motions
+                'h' => 'j',
+                'j' => 'k',
+                'k' => 'i',
+                'l' => 'l',
+
+                // The 3 configurable pairs
+                'y' => hjkl_config.y_semicolon_action.start_target(),
+                ';' => hjkl_config.y_semicolon_action.end_target(),
+                ':' => hjkl_config.y_semicolon_action.end_target(),
+
+                'i' => hjkl_config.io_action.start_target(),
+                'o' => hjkl_config.io_action.end_target(),
+
+                'u' => hjkl_config.up_action.start_target(),
+                'p' => hjkl_config.up_action.end_target(),
+
+                _ => return event,
+            };
+
+            let new_c = match target_char {
+                ';' => if is_shift { ':' } else { ';' },
+                letter => if is_shift { letter.to_ascii_uppercase() } else { letter.to_ascii_lowercase() },
+            };
+
+            event.code = KeyCode::Char(new_c);
+            if new_c == ':' || new_c.is_uppercase() {
+                event.modifiers.shift = true;
+            } else if new_c == ';' || new_c.is_lowercase() {
+                event.modifiers.shift = false;
+            }
+            event
+        }
+        _ => event,
     }
 }
 

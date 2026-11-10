@@ -25,6 +25,8 @@ The changes in `kustom_ki` address 172 iterative development requests, categoriz
 - Map text search forward to `/` and backward to `?`.
 - Unify register/character swapping to `x` and move line-cut to `Shift+R` to protect the primary clipboard.
 - Support `line:col` and `line col` jumping in `Shift+M` while preserving AST selection modes (e.g., Tree-sitter Node mode).
+- Support configurable navigation key layouts (`"navigation_keys"`: `"hjkl"` or `"ijkl"`), remapping home-row navigation (`h`=Left, `j`=Down, `k`=Up, `l`=Right) across normal, selection, extend, and modal layers.
+- Provide configurable pair roles for `y/;`, `i/o`, and `u/p` in `hjkl` mode (`"insert"`, `"np"`, `"fl"`) with automatic collision resolution and literal-slot HUD protection for Bookmarks and Quick-marks.
 - Enable `Space` to dismiss open HUD menus without losing momentary hold/release semantics.
 - Allow `Enter` on momentary layers to execute tap actions and close the layer.
 
@@ -170,6 +172,37 @@ The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `confi
     - `k`: toggle file mark, `n`: close window, `i`: unmark other buffers, `m`: alternate buffer
     - `h` / `;`: open untitled file left / right
   - **Tap `e`:** Toggles selection mark (`ToggleSelectionMark`).
+
+### 3.5 Configurable Navigation Keys (HJKL / IJKL) (`src/config.rs`, `src/components/editor_keymap.rs`)
+
+Ki navigation can be set to either standard `ijkl` or classic Vim-style `hjkl` via `"navigation_keys"` in `config.json` (`"ijkl"` or `"hjkl"`, default `"ijkl"`).
+
+#### Core Navigation in `"hjkl"` Mode
+- `h`: Left (`<<`) — functions as `j` in Ki
+- `j`: Down (`v`) — functions as `k` in Ki
+- `k`: Up (`^`) — functions as `i` in Ki
+- `l`: Right (`>>`) — functions as `l` in Ki
+- Modifiers map consistently across modes: Shift/Caps counterparts (`H`=Dedent, `J`=Break, `K`=Join, `L`=Indent) and Alt counterparts (`Alt+j`=Scroll Down, `Alt+k`=Scroll Up).
+
+#### Configurable Action Pairs (`hjkl_y;_action`, `hjkl_io_action`, `hjkl_up_action`)
+In `"hjkl"` mode, the three remaining key pairs (`y/;`, `i/o`, and `u/p`) are individually assignable to one of three roles (`"insert"`, `"np"`, `"fl"`):
+
+| Config Key | Default Role | Keys Controlled |
+| :--- | :--- | :--- |
+| `"hjkl_y;_action"` | `"insert"` | `y` and `;` |
+| `"hjkl_io_action"` | `"np"` (Prev/Next) | `i` and `o` |
+| `"hjkl_up_action"` | `"fl"` (First/Last) | `u` and `p` |
+
+- **Role Definitions:**
+  - `"insert"`: First key acts as `h` (`← Insert`), second key acts as `;` (`Insert →`).
+  - `"np"`: First key acts as `u` (`< Previous`), second key acts as `o` (`> Next`).
+  - `"fl"`: First key acts as `y` (`|< First`), second key acts as `p` (`>| Last`).
+- **Default Layout (`y/;-insert, io-np, up-fl`):**
+  - Row 0: `y` (Insert ←), `u` (|< First), `i` (< Prev), `o` (> Next), `p` (>| Last)
+  - Row 1: `h` (<< Left), `j` (v Down), `k` (^ Up), `l` (>> Right), `;` (Insert →)
+- **Collision Guard:** If any of the three settings share the same role or collide, all three automatically revert to default (`insert`, `np`, `fl`) and a descriptive warning is added to `load_errors`.
+- **Text Insertion Safety:** Literal character typing in Insert mode (`original.code`) is unaffected.
+- **HUD Alignment:** Keymap HUDs reflect the remapped actions under each physical cell, while literal-slot keymaps (Quick-marks and Bookmarks) bypass navigation remapping to prevent letter jumbling.
 
 ---
 
@@ -326,10 +359,11 @@ Original regex syntax highlighting converted the entire buffer to a `String` via
 | **File Tree & Tab Action** | `src/components/file_explorer.rs` | `FileExplorer::handle_key_event`<br>`open_file_prompt_for_current_node` |
 | **Symlink Resolution** | `src/list/mod.rs` | `WalkBuilderConfig::get_non_git_ignored_files`<br>`get_non_git_ignored_files_and_directories` |
 | **Bookmarks Engine** | `src/bookmarks.rs`<br>`src/keymap_override/bookmark.rs` | `Bookmarks`<br>`BookmarkKeymapOverride` |
+| **Navigation Keys & HJKL** | `src/config.rs`<br>`src/components/editor_keymap.rs`<br>`src/components/editor_keymap_printer.rs` | `NavigationKeys`<br>`HjklPairAction`<br>`remap_navigation_key` |
 | **Git Hunk Parser** | `src/git/hunk.rs` | `Hunk::from_diff` |
 | **Screen Diff Perf** | `src/screen.rs` | `Screen::diff` |
 | **Regex Slice Perf** | `src/components/render_editor.rs` | `Editor::render_syntax_highlighting` |
-| **Verification & Logs** | `AGENTS.md` | Chronological log of requests 1-174 |
+| **Verification & Logs** | `AGENTS.md` | Chronological log of requests 1-205 |
 
 ---
 

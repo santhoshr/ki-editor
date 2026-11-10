@@ -1491,6 +1491,19 @@ Identified that `from_keymap_with_navigation_keys` was applying navigation key r
 **Response:**
 Staged all changes and committed as `feat(navigation): configurable navigation keys (hjkl/ijkl) with customizable pairs and HUD alignment`.
 
+### Request 206
+> "update README.md, from its last commit"
+**Response:**
+Updated `README.md` with:
+- Summary bullets in Section 2 for configurable navigation keys and pair action roles.
+- Dedicated Section 3.5 documenting `"navigation_keys"`, core HJKL motion remappings, pair actions (`hjkl_y;_action`, `hjkl_io_action`, `hjkl_up_action`), collision resolution, and literal-slot HUD protection.
+- Updated source file reference table in Section 10 with `src/components/editor_keymap.rs` and `src/components/editor_keymap_printer.rs`.
+
+### Request 207
+> "commit it"
+**Response:**
+Staged all changes and committed as `docs: update README.md with configurable navigation keys (hjkl/ijkl)`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

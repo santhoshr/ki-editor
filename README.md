@@ -256,11 +256,15 @@ In both `"hjkl"` and `"jhlk"` modes, the three remaining key pairs (`y/;`, `i/o`
 ## 5. Pickers, Prompts & Autocompletion
 
 ### 5.1 "Open File (or CD)" Prompt (`src/components/prompt.rs`, `src/app.rs`)
-Accessible via `f` from the Space Command menu (`Dispatch::OpenArbitraryFilePrompt`):
+Accessible via `"` (<kbd>Shift+'</kbd>) directly in Normal mode, or `f` from the Space Command menu (`Dispatch::OpenArbitraryFilePrompt`):
 - **Recursive Workspace Scan:** Spawns `PromptItemsBackgroundTask::NonGitIgnoredFilesAndDirectories`, listing all project files and directories with relative paths.
 - **Dynamic Filesystem Navigation:** When the input string begins with `/`, `~`, `..`, `.`, or `./`, Ki switches from cached workspace matching to active directory listing via `get_child_paths_and_files_for_prompt`.
 - **Directory CD:** Selecting a directory entry executes `Dispatch::ChangeWorkingDirectory(path)`, updating the active working directory for subsequent pickers.
 - **Batch Opening:** Pressing `<Ctrl-O>` in the picker opens all currently filtered matches into background tabs simultaneously.
+
+### 5.2 Direct Normal Mode & Command Menu Shortcuts (`src/keymap.rs`, `src/recent.rs`)
+- **`'` (Single Quote in Normal Mode & Command Menu):** Opens the persistent **Recent Files** filter prompt (`Dispatch::OpenRecentFilesPicker`). Files visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Supports fuzzy filtering, Enter to open, and `<Ctrl-O>` to batch open filtered files.
+- **`.` (Period in Command Menu):** Opens the persistent **Recent Folders** filter prompt (`Dispatch::OpenRecentFoldersPicker`). Folders visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Selecting a folder switches the active working directory with confirmation notice.
 
 ### 5.2 Performance & History
 - **Completion Icon Suppression (`src/components/dropdown_sync.rs`):** Suppresses slow Nerd Font glyph resolutions during rapid keystroke filtering in dropdowns.

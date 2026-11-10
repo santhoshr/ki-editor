@@ -37,6 +37,7 @@ mod non_empty_extensions;
 pub mod persistence;
 mod position;
 mod quickfix_list;
+pub mod recent;
 #[cfg(test)]
 mod recipes;
 mod rectangle;

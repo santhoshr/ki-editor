@@ -976,6 +976,12 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenFilePicker(kind) => {
                 self.open_file_picker(kind)?;
             }
+            Dispatch::OpenRecentFilesPicker => {
+                self.open_recent_files_picker()?;
+            }
+            Dispatch::OpenRecentFoldersPicker => {
+                self.open_recent_folders_picker()?;
+            }
             Dispatch::RequestCompletion => self.debounce_lsp_request_completion.call(()),
             Dispatch::RequestCompletionDebounced => {
                 if let Some(params) = self.get_request_params() {
@@ -1614,7 +1620,11 @@ impl<T: Frontend> App<T> {
                         ));
                     }
                 } else {
-                    self.change_working_directory(path)?;
+                    self.change_working_directory(path.clone())?;
+                    self.show_global_info(Info::new(
+                        "Working Directory Changed".to_string(),
+                        format!("Changed working directory to {}", path.display_absolute()),
+                    ));
                 }
             }
             Dispatch::OpenChangeWorkingDirectoryPrompt => {
@@ -2101,6 +2111,60 @@ impl<T: Frontend> App<T> {
         )
     }
 
+    fn open_recent_files_picker(&mut self) -> anyhow::Result<()> {
+        let working_directory = self.working_directory().clone();
+        self.context.recent_mut().reload_if_changed();
+        let recent_files = self.context.recent().files();
+        let items = recent_files
+            .into_iter()
+            .filter(|p| !self.context.is_untitled_file(p) && p.exists() && p.is_file())
+            .enumerate()
+            .map(|(index, path)| {
+                DropdownItem::from_path_buf(&working_directory, path.into_path_buf())
+                    .set_rank(Some(Box::new([index])))
+            })
+            .collect_vec();
+        self.open_prompt(
+            PromptConfig::new(
+                "Recent Files".to_string(),
+                PromptOnEnter::SelectsFirstMatchingItem {
+                    items: PromptItems::Precomputed(items),
+                },
+            )
+            .set_show_all_when_empty(true),
+        )
+    }
+
+    fn open_recent_folders_picker(&mut self) -> anyhow::Result<()> {
+        let working_directory = self.working_directory().clone();
+        self.context.recent_mut().reload_if_changed();
+        let recent_folders = self.context.recent().folders();
+        let items = recent_folders
+            .into_iter()
+            .filter(|p| p.exists() && p.to_path_buf().is_dir())
+            .enumerate()
+            .map(|(index, path)| {
+                let display = if path == working_directory {
+                    format!("{} (current)", path.display_absolute())
+                } else {
+                    path.display_absolute()
+                };
+                DropdownItem::new(display)
+                    .set_rank(Some(Box::new([index])))
+                    .set_dispatches(Dispatches::one(crate::app::Dispatch::ChangeWorkingDirectory(path)))
+            })
+            .collect_vec();
+        self.open_prompt(
+            PromptConfig::new(
+                "Recent Folders".to_string(),
+                PromptOnEnter::SelectsFirstMatchingItem {
+                    items: PromptItems::Precomputed(items),
+                },
+            )
+            .set_show_all_when_empty(true),
+        )
+    }
+
     pub fn open_file(
         &mut self,
         path: &AbsolutePath,
@@ -2115,6 +2179,10 @@ impl<T: Frontend> App<T> {
                     self.context.set_alternate_file(cp);
                 }
             }
+        }
+
+        if !self.context.is_untitled_file(path) && path.is_file() {
+            self.context.recent_mut().add_file(path.clone());
         }
 
         if let Some(matching_editor) = self.layout.open_file(path, focus) {
@@ -2155,6 +2223,10 @@ impl<T: Frontend> App<T> {
         store_history: bool,
         focus: bool,
     ) -> anyhow::Result<Rc<RefCell<SuggestiveEditor>>> {
+        if !self.context.is_untitled_file(path) && path.is_file() {
+            self.context.recent_mut().add_file(path.clone());
+        }
+
         if store_history {
             self.push_current_location_into_navigation_history(true);
             self.context.clear_forward_history();
@@ -5353,6 +5425,8 @@ pub enum Dispatch {
     CloseBuffers(Vec<AbsolutePath>),
     UnmarkAllOthers,
     OpenFilePicker(FilePickerKind),
+    OpenRecentFilesPicker,
+    OpenRecentFoldersPicker,
     OpenSearchPrompt {
         scope: Scope,
         if_current_not_found: IfCurrentNotFound,

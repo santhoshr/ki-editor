@@ -280,8 +280,13 @@ impl KeyboardLayout {
     pub fn make_combined_key_event(&self, event: KeyEvent) -> CombinedKeyEvent {
         let qwerty = match event.code {
             KeyCode::Char(pressed_char) => {
-                let translated_char = self.translate_char_to_qwerty(pressed_char);
-                let shift = translated_char.is_uppercase();
+                let (translated_char, shift) = if event.modifiers.shift && pressed_char == '\'' {
+                    ('"', false)
+                } else {
+                    let translated_char = self.translate_char_to_qwerty(pressed_char);
+                    let shift = translated_char.is_uppercase();
+                    (translated_char, shift)
+                };
                 KeyEvent {
                     code: KeyCode::Char(translated_char),
                     modifiers: event.modifiers.set_shift(shift),
@@ -389,7 +394,7 @@ pub fn shifted_char(c: char) -> char {
         ',' => '<',
         '/' => '?',
         ';' => ':',
-        '\'' => '\'',
+        '\'' => '"',
         '[' => '{',
         ']' => '}',
         '1' => '!',

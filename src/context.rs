@@ -15,6 +15,7 @@ use crate::{
     list::grep::RegexConfig,
     persistence::{Persistence, WorkspaceSession},
     quickfix_list::{DiagnosticSeverityRange, Location, QuickfixList, QuickfixListItem},
+    recent::RecentStore,
     selection::SelectionMode,
     themes::Theme,
 };
@@ -43,6 +44,7 @@ pub struct Context {
 
     marks: HashMap<AbsolutePath, Vec<CharIndexRange>>,
     bookmarks: Bookmarks,
+    recent: RecentStore,
 
     /// This is true, for example, when Ki is running as a VS Code's extension
     is_running_as_embedded: bool,
@@ -201,6 +203,14 @@ impl Context {
         &mut self.bookmarks
     }
 
+    pub fn recent(&self) -> &RecentStore {
+        &self.recent
+    }
+
+    pub fn recent_mut(&mut self) -> &mut RecentStore {
+        &mut self.recent
+    }
+
     pub fn reload_bookmarks_if_changed(&mut self) -> bool {
         self.bookmarks.reload_if_changed()
     }
@@ -308,6 +318,7 @@ impl Context {
     }
 
     pub fn change_working_directory(&mut self, path: AbsolutePath) -> Result<(), std::io::Error> {
+        self.recent.add_folder(path.clone());
         self.current_working_directory = path;
         std::env::set_current_dir(self.current_working_directory.clone())?;
         Ok(())
@@ -396,7 +407,7 @@ impl Context {
         is_running_as_embedded: bool,
         persistence: Option<Persistence>,
     ) -> Self {
-        let marked_files = persistence
+        let marked_files: IndexSet<AbsolutePath> = persistence
             .as_ref()
             .and_then(|persistence| {
                 Some(
@@ -429,6 +440,13 @@ impl Context {
                 persistence.get_prompt_histories(current_working_directory.to_path_buf())
             })
             .unwrap_or_default();
+        let mut recent = RecentStore::load_or_default();
+        recent.add_folder(current_working_directory.clone());
+        if recent.files().is_empty() {
+            for file in &marked_files {
+                recent.add_file(file.clone());
+            }
+        }
         let app_config = crate::config::AppConfig::singleton();
         Self {
             clipboard: Clipboard::new(),
@@ -452,6 +470,7 @@ impl Context {
             persistence,
             marks,
             bookmarks: Bookmarks::load_or_default(),
+            recent,
             lsp_progress: "".to_string(),
             quickfix_list: QuickfixList::default(),
             kill_ring: RingHistory::new(),

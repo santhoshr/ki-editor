@@ -1590,6 +1590,54 @@ Updated `README.md` and `newdoc/kustom-ki.html`.
 **Response:**
 Staged all changes and committed as `feat(buffer): close clean buffers on quit and warn at first unsaved buffer`.
 
+### Request 219
+> "'/" used in normal mode? if not configure it to show recent file/folder filter"
+**Response:**
+1. Confirmed that neither `'` nor `"` was used in Normal mode.
+2. Extended keycode parsing in `event/src/lib.rs` for double quotes (`"doublequote" | "\\\""`) and fixed `shifted_char('\'')` to `'"'` in `src/components/editor_keymap.rs`.
+
+### Request 220
+> "you also have to track recent files and folders?"
+> "you also have to track recent files and folders? this is not current buffer list"
+**Response:**
+Implemented persistent MRU tracking of Recent Files and Recent Folders (`src/recent.rs`, persisted in `~/.config/ki/recent.json`):
+1. Created `RecentStore` module (`src/recent.rs`) maintaining persistent MRU lists for files (up to 200) and directories (up to 100), saved to `~/.config/ki/recent.json`.
+2. Integrated tracking into `Context` and `App`:
+   - Records open files on startup, in `App::open_file`, and `App::open_file_unchecked`.
+   - Records working directories in `Context::new`, `Context::change_working_directory`, and `App::change_working_directory`.
+   - Adding a file automatically records its parent folder in recent folders.
+   - On initial start, if `recent.json` is empty, seeds recent files with persisted `marked_files`.
+3. Added dispatches `Dispatch::OpenRecentFilesPicker` and `Dispatch::OpenRecentFoldersPicker` in `src/app.rs`:
+   - `'` opens the Recent Files prompt in MRU order (fuzzy filter, Enter to open, `<Ctrl-O>` batch open).
+   - `"` / `Shift+'` opens the Recent Folders prompt in MRU order (fuzzy filter, Enter switches active working directory with confirmation notice).
+4. Updated `README.md`, `newdoc/index.html`, `newdoc/kustom-ki.html`, and verified cleanly with `cargo build`.
+
+### Request 221
+> "recent folder is not launching, don't add opened file folder, add folders selected as current directory by command f or cd from Command c or Space j f"
+**Response:**
+1. Diagnosed and fixed `"` not launching: In `event/src/lib.rs`, `doublequote` was defined with `shift: true`, but `make_combined_key_event` in `src/components/editor_keymap.rs` normalizes symbol characters to `shift: false`. As a result, `key.event == event.translated` failed to match. Fixed `doublequote` in `event/src/lib.rs` to use `from_key_code(KeyCode::Char('"'))` (`shift: false`), and in `make_combined_key_event` translated `('\'', shift: true)` to `('"', false)`.
+2. Removed parent folder recording from `RecentStore::add_file` (`src/recent.rs`): opening files now only records the file itself.
+3. Folders are strictly tracked only when selected as the current working directory:
+   - `command f` (`OpenArbitraryFilePrompt` selecting a directory &rarr; `Dispatch::ChangeWorkingDirectory`).
+   - `cd from Command c` (`:cd <path>` or `Shift+C` for current file dir &rarr; `Dispatch::ChangeWorkingDirectory`).
+   - `Space j f` (`OpenChangeWorkingDirectoryPrompt` &rarr; `Dispatch::ChangeWorkingDirectory`).
+   - Initial startup directory in `Context::new`.
+4. Enhanced `open_recent_folders_picker` in `src/app.rs` to display full paths with `(current)` on the active working directory.
+5. Verified compilation via `cargo build`.
+
+### Request 222
+> "still recent folder not launching, instead of " make it command menu (.) period"
+**Response:**
+1. In `src/keymap.rs`, removed `"` / `Shift+'` bindings and mapped `.` (period) in `command_keymap` to `Dispatch::OpenRecentFoldersPicker`.
+2. Preserved Normal mode `.` for `Parent Line` motion while giving Command Menu (opened via `c` / `:`) a dedicated `.` binding for Recent Folders.
+3. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`.
+4. Verified compilation via `cargo build`.
+
+### Request 223
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(recent): add persistent recent files (') and recent folders (Command .) tracking`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

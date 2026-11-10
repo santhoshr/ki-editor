@@ -1264,6 +1264,16 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             Dispatch::OpenBookmarkMenu,
         ),
         Keybinding::new_undocumented(
+            key!("'"),
+            "Recent Files",
+            Dispatch::OpenRecentFilesPicker,
+        ),
+        Keybinding::new_undocumented(
+            key!("."),
+            "Recent Folders",
+            Dispatch::OpenRecentFoldersPicker,
+        ),
+        Keybinding::new_undocumented(
             key!("/"),
             "Help",
             Dispatch::ToEditor(DispatchEditor::ShowHelp),
@@ -1309,6 +1319,11 @@ pub fn keymap_others(
             key!("shift+space"),
             "Bookmark",
             Dispatch::OpenBookmarkMenu,
+        ),
+        Keybinding::new_undocumented(
+            key!("'"),
+            "Recent Files",
+            Dispatch::OpenRecentFilesPicker,
         ),
         Keybinding::new_undocumented(
             key!("-"),

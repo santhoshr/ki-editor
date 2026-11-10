@@ -904,6 +904,7 @@
             </li>
             <li><strong>JHLK Inversion:</strong> Added <code>"jhlk_np_rl_inverse"</code> (boolean, default <code>false</code>). When <code>true</code> in <code>"jhlk"</code> mode, inverts Right/Left motions (<kbd>j</kbd> &rarr; Right, <kbd>k</kbd> &rarr; Left) and inverts the configured Next/Previous pair (<kbd>Next</kbd>/<kbd>Previous</kbd>). Up, Down, First/Last, and Insert actions remain unchanged.</li>
             <li><strong>Safe Quit Workflow:</strong> When quitting (<kbd>q</kbd>), all clean buffers are automatically closed and unmarked. If all buffers were clean, Ki exits immediately. If any buffers have unsaved edits, Ki focuses the first unsaved buffer and displays a warning prompt.</li>
+            <li><strong>Persistent Recent Files &amp; Folders Pickers:</strong> Ki tracks visited files and directories in <code>~/.config/ki/recent.json</code>. Bound <kbd>'</kbd> in Normal mode &amp; Command menu to open the persistent <strong>Recent Files</strong> filter (MRU order, fuzzy matching, <kbd>Ctrl-O</kbd> batch open) and <kbd>.</kbd> (period) in Command menu to open the persistent <strong>Recent Folders</strong> filter (MRU order, changes active working directory on selection with confirmation notice).</li>
           </ul>
         </div>
       </div>

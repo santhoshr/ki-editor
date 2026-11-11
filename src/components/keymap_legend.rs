@@ -33,10 +33,10 @@ pub fn is_literal_keymap(title: &str) -> bool {
     if lower.contains("quick-mark") || lower.contains("quick_mark") || lower.contains("bookmark") {
         return true;
     }
-    // Only Normal, Extend, and motion momentary layers (containing '≡') are navigation keymaps.
-    // Everything else (Space, Editor, Pick, Context, Find, Surround, Transform, Leader, Command, etc.)
-    // is a static/mnemonic menu where keys must remain in their literal physical slots.
-    if title == "Normal" || title == "Extend" {
+    // Normal, Extend, Command, and motion momentary layers (containing '≡') are navigation keymaps.
+    // Static mnemonic menus (Space, Editor, Pick, Context, Find, Surround, Transform, Leader, etc.)
+    // are literal keymaps where keys must remain in their literal physical slots.
+    if title == "Normal" || title == "Extend" || title == "Command" {
         return false;
     }
     if title.contains('≡') {

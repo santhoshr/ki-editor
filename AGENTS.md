@@ -1779,6 +1779,12 @@ In [`App::handle_dispatches`](file:///home/santh/Developer/ki-editor/src/app.rs#
 5. In [`KeymapPrintSection::from_keymap_with_navigation_keys`](file:///home/santh/Developer/ki-editor/src/components/editor_keymap_printer.rs#L107), used `is_literal_keymap` so that static menus display their keybindings in their true physical QWERTY slots without shifting.
 6. Verified compilation via `cargo build`.
 
+### Request 245
+> "command menu keys y, u, i, o, p, h, j, j, k, l, ; should reflect current configuration as well"
+> "continue"
+**Response:**
+Updated `is_literal_keymap` in [`src/components/keymap_legend.rs`](file:///home/santh/Developer/ki-editor/src/components/keymap_legend.rs#L31-L46) so that `title == "Command"` is treated as a navigation-enabled keymap (`is_literal_keymap == false`). This enables keys `y, u, i, o, p, h, j, k, l, ;` in the Command menu (the buffer navigation column) to adapt to the active `navigation_keys` (`hjkl` / `jhlk`) and pair actions (`y_semicolon_action`, `io_action`, `up_action`) in both the HUD display and menu keypress execution, while keeping command hotkeys (`f, b, w, q, v, e, ', /`) in their fixed positions. Verified with `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

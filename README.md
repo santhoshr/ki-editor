@@ -263,8 +263,8 @@ Accessible via `"` (<kbd>Shift+'</kbd>) directly in Normal mode, or `f` from the
 - **Batch Opening:** Pressing `<Ctrl-O>` in the picker opens all currently filtered matches into background tabs simultaneously.
 
 ### 5.2 Direct Normal Mode & Command Menu Shortcuts (`src/keymap.rs`, `src/recent.rs`)
-- **`'` (Single Quote in Normal Mode & Command Menu):** Opens the persistent **Recent Files** filter prompt (`Dispatch::OpenRecentFilesPicker`). Files visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Supports fuzzy filtering, Enter to open, and `<Ctrl-O>` to batch open filtered files.
-- **`.` (Period in Command Menu):** Opens the persistent **Recent Folders** filter prompt (`Dispatch::OpenRecentFoldersPicker`). Folders visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Selecting a folder switches the active working directory with confirmation notice.
+- **`'` (Single Quote in Normal Mode):** Opens the persistent **Recent Files** filter prompt (`Dispatch::OpenRecentFilesPicker`). Files visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Supports fuzzy filtering, Enter to open, and `<Ctrl-O>` to batch open filtered files.
+- **`'` (Single Quote in Command Menu):** Opens the persistent **Recent Folders** filter prompt (`Dispatch::OpenRecentFoldersPicker`). Folders visited across sessions (persisted in `~/.config/ki/recent.json`) are displayed in MRU order. Selecting a folder switches the active working directory with confirmation notice.
 
 ### 5.2 Performance & History
 - **Completion Icon Suppression (`src/components/dropdown_sync.rs`):** Suppresses slow Nerd Font glyph resolutions during rapid keystroke filtering in dropdowns.

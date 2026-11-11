@@ -1638,6 +1638,21 @@ Implemented persistent MRU tracking of Recent Files and Recent Folders (`src/rec
 **Response:**
 Staged all changes and committed as `feat(recent): add persistent recent files (') and recent folders (Command .) tracking`.
 
+### Request 224
+> "recent folder, move from Command c or Command '"
+**Response:**
+Clarified that Recent Folders was mapped to Command `.`, while `c` was Copy/Duplicate and `'` was Recent Files. Offered options to move Recent Folders to Command `'` or Command `c`.
+
+### Request 225
+> "option 1"
+**Response:**
+Moved **Recent Folders** (`Dispatch::OpenRecentFoldersPicker`) to Command `'` in `command_keymap` (`src/keymap.rs`), removing the `.` period mapping and leaving Normal mode `'` for Recent Files. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`. Verified compilation via `cargo build`.
+
+### Request 226
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(keymap): move recent folders picker to Command '`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

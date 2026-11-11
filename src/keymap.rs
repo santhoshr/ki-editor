@@ -1265,11 +1265,6 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
         ),
         Keybinding::new_undocumented(
             key!("'"),
-            "Recent Files",
-            Dispatch::OpenRecentFilesPicker,
-        ),
-        Keybinding::new_undocumented(
-            key!("."),
             "Recent Folders",
             Dispatch::OpenRecentFoldersPicker,
         ),

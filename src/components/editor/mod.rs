@@ -75,8 +75,20 @@ pub enum PriorChange {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum InsertOrigin {
+    InsertAt(Direction),
+    Change,
+    OpenVertically(Direction),
+    OpenWithGap(GetGapMovement),
+    KillLine(Direction),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum RepeatableEdit {
     InsertText(String),
+    InsertAtDirection { direction: Direction, text: String },
+    Change { text: String },
+    KillLineWithInsert { direction: Direction, text: String },
     Delete,
     DeleteWord { short: bool, direction: Direction },
     KillLine(Direction),
@@ -90,6 +102,19 @@ pub enum RepeatableEdit {
     Transform(Transformation),
     EnterNewline,
     ReplaceWithCopiedText,
+    CutWithMovement(Movement),
+    DeleteWithMovement(Movement),
+    Eat(Movement),
+    SwapWithMovement(Movement),
+    PasteWithMovement(GetGapMovement),
+    PasteVertically(Direction),
+    DuplicateWithMovement(GetGapMovement),
+    DuplicateVertically(Direction),
+    Align(Direction),
+    OpenVertically { direction: Direction, text: String },
+    OpenWithGap { get_gap_movement: GetGapMovement, text: String },
+    JoinSelection,
+    BreakSelection,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -287,7 +312,13 @@ impl Component for Editor {
             DisableSelectionExtension => self.disable_selection_extension(),
             EnterInsertMode(direction) => return self.enter_insert_mode(direction, context),
             Insert(string) => {
-                self.record_repeatable_edit(context, RepeatableEdit::InsertText(string.clone()));
+                if self.mode == Mode::Insert {
+                    if let Some(text) = &mut self.current_insert_session_text {
+                        text.push_str(&string);
+                    }
+                } else {
+                    self.record_repeatable_edit(context, RepeatableEdit::InsertText(string.clone()));
+                }
                 return self.insert(&string, context, EditHistoryKind::Coarse);
             }
             #[cfg(test)]
@@ -420,7 +451,10 @@ impl Component for Editor {
                 return self.change_surround(from, Some(to), context);
             }
             ReplaceWithPattern(scope) => return self.replace_with_pattern(scope, context),
-            Eat(movement) => return self.eat(&movement, context),
+            Eat(movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::Eat(movement.clone()));
+                return self.eat(&movement, context);
+            }
             ApplyPositionalEdits(edits) => {
                 return self.apply_positional_edits(
                     edits
@@ -467,7 +501,10 @@ impl Component for Editor {
                 return self.enter_newline(context);
             }
             DeleteCurrentCursor(direction) => self.delete_current_cursor(direction),
-            BreakSelection => return self.break_selection(context),
+            BreakSelection => {
+                self.record_repeatable_edit(context, RepeatableEdit::BreakSelection);
+                return self.break_selection(context);
+            }
             ShowHelp => return self.show_help(context),
             HandleEsc => {
                 self.disable_selection_extension();
@@ -512,17 +549,33 @@ impl Component for Editor {
             } => self.handle_path_renamed(source, destination),
             CopyAbsolutePath => return self.copy_current_file_absolute_path(),
             CopyRelativePath => return self.copy_current_file_relative_path(context),
-            PasteWithMovement(movement) => return self.paste_with_movement(context, movement),
-            DeleteWithMovement(movement) => {
-                return self.delete_with_movement(context, movement, false)
+            PasteWithMovement(movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::PasteWithMovement(movement.clone()));
+                return self.paste_with_movement(context, movement);
             }
-            CutWithMovement(movement) => return self.delete_with_movement(context, movement, true),
-            AlignSelections(direction) => return self.align_selections(direction, context),
-            JoinSelection => return self.join_selection(context),
+            DeleteWithMovement(movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::DeleteWithMovement(movement.clone()));
+                return self.delete_with_movement(context, movement, false);
+            }
+            CutWithMovement(movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::CutWithMovement(movement.clone()));
+                return self.delete_with_movement(context, movement, true);
+            }
+            AlignSelections(direction) => {
+                self.record_repeatable_edit(context, RepeatableEdit::Align(direction.clone()));
+                return self.align_selections(direction, context);
+            }
+            JoinSelection => {
+                self.record_repeatable_edit(context, RepeatableEdit::JoinSelection);
+                return self.join_selection(context);
+            }
             ReplaceSelections(replacements) => {
                 return self.replace_selections(context, replacements)
             }
-            SwapWithMovement(movement) => return self.swap(movement, context),
+            SwapWithMovement(movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::SwapWithMovement(movement.clone()));
+                return self.swap(movement, context);
+            }
             AddCursorWithMovement(movement) => {
                 self.add_cursor(
                     &movement.into_movement_applicandum(self.selection_set.sticky_column_index()),
@@ -530,11 +583,18 @@ impl Component for Editor {
                 )?;
             }
             EnterMulticursorMode => self.mode = Mode::MultiCursor,
-            PasteVertically(direction) => return self.paste_vertically(context, direction),
-            DuplicateWithMovement(get_gap_movement) => {
-                return self.duplicate_with_movement(context, get_gap_movement)
+            PasteVertically(direction) => {
+                self.record_repeatable_edit(context, RepeatableEdit::PasteVertically(direction.clone()));
+                return self.paste_vertically(context, direction);
             }
-            DuplicateVertically(direction) => return self.duplicate_vertically(context, direction),
+            DuplicateWithMovement(get_gap_movement) => {
+                self.record_repeatable_edit(context, RepeatableEdit::DuplicateWithMovement(get_gap_movement.clone()));
+                return self.duplicate_with_movement(context, get_gap_movement);
+            }
+            DuplicateVertically(direction) => {
+                self.record_repeatable_edit(context, RepeatableEdit::DuplicateVertically(direction.clone()));
+                return self.duplicate_vertically(context, direction);
+            }
             CoarseUndo => return self.coarse_undo(context),
             CoarseRedo => return self.coarse_redo(context),
             InsertChar(c) => return self.insert_char(context, c),
@@ -590,6 +650,7 @@ pub struct Editor {
     pub show_cursors: bool,
     pub last_repeatable_edit: Option<RepeatableEdit>,
     current_insert_session_text: Option<String>,
+    pub insert_origin: Option<InsertOrigin>,
 }
 
 #[derive(Clone, Default)]
@@ -793,7 +854,40 @@ impl Editor {
         };
         match repeatable_edit {
             RepeatableEdit::InsertText(text) => {
-                self.insert(&text, context, EditHistoryKind::Coarse)
+                let mut dispatches = self.enter_insert_mode(Direction::Start, context)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
+            }
+            RepeatableEdit::InsertAtDirection { direction, text } => {
+                let mut dispatches = self.enter_insert_mode(direction, context)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
+            }
+            RepeatableEdit::Change { text } => {
+                let mut dispatches = self.change(context)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
+            }
+            RepeatableEdit::KillLineWithInsert { direction, text } => {
+                let mut dispatches = self.kill_line(direction, context)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
             }
             RepeatableEdit::Delete => self.delete_one(context, false),
             RepeatableEdit::DeleteWord { short, direction } => {
@@ -816,6 +910,47 @@ impl Editor {
             RepeatableEdit::ReplaceWithCopiedText => {
                 self.replace_with_historical_text(context, false, 0, false)
             }
+            RepeatableEdit::CutWithMovement(movement) => {
+                self.delete_with_movement(context, movement, true)
+            }
+            RepeatableEdit::DeleteWithMovement(movement) => {
+                self.delete_with_movement(context, movement, false)
+            }
+            RepeatableEdit::Eat(movement) => self.eat(&movement, context),
+            RepeatableEdit::SwapWithMovement(movement) => self.swap(movement, context),
+            RepeatableEdit::PasteWithMovement(get_gap_movement) => {
+                self.paste_with_movement(context, get_gap_movement)
+            }
+            RepeatableEdit::PasteVertically(direction) => {
+                self.paste_vertically(context, direction)
+            }
+            RepeatableEdit::DuplicateWithMovement(get_gap_movement) => {
+                self.duplicate_with_movement(context, get_gap_movement)
+            }
+            RepeatableEdit::DuplicateVertically(direction) => {
+                self.duplicate_vertically(context, direction)
+            }
+            RepeatableEdit::Align(direction) => self.align_selections(direction, context),
+            RepeatableEdit::OpenVertically { direction, text } => {
+                let mut dispatches = self.open_vertically(context, direction)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
+            }
+            RepeatableEdit::OpenWithGap { get_gap_movement, text } => {
+                let mut dispatches = self.open(context, get_gap_movement)?;
+                if !text.is_empty() {
+                    dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
+                }
+                self.insert_origin = None;
+                self.enter_normal_mode(context)?;
+                Ok(dispatches)
+            }
+            RepeatableEdit::JoinSelection => self.join_selection(context),
+            RepeatableEdit::BreakSelection => self.break_selection(context),
         }
     }
 
@@ -895,6 +1030,7 @@ impl Editor {
             show_cursors: true,
             last_repeatable_edit: None,
             current_insert_session_text: None,
+            insert_origin: None,
         }
     }
 
@@ -946,6 +1082,7 @@ impl Editor {
             show_cursors: true,
             last_repeatable_edit: None,
             current_insert_session_text: None,
+            insert_origin: None,
         }
     }
 
@@ -2061,6 +2198,7 @@ impl Editor {
 
     /// Similar to Change in Vim, but does not copy the current selection
     pub fn change(&mut self, context: &Context) -> anyhow::Result<Dispatches> {
+        self.insert_origin = Some(InsertOrigin::Change);
         let edit_transaction = EditTransaction::from_action_groups(
             self.selection_set
                 .map(|selection| -> anyhow::Result<_> {
@@ -2293,6 +2431,9 @@ impl Editor {
         direction: Direction,
         context: &Context,
     ) -> anyhow::Result<Dispatches> {
+        if self.insert_origin.is_none() {
+            self.insert_origin = Some(InsertOrigin::InsertAt(direction.clone()));
+        }
         self.set_selection_set(
             self.selection_set
                 .apply(self.selection_set.mode.clone(), |selection| {
@@ -2317,9 +2458,30 @@ impl Editor {
 
     pub fn enter_normal_mode(&mut self, context: &Context) -> anyhow::Result<()> {
         if self.mode == Mode::Insert {
-            if let Some(text) = self.current_insert_session_text.take() {
-                if !text.is_empty() {
-                    let edit = RepeatableEdit::InsertText(text);
+            let text = self.current_insert_session_text.take().unwrap_or_default();
+            if let Some(origin) = self.insert_origin.take() {
+                let edit = match origin {
+                    InsertOrigin::InsertAt(direction) => {
+                        if !text.is_empty() {
+                            Some(RepeatableEdit::InsertAtDirection { direction, text })
+                        } else {
+                            None
+                        }
+                    }
+                    InsertOrigin::Change => {
+                        Some(RepeatableEdit::Change { text })
+                    }
+                    InsertOrigin::OpenVertically(direction) => {
+                        Some(RepeatableEdit::OpenVertically { direction, text })
+                    }
+                    InsertOrigin::OpenWithGap(get_gap_movement) => {
+                        Some(RepeatableEdit::OpenWithGap { get_gap_movement, text })
+                    }
+                    InsertOrigin::KillLine(direction) => {
+                        Some(RepeatableEdit::KillLineWithInsert { direction, text })
+                    }
+                };
+                if let Some(edit) = edit {
                     self.record_repeatable_edit(context, edit);
                 }
             }
@@ -3216,6 +3378,7 @@ impl Editor {
         context: &Context,
         direction: Direction,
     ) -> Result<Dispatches, anyhow::Error> {
+        self.insert_origin = Some(InsertOrigin::OpenVertically(direction.clone()));
         let edit_transaction =
             self.get_paste_vertically_edit_transaction(direction.clone(), |_| "".to_string());
         Ok(self
@@ -3228,6 +3391,7 @@ impl Editor {
         context: &Context,
         get_gap_movement: GetGapMovement,
     ) -> Result<Dispatches, anyhow::Error> {
+        self.insert_origin = Some(InsertOrigin::OpenWithGap(get_gap_movement.clone()));
         let direction = get_gap_movement.to_direction();
         let edit_transaction = EditTransaction::from_action_groups(
             self.get_selection_set_with_gap(&get_gap_movement, context)?
@@ -3816,6 +3980,7 @@ impl Editor {
         direction: Direction,
         context: &Context,
     ) -> Result<Dispatches, anyhow::Error> {
+        self.insert_origin = Some(InsertOrigin::KillLine(direction.clone()));
         let edit_transaction = EditTransaction::from_action_groups(
             self.selection_set
                 .map(|selection| -> anyhow::Result<_> {

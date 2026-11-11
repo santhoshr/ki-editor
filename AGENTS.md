@@ -1676,6 +1676,43 @@ Explained that momentary layer sub-menus fire movement-composed dispatches (`Cut
 **Response:**
 Committed initial repeat implementation as `feat(editor): implement vim-like dot repeat (.) and move parent line to Shift+.`.
 
+### Request 230
+> "implement it"
+**Response:**
+1. Extended `RepeatableEdit` to support all momentary layer sub-menus and movement-based edits: `CutWithMovement`, `DeleteWithMovement`, `Eat`, `SwapWithMovement`, `PasteWithMovement`, `PasteVertically`, `DuplicateWithMovement`, `DuplicateVertically`, `Align`, `OpenVertically`, and `OpenWithGap`.
+2. Added `initiating_open: Option<InitiatingOpen>` on `Editor` so `g` open commands (`g k` open below, `g i` open above, `g` + gap) record the direction and any typed text in the insert session (matching Vim's `o`/`O` repeat).
+3. Replayed each action in `repeat_last_edit` on `.` without overwriting the recorded edit.
+4. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`. Verified compilation via `cargo build`.
+
+### Request 231
+> "break join keys"
+**Response:**
+1. Identified the keybindings in `src/keymap.rs` (lines 1672–1673):
+   - **Join:** <kbd>I</kbd> (`Shift+i`) &rarr; [`DispatchEditor::JoinSelection`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs)
+   - **Break:** <kbd>K</kbd> (`Shift+k`) &rarr; [`DispatchEditor::BreakSelection`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs)
+2. Wired `JoinSelection` and `BreakSelection` into [`RepeatableEdit`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs) and `repeat_last_edit` so repeating with <kbd>.</kbd> repeats line Break and Join edits as well.
+3. Verified compilation with `cargo build`.
+
+### Request 232
+> "the edits with insert at either ends needs to be repeatable for ki, because ki is always in selection, so edits always replace including single char (shift+w), so any insert will not repeat with replacing, what I mean is without understanding insert with y/; or insert first/insert last, no way to insert without replacing current selection which can be char, paragraph, node, etc, so if edit happens in insert not with selection, then repeat should also insert not replace"
+> "if insert at either ends going to complicate current repeat, let me know"
+**Response:**
+Confirmed it does not complicate repeat; explained that `insert_origin` (`InsertOrigin::InsertAt(direction)` vs `InsertOrigin::Change`) cleanly distinguishes insert-at-ends from selection replacement without altering any other repeat behaviors.
+
+### Request 233
+> "yes"
+**Response:**
+1. Replaced `initiating_open` with `insert_origin: Option<InsertOrigin>` (`InsertAt(Direction)`, `Change`, `OpenVertically(Direction)`, `OpenWithGap(GetGapMovement)`, `KillLine(Direction)`).
+2. In `enter_insert_mode`, if `insert_origin` is unset, tracks `InsertOrigin::InsertAt(direction)`. `Change` and `ChangeCut` set `InsertOrigin::Change`.
+3. In `enter_normal_mode`, records `RepeatableEdit::InsertAtDirection { direction, text }` for end inserts and `RepeatableEdit::Change { text }` for replacements.
+4. In `repeat_last_edit`, `InsertAtDirection` invokes `enter_insert_mode(direction)` to collapse target selections to their start/end (without replacing target text), inserts text, and normalizes cursor back to normal mode. `Change` replaces the target selection as intended.
+5. Updated `newdoc/kustom-ki.html` and `README.md`. Verified compilation via `cargo build`.
+
+### Request 234
+> "commit it"
+**Response:**
+Committed changes to git (*"feat(editor): expand dot repeat for momentary layers, boundary inserts, and line breaks/joins"*).
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

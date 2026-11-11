@@ -1768,6 +1768,17 @@ Changed `Keybinding::momentary_layer` to `Keybinding::app_momentary_layer` in [`
 **Response:**
 In [`App::handle_dispatches`](file:///home/santh/Developer/ki-editor/src/app.rs#L1294-L1306) under `Dispatch::ShowKeymapLegend`, conditionally called `self.layout.close_app_keymap_legend()` when `on_root` is true instead of only calling `self.layout.close_keymap_legend()` (which only clears children on focused nodes). This cleanly replaces the root HUD on swap without vertical stacking. Verified with `cargo build`.
 
+### Request 244
+> "hjkl possible other non ijkl navigation key changes along with insert/fl/np config possibly cause HUD legends and functions to also gets moved, for e.g. in Space menu, hjkl cause Editor Pick shift 1 place left, from j k to h j, cursor from u to k; in Local n menu y functionality shifts to u; investigate"
+> "okey implement the fix"
+**Response:**
+1. Identified that `remap_navigation_key` was applied globally across all keymaps, causing static mnemonic menus (e.g. Space, Editor, Pick, Context, Find (Local/Global), Surround, Command) to shift their documented hotkeys and display cells when `navigation_keys` is set to `hjkl` or `jhlk`.
+2. Created `is_literal_keymap(title: &str) -> bool` in [`src/components/keymap_legend.rs`](file:///home/santh/Developer/ki-editor/src/components/keymap_legend.rs#L31-L46) to classify keymaps into directional motion layers (`Normal`, `Extend`, and motion momentary layers containing `≡`) vs literal mnemonic menus (`Space`, `Editor`, `Pick`, `Find`, `Command`, `Bookmarks`, `Quick-marks`, etc.).
+3. Added `Keymap::get_original(&self, event: &CombinedKeyEvent)` in [`src/components/keymap_legend.rs`](file:///home/santh/Developer/ki-editor/src/components/keymap_legend.rs#L137-L149) matching on `event.original`.
+4. In [`MenuKeymapOverride::handle_press`](file:///home/santh/Developer/ki-editor/src/keymap_override/menu.rs#L31-L43), used `get_original` for literal menus so pressing physical keys directly matches their documented actions.
+5. In [`KeymapPrintSection::from_keymap_with_navigation_keys`](file:///home/santh/Developer/ki-editor/src/components/editor_keymap_printer.rs#L107), used `is_literal_keymap` so that static menus display their keybindings in their true physical QWERTY slots without shifting.
+6. Verified compilation via `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

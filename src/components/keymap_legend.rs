@@ -28,6 +28,23 @@ pub struct KeymapLegendConfig {
     pub keymap: Keymap,
 }
 
+pub fn is_literal_keymap(title: &str) -> bool {
+    let lower = title.to_lowercase();
+    if lower.contains("quick-mark") || lower.contains("quick_mark") || lower.contains("bookmark") {
+        return true;
+    }
+    // Only Normal, Extend, and motion momentary layers (containing '≡') are navigation keymaps.
+    // Everything else (Space, Editor, Pick, Context, Find, Surround, Transform, Leader, Command, etc.)
+    // is a static/mnemonic menu where keys must remain in their literal physical slots.
+    if title == "Normal" || title == "Extend" {
+        return false;
+    }
+    if title.contains('≡') {
+        return false;
+    }
+    true
+}
+
 pub struct MomentaryLayer {
     pub event: KeyEvent,
     pub name: String,
@@ -115,6 +132,20 @@ impl Keymap {
 
     pub fn get(&self, event: &CombinedKeyEvent) -> std::option::Option<&Keybinding> {
         self.0.iter().find(|key| key.event == event.translated)
+    }
+
+    pub fn get_original(&self, event: &CombinedKeyEvent) -> std::option::Option<&Keybinding> {
+        self.0.iter().find(|key| {
+            key.event == event.original
+                || (event.original.modifiers.shift
+                    && match (key.event.code, event.original.code) {
+                        (
+                            crossterm::event::KeyCode::Char(b_c),
+                            crossterm::event::KeyCode::Char(k_c),
+                        ) => b_c.to_ascii_uppercase() == k_c.to_ascii_uppercase(),
+                        _ => false,
+                    })
+        })
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, Keybinding> {

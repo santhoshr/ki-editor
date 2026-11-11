@@ -104,11 +104,7 @@ impl KeymapPrintSection {
         navigation_keys: crate::config::NavigationKeys,
         hjkl_config: crate::config::HjklConfig,
     ) -> Self {
-        let is_literal_keymap = name.starts_with("≡ Quick-marks")
-            || name.to_lowercase().contains("quick-mark")
-            || name.to_lowercase().contains("quick_mark")
-            || name.starts_with("≡ Bookmark")
-            || name.to_lowercase().contains("bookmark");
+        let is_literal_keymap = crate::components::keymap_legend::is_literal_keymap(&name);
 
         KeymapPrintSection {
             name,

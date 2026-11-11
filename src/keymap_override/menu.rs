@@ -28,21 +28,16 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
             return Ok(close_dispatches);
         }
 
-        if let Some(binding) = self.config.keymap.get(&key_event) {
-            return Ok(close_dispatches.chain(binding.get_dispatches()));
-        }
+        let binding = if crate::components::keymap_legend::is_literal_keymap(&self.config.title) {
+            self.config.keymap.get_original(&key_event)
+        } else {
+            self.config
+                .keymap
+                .get(&key_event)
+                .or_else(|| self.config.keymap.get_original(&key_event))
+        };
 
-        if let Some(binding) = self.config.keymap.iter().find(|b| {
-            b.event() == &key_event.original
-                || (key_event.original.modifiers.shift
-                    && match (b.event().code, key_event.original.code) {
-                        (
-                            crossterm::event::KeyCode::Char(b_c),
-                            crossterm::event::KeyCode::Char(k_c),
-                        ) => b_c.to_ascii_uppercase() == k_c.to_ascii_uppercase(),
-                        _ => false,
-                    })
-        }) {
+        if let Some(binding) = binding {
             return Ok(close_dispatches.chain(binding.get_dispatches()));
         }
 

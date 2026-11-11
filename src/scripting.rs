@@ -13,18 +13,15 @@ pub fn custom_keymap() -> Vec<CustomActionKeymap> {
         .leader_keymap()
         .keybindings()
         .iter()
-        .flat_map(|keybindings| {
-            keybindings
-                .iter()
-                .filter_map(|keybinding| keybinding.clone())
-        })
+        .flatten()
         .zip(QWERTY.iter().flatten())
-        .map(|(keybinding, key)| {
-            (
+        .filter_map(|(keybinding, key)| {
+            let keybinding = keybinding.as_ref()?;
+            Some((
                 key.to_string(),
                 keybinding.name.clone(),
                 keybinding.script.clone(),
-            )
+            ))
         })
         .collect()
 }
@@ -95,6 +92,11 @@ impl Script {
         }
 
         let stdout = String::from_utf8(output.stdout)?;
+        if stdout.trim().is_empty() {
+            return Ok(ScriptOutput {
+                dispatches: Vec::new(),
+            });
+        }
         let deserializer = &mut serde_json::Deserializer::from_str(&stdout);
 
         serde_path_to_error::deserialize(deserializer)

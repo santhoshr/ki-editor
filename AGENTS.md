@@ -1713,6 +1713,21 @@ Confirmed it does not complicate repeat; explained that `insert_origin` (`Insert
 **Response:**
 Committed changes to git (*"feat(editor): expand dot repeat for momentary layers, boundary inserts, and line breaks/joins"*).
 
+### Request 235
+> "redo the change you have done in @[src/scripting.rs]"
+**Response:**
+Re-applied the fix in [`custom_keymap()`](file:///home/santh/Developer/ki-editor/src/scripting.rs#L11-L25): flattened the 3x10 matrix and zipped with `QWERTY.iter().flatten()` before filtering out `None` entries, ensuring configured leader keys preserve their physical grid positions (e.g. Row 1 Col 1 &rarr; `s`) rather than collapsing `null` cells into index 0 (`q`). Verified with `cargo build`.
+
+### Request 236
+> "I added custom @.ki/config.json it has some piano loading , it works, but also throws EOF while parsing a value at line 1 column 0 STDOUT="
+**Response:**
+In [`src/scripting.rs`](file:///home/santh/Developer/ki-editor/src/scripting.rs#L94-L100), when a script exits with empty or whitespace-only stdout (e.g. fire-and-forget scripts like `paplay ... &`), `serde_json::from_str(&stdout)` previously tried to parse an empty string as JSON, raising `EOF while parsing a value at line 1 column 0`. Updated `Script::execute` to treat empty/whitespace stdout as empty dispatches (`Ok(ScriptOutput { dispatches: Vec::new() })`) so side-effect scripts execute cleanly without error popups. Verified with `cargo build`.
+
+### Request 237
+> "commit this change"
+**Response:**
+Committed changes to git (*"fix(scripting): allow empty stdout for side-effect scripts without EOF error, preserve leader grid positions"*).
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -1178,12 +1178,25 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
             Dispatch::OpenMoveToIndexPrompt(prior_change),
         ),
         Keybinding::new_undocumented(
-            key!("."),
+            key!("shift+."),
             "Parent Line",
             Dispatch::ToEditor(MoveSelectionWithPriorChange(
                 Movement::ParentLine,
                 prior_change,
             )),
+        ),
+        Keybinding::new_undocumented(
+            key!(">"),
+            "Parent Line",
+            Dispatch::ToEditor(MoveSelectionWithPriorChange(
+                Movement::ParentLine,
+                prior_change,
+            )),
+        ),
+        Keybinding::new_undocumented(
+            key!("."),
+            "Repeat",
+            Dispatch::ToEditor(DispatchEditor::RepeatLastEdit),
         ),
     ]
     .to_vec()

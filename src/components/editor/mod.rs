@@ -74,6 +74,24 @@ pub enum PriorChange {
     EnterSwapMode,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum RepeatableEdit {
+    InsertText(String),
+    Delete,
+    DeleteWord { short: bool, direction: Direction },
+    KillLine(Direction),
+    Surround(String, String),
+    DeleteSurround(EnclosureKind),
+    ChangeSurround { from: EnclosureKind, to: EnclosureKind },
+    Indent,
+    Dedent,
+    ToggleLineComment,
+    ToggleBlockComment,
+    Transform(Transformation),
+    EnterNewline,
+    ReplaceWithCopiedText,
+}
+
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct Jump {
     pub character: char,
@@ -228,7 +246,10 @@ impl Component for Editor {
             AlignViewBottom => self.align_selection_to_bottom(context),
             #[cfg(test)]
             AlignViewCenter => self.align_selection_to_center(context),
-            Transform(transformation) => return self.transform_selection(transformation, context),
+            Transform(transformation) => {
+                self.record_repeatable_edit(context, RepeatableEdit::Transform(transformation.clone()));
+                return self.transform_selection(transformation, context);
+            }
             SetSelectionMode(if_current_not_found, selection_mode) => {
                 return self.set_selection_mode(
                     if_current_not_found,
@@ -256,15 +277,19 @@ impl Component for Editor {
                 return self.handle_movement_with_prior_change(context, movement, prior_change)
             }
             Copy => return Ok(self.copy()),
-            ReplaceWithCopiedText { cut } => {
-                return self.replace_with_historical_text(context, cut, 0, false)
+            ReplaceWithCopiedText { cut: _ } => {
+                self.record_repeatable_edit(context, RepeatableEdit::ReplaceWithCopiedText);
+                return self.replace_with_historical_text(context, false, 0, false);
             }
             SelectAll => return self.select_all(context),
             SetContent(content) => return self.set_content(&content, context),
             EnableSelectionExtension => self.enable_selection_extension(),
             DisableSelectionExtension => self.disable_selection_extension(),
             EnterInsertMode(direction) => return self.enter_insert_mode(direction, context),
-            Insert(string) => return self.insert(&string, context, EditHistoryKind::Coarse),
+            Insert(string) => {
+                self.record_repeatable_edit(context, RepeatableEdit::InsertText(string.clone()));
+                return self.insert(&string, context, EditHistoryKind::Coarse);
+            }
             #[cfg(test)]
             MatchLiteral(literal) => return self.match_literal(&literal, context),
             EnterNormalMode => self.enter_normal_mode(context)?,
@@ -283,22 +308,49 @@ impl Component for Editor {
             }
             FineUndo => return self.fine_undo(context),
             RevertLastInsertChar => return self.revert_last_insert_char(context),
-            KillLine(direction) => return self.kill_line(direction, context),
+            KillLine(direction) => {
+                self.record_repeatable_edit(context, RepeatableEdit::KillLine(direction.clone()));
+                return self.kill_line(direction, context);
+            }
             #[cfg(test)]
             Reset => self.reset(),
             DeleteWordBackward { short } => {
-                return self.delete_word(short, context, Direction::Start)
+                self.record_repeatable_edit(context, RepeatableEdit::DeleteWord { short, direction: Direction::Start });
+                return self.delete_word(short, context, Direction::Start);
             }
-            DeleteWord { short, direction } => return self.delete_word(short, context, direction),
+            DeleteWord { short, direction } => {
+                self.record_repeatable_edit(context, RepeatableEdit::DeleteWord { short, direction: direction.clone() });
+                return self.delete_word(short, context, direction);
+            }
             MoveWord { short, direction } => return self.move_word(short, context, direction),
-            Backspace => return self.backspace(context),
-            Delete => return self.delete_character_forward(context),
+            Backspace => {
+                if self.mode == Mode::Insert {
+                    if let Some(text) = &mut self.current_insert_session_text {
+                        text.pop();
+                    }
+                } else {
+                    self.record_repeatable_edit(context, RepeatableEdit::Delete);
+                }
+                return self.backspace(context);
+            }
+            Delete => {
+                if self.mode != Mode::Insert {
+                    self.record_repeatable_edit(context, RepeatableEdit::Delete);
+                }
+                return self.delete_character_forward(context);
+            }
             MoveToLineStart => return self.move_to_line_start(context),
             MoveToLineEnd => return self.move_to_line_end(),
             SelectLine(movement) => return self.select_line(movement, context),
             FineRedo => return self.fine_redo(context),
-            DeleteOne => return self.delete_one(context, false),
-            CutOne => return self.delete_one(context, true),
+            DeleteOne => {
+                self.record_repeatable_edit(context, RepeatableEdit::Delete);
+                return self.delete_one(context, false);
+            }
+            CutOne => {
+                self.record_repeatable_edit(context, RepeatableEdit::Delete);
+                return self.delete_one(context, true);
+            }
             Change => return self.change(context),
             ChangeCut => return self.change_cut(context),
             #[cfg(test)]
@@ -327,6 +379,7 @@ impl Component for Editor {
                 return self.do_save(true, context);
             }
             ReplaceCurrentSelectionWith(string) => {
+                self.record_repeatable_edit(context, RepeatableEdit::InsertText(string.clone()));
                 return self
                     .replace_current_selection_with(|_| Some(Rope::from_str(&string)), context)
             }
@@ -336,7 +389,10 @@ impl Component for Editor {
             GotoPosition { line, column } => {
                 return self.goto_position(line, column, context);
             }
-            Surround(open, close) => return self.surround(open, close, context),
+            Surround(open, close) => {
+                self.record_repeatable_edit(context, RepeatableEdit::Surround(open.clone(), close.clone()));
+                return self.surround(open, close, context);
+            }
             SwapCursor => self.swap_cursor(context),
             SetDecorations(decorations) => self.buffer_mut().set_decorations(&decorations),
             MoveCharacterBack => self.selection_set.move_left(&self.cursor_direction),
@@ -355,8 +411,14 @@ impl Component for Editor {
             SelectSurround { enclosure, kind } => {
                 return self.select_surround(enclosure, kind, context)
             }
-            DeleteSurround(enclosure) => return self.delete_surround(enclosure, context),
-            ChangeSurround { from, to } => return self.change_surround(from, Some(to), context),
+            DeleteSurround(enclosure) => {
+                self.record_repeatable_edit(context, RepeatableEdit::DeleteSurround(enclosure));
+                return self.delete_surround(enclosure, context);
+            }
+            ChangeSurround { from, to } => {
+                self.record_repeatable_edit(context, RepeatableEdit::ChangeSurround { from, to });
+                return self.change_surround(from, Some(to), context);
+            }
             ReplaceWithPattern(scope) => return self.replace_with_pattern(scope, context),
             Eat(movement) => return self.eat(&movement, context),
             ApplyPositionalEdits(edits) => {
@@ -381,14 +443,29 @@ impl Component for Editor {
             MoveToLastChar => return Ok(self.move_to_last_char(context)),
             PipeToShell { command } => return self.pipe_to_shell(command, context),
             ShowCurrentTreeSitterNodeSexp => return self.show_current_tree_sitter_node_sexp(),
-            Indent => return self.indent(context),
-            Dedent => return self.dedent(context),
+            Indent => {
+                self.record_repeatable_edit(context, RepeatableEdit::Indent);
+                return self.indent(context);
+            }
+            Dedent => {
+                self.record_repeatable_edit(context, RepeatableEdit::Dedent);
+                return self.dedent(context);
+            }
             CyclePrimarySelection(direction) => self.cycle_primary_selection(direction),
             SwapExtensionAnchor => self.selection_set.swap_anchor(),
             FilterSelectionMatchingSearch { maintain, search } => {
                 return self.filter_selection_matching_search(&search, maintain, context);
             }
-            EnterNewline => return self.enter_newline(context),
+            EnterNewline => {
+                if self.mode == Mode::Insert {
+                    if let Some(text) = &mut self.current_insert_session_text {
+                        text.push('\n');
+                    }
+                } else {
+                    self.record_repeatable_edit(context, RepeatableEdit::EnterNewline);
+                }
+                return self.enter_newline(context);
+            }
             DeleteCurrentCursor(direction) => self.delete_current_cursor(direction),
             BreakSelection => return self.break_selection(context),
             ShowHelp => return self.show_help(context),
@@ -404,8 +481,14 @@ impl Component for Editor {
             ExecuteCompletion { replacement, edit } => {
                 return self.execute_completion(replacement, edit, context)
             }
-            ToggleLineComment => return self.toggle_line_comment(context),
-            ToggleBlockComment => return self.toggle_block_comment(context),
+            ToggleLineComment => {
+                self.record_repeatable_edit(context, RepeatableEdit::ToggleLineComment);
+                return self.toggle_line_comment(context);
+            }
+            ToggleBlockComment => {
+                self.record_repeatable_edit(context, RepeatableEdit::ToggleBlockComment);
+                return self.toggle_block_comment(context);
+            }
             RepeatSearch(scope, if_current_not_found, prior_change) => {
                 return self.repeat_search(context, scope, if_current_not_found, prior_change)
             }
@@ -455,6 +538,7 @@ impl Component for Editor {
             CoarseUndo => return self.coarse_undo(context),
             CoarseRedo => return self.coarse_redo(context),
             InsertChar(c) => return self.insert_char(context, c),
+            RepeatLastEdit => return self.repeat_last_edit(context),
         }
         Ok(Dispatches::default())
     }
@@ -504,6 +588,8 @@ pub struct Editor {
     /// other dispatch. See [`DispatchEditor::MoveCursorVertically`].
     insert_mode_sticky_column: Option<usize>,
     pub show_cursors: bool,
+    pub last_repeatable_edit: Option<RepeatableEdit>,
+    current_insert_session_text: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -693,6 +779,46 @@ pub enum MovementApplicandum {
 }
 
 impl Editor {
+    pub fn record_repeatable_edit(&mut self, context: &Context, edit: RepeatableEdit) {
+        context.set_last_repeatable_edit(edit.clone());
+        self.last_repeatable_edit = Some(edit);
+    }
+
+    pub fn repeat_last_edit(&mut self, context: &Context) -> anyhow::Result<Dispatches> {
+        let edit = context
+            .last_repeatable_edit()
+            .or_else(|| self.last_repeatable_edit.clone());
+        let Some(repeatable_edit) = edit else {
+            return Ok(Dispatches::default());
+        };
+        match repeatable_edit {
+            RepeatableEdit::InsertText(text) => {
+                self.insert(&text, context, EditHistoryKind::Coarse)
+            }
+            RepeatableEdit::Delete => self.delete_one(context, false),
+            RepeatableEdit::DeleteWord { short, direction } => {
+                self.delete_word(short, context, direction)
+            }
+            RepeatableEdit::KillLine(direction) => self.kill_line(direction, context),
+            RepeatableEdit::Surround(open, close) => self.surround(open, close, context),
+            RepeatableEdit::DeleteSurround(enclosure) => self.delete_surround(enclosure, context),
+            RepeatableEdit::ChangeSurround { from, to } => {
+                self.change_surround(from, Some(to), context)
+            }
+            RepeatableEdit::Indent => self.indent(context),
+            RepeatableEdit::Dedent => self.dedent(context),
+            RepeatableEdit::ToggleLineComment => self.toggle_line_comment(context),
+            RepeatableEdit::ToggleBlockComment => self.toggle_block_comment(context),
+            RepeatableEdit::Transform(transformation) => {
+                self.transform_selection(transformation, context)
+            }
+            RepeatableEdit::EnterNewline => self.enter_newline(context),
+            RepeatableEdit::ReplaceWithCopiedText => {
+                self.replace_with_historical_text(context, false, 0, false)
+            }
+        }
+    }
+
     /// Returns (hidden_parent_lines, visible_parent_lines)
     pub fn get_parent_lines(&self) -> anyhow::Result<(Vec<Line>, Vec<Line>)> {
         let position = self.get_cursor_position()?;
@@ -767,6 +893,8 @@ impl Editor {
             insert_session: InsertSession::next(),
             insert_mode_sticky_column: None,
             show_cursors: true,
+            last_repeatable_edit: None,
+            current_insert_session_text: None,
         }
     }
 
@@ -816,6 +944,8 @@ impl Editor {
             insert_session: InsertSession::next(),
             insert_mode_sticky_column: None,
             show_cursors: true,
+            last_repeatable_edit: None,
+            current_insert_session_text: None,
         }
     }
 
@@ -2181,11 +2311,18 @@ impl Editor {
         self.mode = Mode::Insert;
         self.cursor_direction = Direction::Start;
         self.insert_session.increment();
+        self.current_insert_session_text = Some(String::new());
         Ok(Dispatches::one(Dispatch::RequestSignatureHelp))
     }
 
     pub fn enter_normal_mode(&mut self, context: &Context) -> anyhow::Result<()> {
         if self.mode == Mode::Insert {
+            if let Some(text) = self.current_insert_session_text.take() {
+                if !text.is_empty() {
+                    let edit = RepeatableEdit::InsertText(text);
+                    self.record_repeatable_edit(context, edit);
+                }
+            }
             // This is necessary for cursor to not overflow after exiting insert mode
             self.set_selection_set(
                 self.selection_set
@@ -5152,6 +5289,9 @@ impl Editor {
     }
 
     fn insert_char(&mut self, context: &Context, c: char) -> Result<Dispatches, anyhow::Error> {
+        if let Some(text) = &mut self.current_insert_session_text {
+            text.push(c);
+        }
         let dispatches = self.insert(
             &c.to_string(),
             context,
@@ -5278,6 +5418,9 @@ impl Editor {
     }
 
     fn revert_last_insert_char(&mut self, context: &Context) -> Result<Dispatches, anyhow::Error> {
+        if let Some(text) = &mut self.current_insert_session_text {
+            text.pop();
+        }
         let dispatches = self
             .undo(context, true)?
             .map(|(dispatches, _)| dispatches)
@@ -5471,6 +5614,7 @@ pub enum DispatchEditor {
     DuplicateVertically(Direction),
     CoarseUndo,
     CoarseRedo,
+    RepeatLastEdit,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

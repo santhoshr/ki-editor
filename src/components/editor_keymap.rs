@@ -282,6 +282,8 @@ impl KeyboardLayout {
             KeyCode::Char(pressed_char) => {
                 let (translated_char, shift) = if event.modifiers.shift && pressed_char == '\'' {
                     ('"', false)
+                } else if event.modifiers.shift && pressed_char == '.' {
+                    ('>', false)
                 } else {
                     let translated_char = self.translate_char_to_qwerty(pressed_char);
                     let shift = translated_char.is_uppercase();

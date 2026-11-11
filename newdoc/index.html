@@ -512,7 +512,7 @@
         <div class="matrix-row" style="margin-left: 40px;">
           <div class="matrix-key"><div class="key-letter">m</div><div class="key-action">Jump</div><div class="key-shift">Shift: Index</div></div>
           <div class="matrix-key"><div class="key-letter">,</div><div class="key-action">Surround</div></div>
-          <div class="matrix-key"><div class="key-letter">.</div><div class="key-action">Parent Line</div></div>
+          <div class="matrix-key"><div class="key-letter">.</div><div class="key-action">Repeat</div><div class="key-shift">Shift: Parent</div></div>
           <div class="matrix-key"><div class="key-letter">/</div><div class="key-action">&harr; Cursor</div><div class="key-alt">Alt: &harr; Window</div></div>
         </div>
       </div>
@@ -558,6 +558,11 @@
           </tr>
           <tr>
             <td><kbd>.</kbd></td>
+            <td><code>Repeat</code></td>
+            <td>Applies the most recent editing change again at the current location (Vim-style repeat).</td>
+          </tr>
+          <tr>
+            <td><kbd>Shift+.</kbd> / <kbd>&gt;</kbd></td>
             <td><code>Parent Line</code></td>
             <td>Jumps to the nearest dedented line above.</td>
           </tr>
@@ -2082,7 +2087,8 @@
           <p><code>i</code>/<code>k</code> &rarr; Up / Down</p>
           <p><code>y</code>/<code>p</code> &rarr; First / Last</p>
           <p><code>m</code> &rarr; EasyMotion Jump</p>
-          <p><code>.</code> &rarr; Parent Line</p>
+          <p><code>.</code> &rarr; Repeat Last Edit</p>
+          <p><code>Shift+.</code> / <code>&gt;</code> &rarr; Parent Line</p>
           <p><code>/</code> / <code>?</code> &rarr; Forward / Backward Search</p>
         </div>
         <div class="card">

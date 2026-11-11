@@ -1653,6 +1653,29 @@ Moved **Recent Folders** (`Dispatch::OpenRecentFoldersPicker`) to Command `'` in
 **Response:**
 Staged all changes and committed as `feat(keymap): move recent folders picker to Command '`.
 
+### Request 227
+> "Move . parent to shift ., make . repeat, similar to vim's definition of repeat, which applies the most recent editing change again at the current location. It repeats edits—such as inserting, deleting, replacing, or formatting text—but not navigation, searches, or commands that only change editor state, but ki's way of last text-modifying transaction or explicit edit action as discussed"
+**Response:**
+1. Moved Parent Line motion from `.` to `Shift+.` (`>`) in `src/keymap.rs` (`keymap_core_movements`) and translated `Shift+.` to `>` in `src/components/editor_keymap.rs`.
+2. Bound `.` in Normal mode to `DispatchEditor::RepeatLastEdit`.
+3. Created `RepeatableEdit` tracking on `Context` (`last_repeatable_edit`) and `Editor` (`last_repeatable_edit`, `current_insert_session_text`).
+4. Captured text typed in Insert mode sessions upon exiting to Normal mode, as well as explicit editing dispatches (deletions, replacements, surroundings, indentation, comment toggling). Navigation and searches do not alter the repeat buffer.
+5. Replayed repeatable edits at the active selection(s) via `Editor::repeat_last_edit`.
+6. Updated `README.md`, `newdoc/index.html`, and `newdoc/kustom-ki.html`. Verified compilation via `cargo build`.
+
+### Request 228
+> "why g open commands are not repeating"
+> "none of the these cut, delete, open, eat, Swap(t), Paste menu actions repeat, also indent, dedent, align repeats"
+> "explain on't moddify"
+**Response:**
+Explained that momentary layer sub-menus fire movement-composed dispatches (`CutWithMovement`, `DeleteWithMovement`, `Eat`, `SwapWithMovement`, `PasteWithMovement`, `Open`, `OpenVertically`, `AlignSelections`) which were not yet tracked in `RepeatableEdit`, and that `g` open commands transition to Insert mode without preserving the open action direction.
+
+### Request 229
+> "implement it"
+> "before that commit our initial repeat impl"
+**Response:**
+Committed initial repeat implementation as `feat(editor): implement vim-like dot repeat (.) and move parent line to Shift+.`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

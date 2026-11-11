@@ -68,6 +68,8 @@ pub struct Context {
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
 
+    last_repeatable_edit: std::cell::RefCell<Option<crate::components::editor::RepeatableEdit>>,
+
     /// This is used to prevent the same non-existent formatter error from being reported more than once.
     non_existent_formatter_commands: Vec<FormatterCommand>,
 }
@@ -487,8 +489,17 @@ impl Context {
             filetree_open_with_path: app_config.filetree_open_with_path(),
             navigation_keys: app_config.navigation_keys(),
             hjkl_config: app_config.hjkl_config(),
+            last_repeatable_edit: std::cell::RefCell::new(None),
             non_existent_formatter_commands: Vec::new(),
         }
+    }
+
+    pub fn last_repeatable_edit(&self) -> Option<crate::components::editor::RepeatableEdit> {
+        self.last_repeatable_edit.borrow().clone()
+    }
+
+    pub fn set_last_repeatable_edit(&self, edit: crate::components::editor::RepeatableEdit) {
+        *self.last_repeatable_edit.borrow_mut() = Some(edit);
     }
 
     /// Checks if the contents in both the system clipboard and the app clipboard is the same

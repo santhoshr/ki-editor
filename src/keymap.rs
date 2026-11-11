@@ -1900,21 +1900,35 @@ pub fn keymap_other_movements(swap_key: SwapKey, e_normal_mode: ENormalMode) -> 
             },
             on_tap: None,
         }),
-        Keybinding::app_momentary_layer(MomentaryLayer {
-            event: key!("e"),
-            name: match e_normal_mode {
-                ENormalMode::Buffer => "≡ Buffer".to_string(),
-                ENormalMode::Mark => "≡ Mark".to_string(),
+        Keybinding::new_undocumented(
+            key!("e"),
+            match e_normal_mode {
+                ENormalMode::Buffer => "≡ Buffer/Mark",
+                ENormalMode::Mark => "≡ Mark/Buffer",
             },
-            config: match e_normal_mode {
-                ENormalMode::Buffer => buffer_keymap_legend_config(),
-                ENormalMode::Mark => mark_keymap_legend_config(),
+            Dispatch::ShowAppJointMomentaryLayer {
+                swap_key: key!("space"),
+                active_config: match e_normal_mode {
+                    ENormalMode::Buffer => buffer_keymap_legend_config(),
+                    ENormalMode::Mark => mark_keymap_legend_config(),
+                },
+                release_key: ReleaseKey::new(
+                    key!("e"),
+                    Some(OnTap::new(
+                        "Toggle Selection Mark",
+                        Dispatch::ToggleSelectionMark,
+                    )),
+                ),
+                inactive_config: match e_normal_mode {
+                    ENormalMode::Buffer => mark_keymap_legend_config(),
+                    ENormalMode::Mark => buffer_keymap_legend_config(),
+                },
+                inactive_tap: Some(OnTap::new(
+                    "Toggle Selection Mark",
+                    Dispatch::ToggleSelectionMark,
+                )),
             },
-            on_tap: Some(OnTap::new(
-                "Toggle Selection Mark",
-                Dispatch::ToggleSelectionMark,
-            )),
-        }),
+        ),
     ];
 
     if swap_key == SwapKey::X {

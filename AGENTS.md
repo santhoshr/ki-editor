@@ -1752,6 +1752,22 @@ Inspected the `c` (`Copy/≡ Dup`) momentary layer implementation in [`command_k
 **Response:**
 Changed `Keybinding::momentary_layer` to `Keybinding::app_momentary_layer` in [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1287-L1325). Editor momentary layers are bound to the active editor and get destroyed when buffer switching actions (like `j`/`l` file cycling) replace the editor instance; `app_momentary_layer` maintains state and HUD at the root application level across buffer changes. Verified compilation via `cargo build`.
 
+### Request 242
+> "like r cut to eat to cut with space, make e change mark/buffer as per configuration to buffer/mark and vice versa with space; this is for outer e, not command e"
+**Response:**
+1. Added `Dispatch::ShowAppJointMomentaryLayer` to handle root-level joint momentary layers with app-level scope.
+2. In `JointMomentaryLayer` (`src/keymap_override/momentary_layer/joint.rs`), dynamically preserved `on_root` (from `KeymapOverrideScope::App`) when swapping layers on `space`.
+3. In `keymap_other_movements` (`src/keymap.rs`), bound Normal mode <kbd>e</kbd> via `Dispatch::ShowAppJointMomentaryLayer` swapping with <kbd>Space</kbd>:
+   - If `e_normal_mode == Buffer`, starts in `≡ Buffer` and swaps with Space to `≡ Mark` (and vice-versa).
+   - If `e_normal_mode == Mark`, starts in `≡ Mark` and swaps with Space to `≡ Buffer` (and vice-versa).
+   - Releases on <kbd>e</kbd> release, executing `Toggle Selection Mark` on tap.
+4. Verified compilation via `cargo build`.
+
+### Request 243
+> "on swap the HUD stacks vertically on top of each everytime / not replacing"
+**Response:**
+In [`App::handle_dispatches`](file:///home/santh/Developer/ki-editor/src/app.rs#L1294-L1306) under `Dispatch::ShowKeymapLegend`, conditionally called `self.layout.close_app_keymap_legend()` when `on_root` is true instead of only calling `self.layout.close_keymap_legend()` (which only clears children on focused nodes). This cleanly replaces the root HUD on swap without vertical stacking. Verified with `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

@@ -156,10 +156,10 @@ The swap and cut key assignments are configurable via `"swap_key"` in `config.js
 
 ### 3.4 E Key Momentary Menu Configuration (`src/config.rs`, `src/keymap.rs`)
 
-The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `config.json` (`"buffer"` or `"mark"`, defaulting to `"buffer"`):
+The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `config.json` (`"buffer"` or `"mark"`, defaulting to `"buffer"`). Like `r` (Delete/Eat swapped with Space), holding `e` and pressing `Space` dynamically toggles between the **Buffer** and **Mark** momentary layers:
 
 - **Default (`"e_normal_mode": "buffer"`):**
-  - **Hold `e`:** Opens the original buffer menu (`≡ Buffer`):
+  - **Hold `e`:** Opens the buffer menu (`≡ Buffer`), press `Space` while holding `e` to swap to `≡ Mark`:
     - `j` / `l`: cycle marked files (`<<` / `>>`)
     - `u` / `o`: cycle opened files (`<` / `>`)
     - `y` / `p`: first / last marked file
@@ -168,7 +168,7 @@ The normal mode `e` key behavior is configurable via `"e_normal_mode"` in `confi
   - **Tap `e`:** Toggles selection mark (`ToggleSelectionMark`).
 
 - **Alternative (`"e_normal_mode": "mark"`):**
-  - **Hold `e`:** Opens the customized mark navigation menu (`≡ Mark`):
+  - **Hold `e`:** Opens the mark navigation menu (`≡ Mark`), press `Space` while holding `e` to swap to `≡ Buffer`:
     - `j` / `l`: local marks (`<` / `>`)
     - `u` / `o`: global marks (`<` / `>`)
     - `y` / `p`: first / last local mark (`|<` / `>|`)

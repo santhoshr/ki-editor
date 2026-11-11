@@ -9,6 +9,7 @@ use super::{simple::SimpleMomentaryLayer, MomentaryLayerBaseTrait};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct JointMomentaryLayer {
+    pub(super) on_root: bool,
     pub(super) tap_key: KeyEvent,
     pub(super) swap_key: KeyEvent,
     pub(super) active: SimpleMomentaryLayer,
@@ -22,7 +23,7 @@ impl MomentaryLayerBaseTrait for JointMomentaryLayer {
             Ok((
                 false,
                 Dispatches::one(Dispatch::ShowKeymapLegend {
-                    on_root: false,
+                    on_root: self.on_root,
                     keymap_legend_config: self.active.config.clone(),
                     release_key: Some(ReleaseKey::new(self.tap_key, self.active.tap.clone())),
                 }),

@@ -1262,6 +1262,25 @@ impl<T: Frontend> App<T> {
                 )))?;
                 self.show_keymap_legend(false, active_config, Some(release_key));
             }
+            Dispatch::ShowAppJointMomentaryLayer {
+                swap_key,
+                active_config,
+                release_key,
+                inactive_config,
+                inactive_tap,
+            } => {
+                self.keymap_override = Some(AppKeymapOverride::MomentaryLayer(
+                    MomentaryLayerKeymapOverride::new_joint(
+                        KeymapOverrideScope::App,
+                        release_key.clone(),
+                        swap_key,
+                        active_config.clone(),
+                        inactive_config,
+                        inactive_tap,
+                    ),
+                ));
+                self.show_keymap_legend(true, active_config, Some(release_key));
+            }
             Dispatch::ShowAppMomentaryLayer(keymap_legend_config, release_key) => {
                 self.keymap_override = Some(AppKeymapOverride::MomentaryLayer(
                     MomentaryLayerKeymapOverride::new(
@@ -1278,7 +1297,11 @@ impl<T: Frontend> App<T> {
                 release_key,
             } => {
                 // HACK: used for joint MoLs
-                self.layout.close_keymap_legend();
+                if on_root {
+                    self.layout.close_app_keymap_legend();
+                } else {
+                    self.layout.close_keymap_legend();
+                }
                 self.show_keymap_legend(on_root, keymap_legend_config, release_key);
             }
             #[cfg(test)]
@@ -5487,6 +5510,13 @@ pub enum Dispatch {
     ShowMenu(KeymapLegendConfig),
     ShowMomentaryLayer(KeymapLegendConfig, ReleaseKey),
     ShowJointMomentaryLayer {
+        swap_key: KeyEvent,
+        active_config: KeymapLegendConfig,
+        release_key: ReleaseKey,
+        inactive_config: KeymapLegendConfig,
+        inactive_tap: Option<OnTap>,
+    },
+    ShowAppJointMomentaryLayer {
         swap_key: KeyEvent,
         active_config: KeymapLegendConfig,
         release_key: ReleaseKey,

@@ -1287,6 +1287,25 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             Dispatch::ToEditor(DispatchEditor::ShowHelp),
         ),
     ]);
+    let (e_name, e_config) = match context.e_normal_mode() {
+        crate::config::ENormalMode::Mark => (
+            "≡ Buffer".to_string(),
+            buffer_keymap_legend_config(),
+        ),
+        crate::config::ENormalMode::Buffer => (
+            "≡ Mark".to_string(),
+            mark_keymap_legend_config(),
+        ),
+    };
+    bindings.push(Keybinding::app_momentary_layer(MomentaryLayer {
+        event: key!("e"),
+        name: e_name,
+        config: e_config,
+        on_tap: Some(OnTap::new(
+            "Toggle Selection Mark",
+            Dispatch::ToggleSelectionMark,
+        )),
+    }));
     if context.command_menu_invocation() == crate::config::CommandMenuInvocation::LowerC {
         bindings.push(Keybinding::momentary_layer(MomentaryLayer {
             event: key!("c"),

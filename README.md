@@ -106,6 +106,7 @@ Supported invocation keys:
 | Enter      Toggle Selection Mark   | h          < New Untitled (Left)   |
 | Space      Open Full Space MoL     | ;          New Untitled > (Right)  |
 | S-Space    Bookmarks Menu          |                                    |
+| e          Buffer / Mark Menu      |                                    |
 | /          Show Help Legend        |                                    |
 +------------------------------------+------------------------------------+
 ```
@@ -113,6 +114,7 @@ Supported invocation keys:
 #### Behavioral Details:
 - **`Space` -> `Space`:** Pressing `Space` inside the Command Menu opens the full Space Menu of Legends (`space_keymap_legend_config`), maintaining backward compatibility with all deep MoL subsystems (Pick, Jump, Buffer, Git, View, Window).
 - **Embedded Buffer Operations:** High-frequency tab navigation (`j`/`l`), save (`s`), reload (`d`), and alternate buffer switching (`u`) execute directly from the Space HUD without entering submenus.
+- **Contextual `e` Momentary Layer:** Pressing/holding `e` inside the Command Menu dynamically opens the **Buffer momentary layer** (`≡ Buffer`) if `"e_normal_mode"` is configured as `"mark"`, and opens the **Mark momentary layer** (`≡ Mark`) if `"e_normal_mode"` is configured as `"buffer"`. Tapping `e` executes `Toggle Selection Mark`.
 - **HUD Dismissal:** Pressing `Space` while already inside the Command HUD dismisses it immediately (`MenuKeymapOverride::handle_press`). Momentary layer locks remain supported.
 - **HUD Footer Help:** In Space HUD (`Space` / `Command`), the footer displays `* Pick Keyboard    \ Leader    - File Tree (current file)    shift+-/_ File Tree (cd)`. In Bookmarks HUD, it displays `Key/S-Key/Alt-Key Pick file/folder to bookmark, empty path to clear, input = to nest(equals key)`.
 

@@ -1728,6 +1728,30 @@ In [`src/scripting.rs`](file:///home/santh/Developer/ki-editor/src/scripting.rs#
 **Response:**
 Committed changes to git (*"fix(scripting): allow empty stdout for side-effect scripts without EOF error, preserve leader grid positions"*).
 
+### Request 238
+> "in Command menu command, e should trigger, Buffer menu, if e_normal_mode is configured with mark, and trigger Mark menu if configured with buffer"
+**Response:**
+Updated [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1205-L1325): dynamically bound <kbd>e</kbd> (along with `E` and `shift+e`) to open `≡ Buffer` (`Dispatch::ShowMenu(buffer_keymap_legend_config())`) when `context.e_normal_mode()` is `ENormalMode::Mark`, and to open `≡ Mark` (`Dispatch::ShowMenu(mark_keymap_legend_config())`) when `context.e_normal_mode()` is `ENormalMode::Buffer`. Updated `README.md` and `newdoc/kustom-ki.html`. Verified with `cargo build`.
+
+### Request 239
+> "don't map E, only e, also it is not operating as tap and hold, it is sticky"
+**Response:**
+Removed uppercase/shifted bindings (`E`, `shift+e`) and converted `e` from a sticky `Dispatch::ShowMenu` into a momentary layer (`Keybinding::momentary_layer(MomentaryLayer { ... })`).
+
+### Request 240
+> "take a look at c copy menu invoked from Command menu which uses copy MoL correctly"
+**Response:**
+Inspected the `c` (`Copy/≡ Dup`) momentary layer implementation in [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1287-L1330) and updated `e` to follow the exact same momentary layer architecture using `Keybinding::momentary_layer(MomentaryLayer { event: key!("e"), name: e_name, config: e_config, on_tap: Some(OnTap::new("Toggle Selection Mark", Dispatch::ToggleSelectionMark)) })`:
+- Holding <kbd>e</kbd> holds open `≡ Buffer` (when `e_normal_mode == Mark`) or `≡ Mark` (when `e_normal_mode == Buffer`).
+- Releasing <kbd>e</kbd> closes the layer, or executes `Toggle Selection Mark` if tapped without pressing another key.
+- Verified compilation with `cargo build`.
+
+### Request 241
+> "still it doesn't work properly after holding it and tapping any other key closes momentary layer, command c doesn't suffer with single action close"
+> "continue, don't over analyse"
+**Response:**
+Changed `Keybinding::momentary_layer` to `Keybinding::app_momentary_layer` in [`command_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1287-L1325). Editor momentary layers are bound to the active editor and get destroyed when buffer switching actions (like `j`/`l` file cycling) replace the editor instance; `app_momentary_layer` maintains state and HUD at the root application level across buffer changes. Verified compilation via `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

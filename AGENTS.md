@@ -1785,6 +1785,16 @@ In [`App::handle_dispatches`](file:///home/santh/Developer/ki-editor/src/app.rs#
 **Response:**
 Updated `is_literal_keymap` in [`src/components/keymap_legend.rs`](file:///home/santh/Developer/ki-editor/src/components/keymap_legend.rs#L31-L46) so that `title == "Command"` is treated as a navigation-enabled keymap (`is_literal_keymap == false`). This enables keys `y, u, i, o, p, h, j, k, l, ;` in the Command menu (the buffer navigation column) to adapt to the active `navigation_keys` (`hjkl` / `jhlk`) and pair actions (`y_semicolon_action`, `io_action`, `up_action`) in both the HUD display and menu keypress execution, while keeping command hotkeys (`f, b, w, q, v, e, ', /`) in their fixed positions. Verified with `cargo build`.
 
+### Request 246
+> "b multi cursor menu comma (,) should perform Keep Primary Curs (b space l)"
+**Response:**
+Bound `,` (<kbd>,</kbd>) to `"Keep Primary Curs"` (`Dispatch::KeepCursorPrimaryOnly`) in both [`multicursor_momentary_layer_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1012-L1090) (the <kbd>b</kbd> momentary layer) and [`multicursor_menu_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L65-L95) (<kbd>b</kbd> &rarr; <kbd>Space</kbd> menu). Users can now directly press `,` while holding <kbd>b</kbd> to discard secondary cursors and keep only the primary cursor. Verified with `cargo build`.
+
+### Request 247
+> "just keep b , not b space ,"
+**Response:**
+Removed `,` from [`multicursor_menu_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L65-L95) (<kbd>b</kbd> &rarr; <kbd>Space</kbd> menu), keeping it strictly on the <kbd>b</kbd> multi-cursor momentary layer ([`multicursor_momentary_layer_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1012-L1090)). Verified compilation via `cargo build`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

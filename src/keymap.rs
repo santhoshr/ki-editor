@@ -1078,6 +1078,11 @@ pub fn multicursor_momentary_layer_keymap(editor: &Editor) -> Keymap {
                     keymap: multicursor_menu_keymap(editor),
                 }),
             ),
+            Keybinding::new_undocumented(
+                key!(","),
+                "Keep Primary Curs",
+                Dispatch::KeepCursorPrimaryOnly,
+            ),
         ])
         .collect_vec(),
     )

@@ -1795,6 +1795,25 @@ Bound `,` (<kbd>,</kbd>) to `"Keep Primary Curs"` (`Dispatch::KeepCursorPrimaryO
 **Response:**
 Removed `,` from [`multicursor_menu_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L65-L95) (<kbd>b</kbd> &rarr; <kbd>Space</kbd> menu), keeping it strictly on the <kbd>b</kbd> multi-cursor momentary layer ([`multicursor_momentary_layer_keymap`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1012-L1090)). Verified compilation via `cargo build`.
 
+### Request 248
+> "if file is opened and there are unused Untitled, this is not user opened, opened on editor open or opened when there are no buffers, unmark and closse them"
+> "if file is opened and there are unused Untitled, and if thesse are not user opened, opened on editor open or opened when there are no buffers, unmark and closse them; untitled files can be initiated with buffer menu by user which need will not be auto closed/unmarked, only on exit they will be ignored if not dirty"
+> "if file is opened and there are unused Untitled, and if these are not user opened, opened on editor open or opened when there are no buffers, unmark and closse them; untitled files can be initiated with buffer menu by user which need will not be auto closed/unmarked, only on exit they will be ignored if not dirty, file tree can also open user file that is empty/in memory buffer, these will not be auto closed"
+> "there was earlier easier method which usually opened buffers including untitled in unmarked state, which was auto closed, on file open, but since real files are also unmarked, many places marking was manually added, so one quick fix would be to unmark system generated untitled buffers, mark it once user does update it, already happens, then alway mark user initiated files"
+**Response:**
+1. Distinguished between system-generated and user-initiated Untitled buffers in `src/context.rs` (`auto_created_untitled_files`).
+2. Kept system-generated untitled buffers unmarked on open (`auto_created = true` omits `insert_marked_file_at`). User-initiated untitled buffers (`Dispatch::OpenUntitledFile`) remain marked.
+3. Automatically marks system-generated untitled buffers when modified via existing `set_file_dirty_status` logic.
+4. Guaranteed user-opened files (`owner == BufferOwner::User`) are always marked on open in `open_file` / `open_file_unchecked`.
+5. In `src/app.rs` (`cleanup_unused_auto_untitled_files`), automatically unmarks and closes clean, empty, auto-created untitled buffers when user files are opened, leaving user-initiated untitled buffers and empty user files untouched.
+Verified compilation via `cargo build`.
+
+### Request 249
+> "is there advantage to this approach, was earlier marking/unmarking not reliable?"
+> "commitit"
+**Response:**
+Explained architectural differences between old preview buffer retention vs explicit cleanup. Staged and committed changes for auto-closing unused system-generated Untitled buffers.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

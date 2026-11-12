@@ -347,7 +347,7 @@ impl<T: Frontend> App<T> {
                 }
             }
         } else if self.opened_files_count() == 0 {
-            self.open_untitled_file(TabSide::Right)?;
+            self.open_untitled_file(TabSide::Right, true)?;
         }
 
         for dispatch in dispatches {
@@ -900,7 +900,7 @@ impl<T: Frontend> App<T> {
         log::info!("App::handle_dispatch = {}", dispatch.variant_name());
         match dispatch {
             Dispatch::OpenUntitledFile(side) => {
-                self.open_untitled_file(side)?;
+                self.open_untitled_file(side, false)?;
             }
             Dispatch::Suspend => {
                 self.suspend()?;
@@ -1753,7 +1753,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             if self.opened_files_count() == 0 {
-                self.open_untitled_file(TabSide::Right)?;
+                self.open_untitled_file(TabSide::Right, true)?;
             }
         }
         Ok(())
@@ -1781,7 +1781,7 @@ impl<T: Frontend> App<T> {
                     }
                 }
                 if self.opened_files_count() == 0 {
-                    self.open_untitled_file(TabSide::Right)?;
+                    self.open_untitled_file(TabSide::Right, true)?;
                 }
             }
         }
@@ -1820,7 +1820,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             if self.opened_files_count() == 0 {
-                self.open_untitled_file(TabSide::Right)?;
+                self.open_untitled_file(TabSide::Right, true)?;
             }
         }
         Ok(())
@@ -2213,6 +2213,10 @@ impl<T: Frontend> App<T> {
                 self.push_current_location_into_navigation_history(true);
                 self.context.clear_forward_history();
             }
+            if owner == BufferOwner::User {
+                self.context.mark_file(path.clone());
+            }
+            self.cleanup_unused_auto_untitled_files(Some(path));
             return Ok(matching_editor);
         }
 
@@ -2257,11 +2261,18 @@ impl<T: Frontend> App<T> {
 
         // Check if the file is opened before so that we won't notify the LSP twice
         if let Some(matching_editor) = self.layout.open_file(path, focus) {
+            if owner == BufferOwner::User {
+                self.context.mark_file(path.clone());
+            }
+            self.cleanup_unused_auto_untitled_files(Some(path));
             return Ok(matching_editor);
         }
 
         let mut buffer = Buffer::from_path(path, true)?;
         buffer.set_owner(owner);
+        if owner == BufferOwner::User {
+            self.context.mark_file(path.clone());
+        }
 
         let language = buffer.language();
         let content = buffer.content();
@@ -2281,6 +2292,7 @@ impl<T: Frontend> App<T> {
             self.layout
                 .replace_and_focus_current_suggestive_editor(component.clone());
         }
+        self.cleanup_unused_auto_untitled_files(Some(path));
         if let Some(language) = language {
             self.request_syntax_highlight(component_id, batch_id, language, content)?;
         }
@@ -4551,7 +4563,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             if self.opened_files_count() == 0 {
-                self.open_untitled_file(TabSide::Right)?;
+                self.open_untitled_file(TabSide::Right, true)?;
             }
         }
         Ok(())
@@ -5279,7 +5291,61 @@ Please consider installing it.\n\
         Ok(())
     }
 
-    fn open_untitled_file(&mut self, side: TabSide) -> anyhow::Result<()> {
+    fn cleanup_unused_auto_untitled_files(&mut self, except_path: Option<&AbsolutePath>) {
+        let to_remove: Vec<AbsolutePath> = self
+            .context
+            .auto_created_untitled_files()
+            .iter()
+            .filter(|p| {
+                if except_path == Some(p) {
+                    return false;
+                }
+                if self.context.is_dirty(p) {
+                    return false;
+                }
+                if let Some(editor) = self.layout.get_existing_editor(p) {
+                    editor.borrow().editor().buffer().content().is_empty()
+                } else {
+                    true
+                }
+            })
+            .cloned()
+            .collect();
+
+        if to_remove.is_empty() {
+            return;
+        }
+
+        let current_file_path = self.get_current_file_path();
+        let was_current_removed = current_file_path
+            .as_ref()
+            .map(|cp| to_remove.contains(cp))
+            .unwrap_or(false);
+
+        for path in &to_remove {
+            if self.context.get_alternate_file() == Some(path) {
+                self.context.clear_alternate_file();
+            }
+            self.context.unregister_untitled_file(path);
+            self.context.unmark_path(path.clone());
+            self.layout.remove_suggestive_editor(path);
+            self.context.remove_from_location_history(path);
+        }
+
+        if was_current_removed {
+            if let Some(except) = except_path {
+                if let Some(editor) = self.layout.get_existing_editor(except) {
+                    self.layout.replace_and_focus_current_suggestive_editor(editor);
+                }
+            }
+        }
+
+        self.send_file_watcher_input(FileWatcherInput::SyncOpenedPaths(
+            self.layout.get_opened_files(),
+        ));
+    }
+
+    fn open_untitled_file(&mut self, side: TabSide, auto_created: bool) -> anyhow::Result<()> {
         let current_path = self.get_current_file_path();
         if let Some(cp) = &current_path {
             self.context.set_alternate_file(cp.clone());
@@ -5330,10 +5396,12 @@ Please consider installing it.\n\
         self.push_current_location_into_navigation_history(true);
         self.context.clear_forward_history();
 
-        self.context.register_untitled_file(untitled_path.clone());
+        self.context.register_untitled_file(untitled_path.clone(), auto_created);
         self.layout.add_suggestive_editor(component.clone());
-        self.context
-            .insert_marked_file_at(target_index, untitled_path.clone());
+        if !auto_created {
+            self.context
+                .insert_marked_file_at(target_index, untitled_path.clone());
+        }
         self.layout
             .replace_and_focus_current_suggestive_editor(component.clone());
 

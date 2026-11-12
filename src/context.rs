@@ -40,6 +40,7 @@ pub struct Context {
 
     marked_files: IndexSet<AbsolutePath>,
     untitled_files: HashSet<AbsolutePath>,
+    auto_created_untitled_files: HashSet<AbsolutePath>,
     alternate_file: Option<AbsolutePath>,
 
     marks: HashMap<AbsolutePath, Vec<CharIndexRange>>,
@@ -467,6 +468,7 @@ impl Context {
             location_history_forward: Vec::new(),
             marked_files,
             untitled_files: HashSet::new(),
+            auto_created_untitled_files: HashSet::new(),
             alternate_file: None,
             is_running_as_embedded,
             persistence,
@@ -811,16 +813,35 @@ impl Context {
         self.is_running_as_embedded
     }
 
-    pub fn register_untitled_file(&mut self, path: AbsolutePath) {
-        self.untitled_files.insert(path);
+    pub fn register_untitled_file(&mut self, path: AbsolutePath, auto_created: bool) {
+        self.untitled_files.insert(path.clone());
+        if auto_created {
+            self.auto_created_untitled_files.insert(path);
+        } else {
+            self.auto_created_untitled_files.remove(&path);
+        }
     }
 
     pub fn unregister_untitled_file(&mut self, path: &AbsolutePath) {
         self.untitled_files.remove(path);
+        self.auto_created_untitled_files.remove(path);
     }
 
     pub fn is_untitled_file(&self, path: &AbsolutePath) -> bool {
         self.untitled_files.contains(path)
+    }
+
+    pub fn is_auto_created_untitled(&self, path: &AbsolutePath) -> bool {
+        self.auto_created_untitled_files.contains(path)
+    }
+
+    pub fn auto_created_untitled_files(&self) -> &HashSet<AbsolutePath> {
+        &self.auto_created_untitled_files
+    }
+
+    pub fn remove_from_location_history(&mut self, path: &AbsolutePath) {
+        self.location_history_backward.retain(|loc| &loc.path != path);
+        self.location_history_forward.retain(|loc| &loc.path != path);
     }
 
     pub fn is_dirty(&self, path: &AbsolutePath) -> bool {

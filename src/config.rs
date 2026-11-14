@@ -139,6 +139,8 @@ pub enum HudMenu {
     Find,        // 'n'
     Surround,    // ','
     DeleteEat,   // 'd', 'e'
+    QuickMarks,  // 'Q'
+    Bookmark,    // 'K'
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -204,6 +206,12 @@ pub fn parse_hud_menus(s: &str) -> HashSet<HudMenu> {
             ',' => {
                 set.insert(HudMenu::Surround);
             }
+            'Q' => {
+                set.insert(HudMenu::QuickMarks);
+            }
+            'K' | 'k' => {
+                set.insert(HudMenu::Bookmark);
+            }
             _ => {}
         }
     }
@@ -221,6 +229,17 @@ pub fn menu_for_title(title: &str) -> Option<HudMenu> {
         Some(HudMenu::CopyDup)
     } else if title == "≡ Move Hist" || title.contains("Move Hist") {
         Some(HudMenu::History)
+    } else if title.starts_with("≡ Quick-marks")
+        || title.starts_with("Quick-marks")
+        || title.to_lowercase().contains("quick-mark")
+        || title.to_lowercase().contains("quick_mark")
+    {
+        Some(HudMenu::QuickMarks)
+    } else if title.starts_with("≡ Bookmark")
+        || title.starts_with("Bookmark")
+        || title.to_lowercase().contains("bookmark")
+    {
+        Some(HudMenu::Bookmark)
     } else if title == "≡ Buffer"
         || title == "≡ Mark"
         || title == "≡ Buffer/Mark"
@@ -1561,5 +1580,28 @@ mod test_config {
         assert_eq!(config.load_errors().len(), 1);
         assert!(config.load_errors()[0].contains("custom_keyboard_layouts.bad"));
         assert!(config.load_errors()[0].contains(".ki/config.json"));
+    }
+
+    #[test]
+    fn test_hud_menu_quickmarks_and_bookmark() {
+        let menus = super::parse_hud_menus("QK");
+        assert!(menus.contains(&super::HudMenu::QuickMarks));
+        assert!(menus.contains(&super::HudMenu::Bookmark));
+
+        let menus_lower_k = super::parse_hud_menus("k");
+        assert!(menus_lower_k.contains(&super::HudMenu::Bookmark));
+
+        assert_eq!(
+            super::menu_for_title("≡ Quick-marks  (⇥ All)"),
+            Some(super::HudMenu::QuickMarks)
+        );
+        assert_eq!(
+            super::menu_for_title("≡ Bookmark  (⇥ All)"),
+            Some(super::HudMenu::Bookmark)
+        );
+        assert_eq!(
+            super::menu_for_title("≡ Bookmark > a  (⌫ Back, ⇥ Filter)"),
+            Some(super::HudMenu::Bookmark)
+        );
     }
 }

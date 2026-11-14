@@ -2037,6 +2037,24 @@ Ki previously only checked the first line for shebangs (`#!`) and simple directi
 **Response:**
 Committed changes implementing modeline language detection (`modeline` and `modelines` config, `ki: lang=<any>` directive parsing, and buffer language detection fallback).
 
+### Request 275
+> "add config option for HUD toggle for Quick-marks and Bookmark, Q and K"
+**Response:**
+1. Added `HudMenu::QuickMarks` ('Q') and `HudMenu::Bookmark` ('K') to `HudMenu` enum in `src/config.rs`.
+2. Updated `parse_hud_menus` to recognize `'Q'` as `HudMenu::QuickMarks` and `'K'` / `'k'` as `HudMenu::Bookmark`.
+3. Updated `menu_for_title` in `src/config.rs` to match Quick-marks titles (`"≡ Quick-marks"`, `"Quick-marks"`) and Bookmark titles (`"≡ Bookmark"`, `"Bookmark"`).
+4. Updated documentation in `newdoc/index.html`.
+
+### Request 276
+> "make this a fixup commit to 2c059d2"
+**Response:**
+Prepared fixup commit targeting `2c059d2`. Followed up by user requesting a regular commit to avoid conflict in `AGENTS.md`.
+
+### Request 277
+> "there is a chance @[AGENTS.md] will not play well with fixup, do a regular commit"
+**Response:**
+Committed changes as a regular commit on top of HEAD (`feat(hud): add HUD toggle support for Quick-marks (Q) and Bookmark (K)`).
+
 
 
 

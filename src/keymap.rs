@@ -764,6 +764,11 @@ pub fn space_pick_keymap_legend_config(pick_menu_df_swap: bool) -> KeymapLegendC
                 "Git Branch",
                 Dispatch::OpenGitBranchPrompt,
             )))
+            .chain(Some(Keybinding::new_undocumented(
+                key!("c"),
+                "Language",
+                Dispatch::OpenLanguagePicker,
+            )))
             .collect_vec(),
         ),
     }

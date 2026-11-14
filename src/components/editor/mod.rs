@@ -403,8 +403,7 @@ impl Component for Editor {
             SwitchViewAlignment => self.switch_view_alignment(context),
             #[cfg(test)]
             SetScrollOffset(n) => self.set_scroll_offset(n),
-            #[cfg(test)]
-            SetLanguage(language) => self.set_language(*language)?,
+            SetLanguage(language) => return self.set_language(*language),
             Save => return self.do_save(false, context),
             ForceSave => {
                 return self.do_save(true, context);
@@ -3960,9 +3959,12 @@ impl Editor {
         self.scroll_offset = scroll_offset;
     }
 
-    #[cfg(test)]
-    pub fn set_language(&mut self, language: shared::language::Language) -> anyhow::Result<()> {
-        self.buffer_mut().set_language(language)
+    pub fn set_language(
+        &mut self,
+        language: shared::language::Language,
+    ) -> anyhow::Result<Dispatches> {
+        self.buffer_mut().set_language(language)?;
+        Ok(self.get_document_did_change_dispatch())
     }
 
     pub fn render_area(&self, context: &Context) -> Dimension {
@@ -5723,7 +5725,6 @@ pub enum DispatchEditor {
         short: bool,
         direction: Direction,
     },
-    #[cfg(test)]
     SetLanguage(Box<shared::language::Language>),
     ReplaceCurrentSelectionWith(String),
     SelectLineAt(usize),

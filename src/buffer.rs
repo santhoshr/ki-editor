@@ -929,9 +929,19 @@ impl Buffer {
     }
 
     pub fn set_language(&mut self, language: Language) -> anyhow::Result<()> {
+        self.treesitter_language = language.tree_sitter_language();
         self.language = Some(language);
         self.cached_injected_syntax_trees.replace(None);
-        self.reparse_tree()
+        let mut parser = Parser::new();
+        self.tree = self.treesitter_language.as_ref().and_then(|ts_lang| {
+            parser
+                .set_language(ts_lang)
+                .ok()
+                .and_then(|_| parser.parse(self.rope.to_string(), None))
+        });
+        self.batch_id.increment();
+        self.highlighted_spans = HighlightedSpans::default();
+        Ok(())
     }
 
     pub fn treesitter_language(&self) -> Option<tree_sitter::Language> {

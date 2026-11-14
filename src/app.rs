@@ -1545,6 +1545,7 @@ impl<T: Frontend> App<T> {
             Dispatch::OpenAlternateFile => self.open_alternate_file()?,
             Dispatch::PushPromptHistory { key, line } => self.push_history_prompt(key, line),
             Dispatch::OpenThemePicker => self.open_theme_picker()?,
+            Dispatch::OpenLanguagePicker => self.open_language_picker()?,
             Dispatch::OpenGitBranchPrompt => self.open_git_branch_picker()?,
             Dispatch::GitCheckout(branch) => self.git_checkout(&branch)?,
             Dispatch::SetLastNonContiguousSelectionMode(selection_mode) => self
@@ -4436,6 +4437,42 @@ impl<T: Frontend> App<T> {
         )
     }
 
+    fn open_language_picker(&mut self) -> anyhow::Result<()> {
+        let languages = crate::config::AppConfig::singleton().languages();
+        let mut sorted_languages = languages.iter().collect::<Vec<_>>();
+        sorted_languages.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let items = sorted_languages
+            .into_iter()
+            .map(|(name, language)| {
+                let exts = language
+                    .extensions()
+                    .iter()
+                    .map(|e| format!("*.{e}"))
+                    .chain(language.file_names().iter().cloned())
+                    .collect::<Vec<_>>();
+                let group = if exts.is_empty() {
+                    None
+                } else {
+                    Some(exts.join(", "))
+                };
+
+                DropdownItem::new(name.clone())
+                    .set_group(group)
+                    .set_dispatches(Dispatches::one(Dispatch::ToEditor(
+                        DispatchEditor::SetLanguage(Box::new(language.clone())),
+                    )))
+            })
+            .collect::<Vec<_>>();
+
+        self.open_prompt(PromptConfig::new(
+            "Language".to_string(),
+            PromptOnEnter::SelectsFirstMatchingItem {
+                items: PromptItems::Precomputed(items),
+            },
+        ))
+    }
+
     fn git_checkout(&mut self, branch: &str) -> anyhow::Result<()> {
         let output = std::process::Command::new("git")
             .args(["checkout", branch])
@@ -5913,6 +5950,7 @@ pub enum Dispatch {
         line: String,
     },
     OpenThemePicker,
+    OpenLanguagePicker,
     OpenGitBranchPrompt,
     GitCheckout(String),
     ResolveCompletionItem(lsp_types::CompletionItem),

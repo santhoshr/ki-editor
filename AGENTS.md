@@ -1979,6 +1979,38 @@ Noted the keybinding request. Followed up by the user correcting the prefix from
 **Response:**
 Committed changes implementing manual format trigger via `Space j s`, non-destructive `Buffer::format`, and `DispatchEditor::Format`.
 
+### Request 266
+> "how can show list of files supported by ki for syntax highlighting?"
+> "how can we show list of files supported by ki for syntax highlighting?"
+**Response:**
+Explained that Ki defines 76 languages with Tree-sitter syntax highlighting in `shared/src/languages.rs`. Provided categorization across extensions and exact filenames, and outlined options to expose this in CLI (`ki @ languages`), via in-editor picker, and in documentation.
+
+### Request 267
+> "what would appropriate for picking language for current file, Space l a or Space j l"
+**Response:**
+Compared options: `Space j l` has a direct mnemonic (`l` = Language), fits Editor buffer/tooling scope (`Space j s` format, `Space j r` restart LSP, `Space j d` reload), and is right-hand home-row ergonomic. Also noted `Space k` (Pick menu) as the existing home for fuzzy pickers.
+
+### Request 268
+> "make Space k k pick language / syntax for current file"
+**Response:**
+Followed up by user updating the shortcut key to `Space k c`.
+
+### Request 269
+> "make Space k c pick language / syntax for current file; make the label Language"
+**Response:**
+1. In `src/buffer.rs`, updated `Buffer::set_language` to set `self.treesitter_language`, parse the buffer with the new tree-sitter language into `self.tree`, increment `batch_id`, and clear stale `highlighted_spans`.
+2. In `src/components/editor/mod.rs`, ungated `SetLanguage` in `DispatchEditor` and updated `Editor::set_language` to apply the language and return `get_document_did_change_dispatch()` so async syntax highlighting requests trigger immediately.
+3. In `src/app.rs`, added `Dispatch::OpenLanguagePicker` and implemented `App::open_language_picker` to open a fuzzy search prompt with all 76 configured languages, displaying extensions/filenames in the group column and dispatching `SetLanguage` on selection.
+4. In `src/keymap.rs`, mapped `key!("c")` to `"Language"` (`Dispatch::OpenLanguagePicker`) in `space_pick_keymap_legend_config` (`Space k`).
+5. Documented `Space k c` in `newdoc/index.html`.
+
+### Request 270
+> "commit it"
+**Response:**
+Committed changes implementing language/syntax picker via `Space k c`, dynamic tree-sitter re-parsing, and async syntax highlighting reload.
+
+
+
 
 
 

@@ -359,7 +359,10 @@ impl<T: Frontend> App<T> {
         }
 
         for error in AppConfig::singleton().load_errors() {
-            if error.contains("bookmark_menu_invocation") {
+            if error.contains("bookmark_menu_invocation")
+                || error.contains("empty_hud")
+                || error.contains("allow_hud")
+            {
                 self.show_global_info(Info::new("Config Warning".to_string(), error.clone()));
             }
         }
@@ -1503,6 +1506,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
+            Dispatch::ToggleEmptyHud => self.toggle_empty_hud()?,
             Dispatch::GotoLocalMark(movement) => self.goto_local_mark(movement)?,
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
@@ -3398,6 +3402,12 @@ impl<T: Frontend> App<T> {
             }
         }
 
+        Ok(())
+    }
+
+    fn toggle_empty_hud(&mut self) -> anyhow::Result<()> {
+        let _ = self.context.toggle_session_empty_hud_all();
+        self.layout.recalculate_layout(&self.context);
         Ok(())
     }
 
@@ -5650,6 +5660,10 @@ impl Dispatches {
         Dispatches(Vec::default())
     }
 
+    pub fn contains(&self, dispatch: &Dispatch) -> bool {
+        self.0.contains(dispatch)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -5860,6 +5874,7 @@ pub enum Dispatch {
         landing_action: crate::keymap_override::jump::JumpLandingAction,
     },
     CloseAppKeymapLegend,
+    ToggleEmptyHud,
     CycleMarkedFile(Movement),
     GotoLocalMark(Movement),
     GotoGlobalMark(Direction),

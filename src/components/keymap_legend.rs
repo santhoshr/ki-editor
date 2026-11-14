@@ -344,7 +344,23 @@ impl KeymapLegend {
         }
     }
 
+    pub fn is_empty_hud(&self, context: &Context) -> bool {
+        if let Some(session_empty) = context.session_empty_hud_all() {
+            session_empty
+        } else {
+            AppConfig::singleton().is_empty_hud(&self.config.title)
+        }
+    }
+
     fn refresh(&mut self, width: usize, context: &Context) {
+        if self.is_empty_hud(context) {
+            let _ = self
+                .editor_mut()
+                .set_content("", context)
+                .unwrap_or_default();
+            return;
+        }
+
         // Check for duplicate keys
         let duplicates = self
             .config
@@ -454,10 +470,6 @@ impl Component for KeymapLegend {
     /// exactly its own content (keybindings + title), rather than being
     /// tiled like other components.
     fn desired_height(&self, width: usize, context: &Context) -> Option<usize> {
-        let content = self.display(width, self.keyboard_layout(context).as_ref());
-        let content_height = crate::soft_wrap::soft_wrap(&content, width)
-            .wrapped_lines_count()
-            .max(1);
         let title_lines = self
             .editor
             .title(
@@ -467,6 +479,13 @@ impl Component for KeymapLegend {
             )
             .lines()
             .count();
+        if self.is_empty_hud(context) {
+            return Some(title_lines.max(1));
+        }
+        let content = self.display(width, self.keyboard_layout(context).as_ref());
+        let content_height = crate::soft_wrap::soft_wrap(&content, width)
+            .wrapped_lines_count()
+            .max(1);
         Some(content_height + title_lines)
     }
 

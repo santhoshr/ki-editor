@@ -45,9 +45,11 @@
     "e_normal_mode": "mark",
     "filetree_open_with_path": true,
     "icon_style": "nerd-font",
-    "navigation_keys": "ijkl",
+    "navigation_keys": "hjkl",
     "hjkl_y;_action": "insert",
     "hjkl_io_action": "np",
     "hjkl_up_action": "fl",
-    "jhlk_np_rl_inverse": false
+    "jhlk_np_rl_inverse": false,
+    "empty_hud": null,
+    "allow_hud": null
 }

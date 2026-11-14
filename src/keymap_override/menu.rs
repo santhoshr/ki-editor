@@ -38,7 +38,11 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
         };
 
         if let Some(binding) = binding {
-            return Ok(close_dispatches.chain(binding.get_dispatches()));
+            let dispatches = binding.get_dispatches();
+            if dispatches.contains(&Dispatch::ToggleEmptyHud) {
+                return Ok(dispatches);
+            }
+            return Ok(close_dispatches.chain(dispatches));
         }
 
         if key_event.original == key!("space") {

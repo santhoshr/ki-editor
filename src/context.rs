@@ -74,6 +74,7 @@ pub struct Context {
     filetree_open_with_path: bool,
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
+    session_empty_hud_all: Option<bool>,
 
     last_repeatable_edit: std::cell::RefCell<Option<crate::components::editor::RepeatableEdit>>,
 
@@ -534,6 +535,7 @@ impl Context {
             filetree_open_with_path: app_config.filetree_open_with_path(),
             navigation_keys: app_config.navigation_keys(),
             hjkl_config: app_config.hjkl_config(),
+            session_empty_hud_all: None,
             last_repeatable_edit: std::cell::RefCell::new(None),
             non_existent_formatter_commands: Vec::new(),
         }
@@ -757,6 +759,25 @@ impl Context {
 
     pub fn hjkl_config(&self) -> crate::config::HjklConfig {
         self.hjkl_config
+    }
+
+    pub fn session_empty_hud_all(&self) -> Option<bool> {
+        self.session_empty_hud_all
+    }
+
+    pub fn toggle_session_empty_hud_all(&mut self) -> bool {
+        let currently_empty = match self.session_empty_hud_all {
+            Some(empty) => empty,
+            None => {
+                let app_config = crate::config::AppConfig::singleton();
+                app_config.is_empty_hud("Space")
+                    || app_config.is_empty_hud("Command")
+                    || app_config.hud_visibility() == &crate::config::HudVisibilityConfig::EmptyAll
+            }
+        };
+        let new_empty = !currently_empty;
+        self.session_empty_hud_all = Some(new_empty);
+        new_empty
     }
 
     pub fn set_keyboard_layout(&mut self, mut keyboard_layout: KeyboardLayout) {

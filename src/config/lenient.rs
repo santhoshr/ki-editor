@@ -153,6 +153,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         extract_field!(hjkl_up_action, "hjkl_up_action");
     let (jhlk_np_rl_inverse, jhlk_np_rl_inverse_error) =
         extract_field!(jhlk_np_rl_inverse, "jhlk_np_rl_inverse");
+    let (empty_hud, empty_hud_error) = extract_field!(empty_hud, "empty_hud");
+    let (allow_hud, allow_hud_error) = extract_field!(allow_hud, "allow_hud");
 
     let config = RawConfig {
         languages,
@@ -178,6 +180,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         hjkl_io_action,
         hjkl_up_action,
         jhlk_np_rl_inverse,
+        empty_hud,
+        allow_hud,
     };
 
     let errors = language_errors
@@ -204,6 +208,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(hjkl_io_action_error)
         .chain(hjkl_up_action_error)
         .chain(jhlk_np_rl_inverse_error)
+        .chain(empty_hud_error)
+        .chain(allow_hud_error)
         .collect();
 
     (config, errors).into()

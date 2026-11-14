@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 use std::io::Read;
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+};
 
 use anyhow::Context;
 use itertools::Itertools;
@@ -43,6 +46,7 @@ pub struct AppConfig {
     icon_config: shared::icons::IconsConfig,
     navigation_keys: NavigationKeys,
     hjkl_config: HjklConfig,
+    hud_visibility: HudVisibilityConfig,
     load_errors: Vec<String>,
 }
 
@@ -90,6 +94,10 @@ pub struct RawConfig {
     hjkl_up_action: HjklPairAction,
     #[serde(default)]
     jhlk_np_rl_inverse: bool,
+    #[serde(default)]
+    empty_hud: Option<String>,
+    #[serde(default)]
+    allow_hud: Option<String>,
 }
 
 fn default_hjkl_y_semicolon_action() -> HjklPairAction {
@@ -102,6 +110,141 @@ fn default_hjkl_io_action() -> HjklPairAction {
 
 fn default_hjkl_up_action() -> HjklPairAction {
     HjklPairAction::Fl
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub enum HudMenu {
+    Extend,      // 'f'
+    Space,       // 'S'
+    Command,     // 'C'
+    CopyDup,     // 'c'
+    History,     // 'q'
+    MarkBuffer,  // 'm', 'B'
+    Cut,         // 'R', 'x'
+    Swap,        // 't'
+    Open,        // 'g'
+    UndoRedo,    // 'z'
+    Paste,       // 'v'
+    MultiCursor, // 'b'
+    Find,        // 'n'
+    Surround,    // ','
+    DeleteEat,   // 'd', 'e'
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum HudVisibilityConfig {
+    /// Default: All HUDs are displayed normally
+    Default,
+    /// empty_hud: "all"
+    EmptyAll,
+    /// allow_hud: "all"
+    AllowAll,
+    /// empty_hud: specific menus
+    Empty(HashSet<HudMenu>),
+    /// allow_hud: specific menus allowed, rest empty
+    Allow(HashSet<HudMenu>),
+}
+
+pub fn parse_hud_menus(s: &str) -> HashSet<HudMenu> {
+    let mut set = HashSet::new();
+    for c in s.chars() {
+        match c {
+            'f' => {
+                set.insert(HudMenu::Extend);
+            }
+            'S' => {
+                set.insert(HudMenu::Space);
+            }
+            'C' => {
+                set.insert(HudMenu::Command);
+            }
+            'q' => {
+                set.insert(HudMenu::History);
+            }
+            'm' | 'B' => {
+                set.insert(HudMenu::MarkBuffer);
+            }
+            'b' => {
+                set.insert(HudMenu::MultiCursor);
+            }
+            'd' | 'e' => {
+                set.insert(HudMenu::DeleteEat);
+            }
+            'R' | 'x' => {
+                set.insert(HudMenu::Cut);
+            }
+            't' => {
+                set.insert(HudMenu::Swap);
+            }
+            'g' => {
+                set.insert(HudMenu::Open);
+            }
+            'z' => {
+                set.insert(HudMenu::UndoRedo);
+            }
+            'c' => {
+                set.insert(HudMenu::CopyDup);
+            }
+            'v' => {
+                set.insert(HudMenu::Paste);
+            }
+            'n' => {
+                set.insert(HudMenu::Find);
+            }
+            ',' => {
+                set.insert(HudMenu::Surround);
+            }
+            _ => {}
+        }
+    }
+    set
+}
+
+pub fn menu_for_title(title: &str) -> Option<HudMenu> {
+    if title == "Extend" {
+        Some(HudMenu::Extend)
+    } else if title == "Space" || title == "Editor" || title == "Pick" || title == "Context" {
+        Some(HudMenu::Space)
+    } else if title == "Command" {
+        Some(HudMenu::Command)
+    } else if title == "Copy/≡ Dup" {
+        Some(HudMenu::CopyDup)
+    } else if title == "≡ Move Hist" || title.contains("Move Hist") {
+        Some(HudMenu::History)
+    } else if title == "≡ Buffer"
+        || title == "≡ Mark"
+        || title == "≡ Buffer/Mark"
+        || title == "≡ Mark/Buffer"
+        || title.contains("Buffer")
+        || (title.contains("Mark") && !title.contains("Quick-mark") && !title.contains("Bookmark"))
+    {
+        Some(HudMenu::MarkBuffer)
+    } else if title == "≡ Cut" || title.contains("Cut") {
+        Some(HudMenu::Cut)
+    } else if title == "≡ Swap" || title.contains("Swap") {
+        Some(HudMenu::Swap)
+    } else if title == "≡ Open" {
+        Some(HudMenu::Open)
+    } else if title == "≡ Undo/Redo" || title.contains("Undo/Redo") {
+        Some(HudMenu::UndoRedo)
+    } else if title == "≡ Paste" || title.contains("Paste") {
+        Some(HudMenu::Paste)
+    } else if title == "≡ Multi-cursor" || title.contains("Multi-cursor") {
+        Some(HudMenu::MultiCursor)
+    } else if title.starts_with("Find") || title.contains("QUICKFIX") {
+        Some(HudMenu::Find)
+    } else if title.contains("Surround") {
+        Some(HudMenu::Surround)
+    } else if title == "≡ Delete"
+        || title == "≡ Eat"
+        || title == "≡ Delete/Eat"
+        || title.contains("Delete")
+        || title.contains("Eat")
+    {
+        Some(HudMenu::DeleteEat)
+    } else {
+        None
+    }
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq)]
@@ -428,6 +571,31 @@ impl TryFrom<RawConfig> for AppConfig {
         };
         load_errors.extend(collision_errors);
 
+        let hud_visibility = match (value.empty_hud.as_deref(), value.allow_hud.as_deref()) {
+            (Some(_), Some(_)) => {
+                load_errors.push(
+                    "Both 'empty_hud' and 'allow_hud' are specified in config; both settings will be ignored."
+                        .to_string(),
+                );
+                HudVisibilityConfig::Default
+            }
+            (Some(empty), None) => {
+                if empty.trim().eq_ignore_ascii_case("all") {
+                    HudVisibilityConfig::EmptyAll
+                } else {
+                    HudVisibilityConfig::Empty(parse_hud_menus(empty))
+                }
+            }
+            (None, Some(allow)) => {
+                if allow.trim().eq_ignore_ascii_case("all") {
+                    HudVisibilityConfig::AllowAll
+                } else {
+                    HudVisibilityConfig::Allow(parse_hud_menus(allow))
+                }
+            }
+            (None, None) => HudVisibilityConfig::Default,
+        };
+
         Ok(Self {
             languages: value.languages,
             keyboard_layout: keyboard_layout.clone(),
@@ -452,6 +620,7 @@ impl TryFrom<RawConfig> for AppConfig {
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             navigation_keys: value.navigation_keys,
             hjkl_config,
+            hud_visibility,
             load_errors,
         })
     }
@@ -722,6 +891,7 @@ impl AppConfig {
             .chain(field_errors)
             .chain(apply_error)
             .chain(conflict_error)
+            .chain(app_config.load_errors)
             .collect();
 
         AppConfig {
@@ -832,6 +1002,32 @@ impl AppConfig {
 
     pub fn hjkl_config(&self) -> HjklConfig {
         self.hjkl_config
+    }
+
+    pub fn hud_visibility(&self) -> &HudVisibilityConfig {
+        &self.hud_visibility
+    }
+
+    pub fn is_empty_hud(&self, title: &str) -> bool {
+        match &self.hud_visibility {
+            HudVisibilityConfig::Default => false,
+            HudVisibilityConfig::EmptyAll => true,
+            HudVisibilityConfig::AllowAll => false,
+            HudVisibilityConfig::Empty(set) => {
+                if let Some(menu) = menu_for_title(title) {
+                    set.contains(&menu)
+                } else {
+                    false
+                }
+            }
+            HudVisibilityConfig::Allow(set) => {
+                if let Some(menu) = menu_for_title(title) {
+                    !set.contains(&menu)
+                } else {
+                    true
+                }
+            }
+        }
     }
 }
 

@@ -523,6 +523,16 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                     Dispatch::ToEditor(DispatchEditor::ShowHelp),
                 ),
                 Keybinding::new_undocumented(
+                    key!("?"),
+                    "Toggle Empty HUD",
+                    Dispatch::ToggleEmptyHud,
+                ),
+                Keybinding::new_undocumented(
+                    key!("shift+/"),
+                    "Toggle Empty HUD",
+                    Dispatch::ToggleEmptyHud,
+                ),
+                Keybinding::new_undocumented(
                     key!("T"),
                     "Last Error",
                     Dispatch::ShowLastError,
@@ -1218,6 +1228,16 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
             key!("b"),
             "Buffer List",
             Dispatch::OpenFilePicker(FilePickerKind::Opened),
+        ),
+        Keybinding::new_undocumented(
+            key!("?"),
+            "Toggle Empty HUD",
+            Dispatch::ToggleEmptyHud,
+        ),
+        Keybinding::new_undocumented(
+            key!("shift+/"),
+            "Toggle Empty HUD",
+            Dispatch::ToggleEmptyHud,
         ),
         Keybinding::new_undocumented(
             key!("T"),

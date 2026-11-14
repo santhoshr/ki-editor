@@ -909,6 +909,7 @@
             <li><kbd>q</kbd> &rarr; Safe Quit (guards unsaved changes)</li>
             <li><kbd>v</kbd> &rarr; Quit Without Saving (forced)</li>
             <li><kbd>Enter</kbd> &rarr; Toggle Selection Mark</li>
+            <li><kbd>?</kbd> (or <kbd>Shift+/</kbd>) &rarr; Toggle Empty HUD (for all menus/MoL this session)</li>
             <li><kbd>Space</kbd> &rarr; Open Full Deep Space Menu of Legends</li>
             <li><kbd>/</kbd> &rarr; Show Full Keymap Help</li>
           </ul>
@@ -948,6 +949,7 @@
             <li><kbd>j</kbd> &rarr; <strong>Editor</strong> (Save all, reload, restart LSP, quit)</li>
             <li><kbd>l</kbd> &rarr; <strong>Context</strong> (LSP hover, rename, code actions, blame)</li>
             <li><kbd>;</kbd> &rarr; <strong>File Tree</strong> (Direct reveal, or path prompt if <code>filetree_open_with_path: true</code>)</li>
+            <li><kbd>?</kbd> (or <kbd>Shift+/</kbd>) &rarr; <strong>Toggle Empty HUD</strong> (Toggles empty HUD for all menus/MoL for the session)</li>
             <li><kbd>/</kbd> &rarr; <strong>Help</strong> (Display full keymap on screen)</li>
           </ul>
         </div>
@@ -1962,6 +1964,8 @@
   <span style="color: #79c0ff;">"hjkl_io_action"</span>: <span style="color: #a5d6ff;">"np"</span>,              <span style="color: #8b949e;">// "np" (default, i/o-&gt;prev/next), "insert", or "fl"</span>
   <span style="color: #79c0ff;">"hjkl_up_action"</span>: <span style="color: #a5d6ff;">"fl"</span>,              <span style="color: #8b949e;">// "fl" (default, u/p-&gt;first/last), "insert", or "np"</span>
   <span style="color: #79c0ff;">"jhlk_np_rl_inverse"</span>: <span style="color: #ff7b72;">false</span>,        <span style="color: #8b949e;">// false (default) or true (inverts j/k right/left &amp; np pair)</span>
+  <span style="color: #79c0ff;">"empty_hud"</span>: <span style="color: #a5d6ff;">"fCSRmz"</span>,               <span style="color: #8b949e;">// "all" or letters in any combination: S(pace), C(ommand), q(Move Hist), m/B(Mark/Buffer), d/e(Delete/Eat), R/x(Cut), t(Swap), g(Open), z(Undo/Redo), c(Copy/Dup), v(Paste), b(Multi-cursor), n(Find), ,(Surround), f(Extend). Menu split body is empty, only header bar is shown.</span>
+  <span style="color: #79c0ff;">"allow_hud"</span>: <span style="color: #ff7b72;">null</span>,                   <span style="color: #8b949e;">// Inverse: only allowed menus display HUD body, rest are empty. If both empty_hud and allow_hud are set, both are ignored after a startup warning.</span>
 
   <span style="color: #79c0ff;">"languages"</span>: {
     <span style="color: #79c0ff;">"rust"</span>: {

@@ -1906,4 +1906,50 @@ Diagnosed and resolved the root cause of the 2-jump ping-pong loop:
 **Response:**
 Committed changes implementing the Vim-style global jump list (`c-o` / `c-i`), cross-session persistence in schema migration `_00005`, and seamless bidirectional synchronization with Ki's coarse and fine history navigation.
 
+### Request 255
+> "create empty_hud config, with options, all or letters in any combination 'SCqm/bd/eR/xtgzcvbn,' m/b d/e R/x any one can be used interchangeably, there is inverse of this config allow_hud, same options, if both config specified both settings will be ingored ignored after a warning at startup; so if I give "empty_hud": "fCSRmz" or "fCSRbz" or "zbRSCf" or any one of these characters in any combination then, text inside the HUD split will not appear, the whole split will be empty barely occupies for header for Extend, Command, Space, Cut, Mark/Buffer, Undo/Redo; if "allow_hud": "fCSRmz" given then these menu/MoL will have HUD empty rest will have HUD displayed;  all functionality remains same; simply the empty HUD display with showing only Header of HUD, based on empty config; also use "all" not "*"; create one more option in Space menu and Command menu shift + / (?) to toggle empty HUD for all MoL/Menus for the session"
+**Response:**
+1. Added `empty_hud` and `allow_hud` configuration options in `src/config.rs`, `src/config/lenient.rs`, and `src/config_default.json`:
+   - Accepts `"all"` or any combination of letters mapping to Ki menus/MoLs (`f` Extend, `S` Space, `C` Command, `q` Move Hist, `m`/`b`/`d`/`e` Mark/Buffer, `R`/`x` Cut, `t` Swap, `g` Open, `z` Undo/Redo, `c` Copy/Dup, `v` Paste, `b` Multi-cursor, `n` Find, `,` Surround, `r` Delete/Eat).
+   - `allow_hud` acts as the inverse (whitelisting HUD display for specified menus while keeping others empty).
+   - If both `empty_hud` and `allow_hud` are specified, both settings are ignored after a startup warning popup ("Config Warning").
+2. Implemented empty HUD rendering in `KeymapLegend` (`src/components/keymap_legend.rs`):
+   - When a menu is determined to have an empty HUD via `is_empty_hud`, `desired_height` returns `Some(title_lines.max(1))` (allocating exactly 1 row for the header split) and `refresh` clears editor content (`""`). All key handling, bindings, and functionality remain intact.
+3. Added session toggle:
+   - Added `session_empty_hud_all: Option<bool>` and `toggle_session_empty_hud_all` in `src/context.rs`.
+   - Added `Dispatch::ToggleEmptyHud` and `App::toggle_empty_hud` in `src/app.rs`.
+   - Bound `?` and `Shift+/` in Space menu (`space_keymap_legend_config`) and Command menu (`command_keymap`) to toggle empty HUD for all menus/MoLs for the current session.
+4. Updated `newdoc/index.html` and `AGENTS.md`.
+
+### Request 256
+> "d/e refers to Delete/Eat; when toggling redisplay HUD"
+**Response:**
+1. Updated `parse_hud_menus` in `src/config.rs` so `d`/`D` and `e`/`E` map specifically to `HudMenu::DeleteEat` (interchangeable for Delete/Eat: `≡ Delete`, `≡ Eat`, `≡ Delete/Eat`), leaving `m` and `b` for `HudMenu::MarkBuffer`.
+2. Fixed HUD redisplay on toggle:
+   - In `MenuKeymapOverride::handle_press` (`src/keymap_override/menu.rs`), bypassed `close_dispatches` when `Dispatch::ToggleEmptyHud` is dispatched so the menu does not close.
+   - Updated `toggle_session_empty_hud_all` in `src/context.rs` to inspect whether the current HUD is empty and flip to displayed (`Some(false)`) so HUD content immediately expands and redisplays.
+   - `layout.recalculate_layout` immediately resizes the split and updates the buffer content without closing or losing focus in the menu.
+
+### Request 257
+> "don't invent/add things/feature without letting me, remove additional mappings like M/B/D/E"
+**Response:**
+Strictly restricted `parse_hud_menus` in `src/config.rs` to only the exact specified characters (`S`, `C`, `q`, `m`, `b`, `d`, `e`, `R`, `x`, `t`, `g`, `z`, `c`, `v`, `n`, `,`, and `f`), removing all unrequested uppercase/lowercase casing mappings (`M`, `B`, `D`, `E`, `F`, `s`, `Q`, `X`, `r`, `T`, `G`, `Z`, `V`, `N`).
+
+### Request 258
+> "okey make B for buffer, and b for multi-cursor, so it can be either m or B to specify mark/buffer; b will be multi-cursor"
+**Response:**
+Updated `parse_hud_menus` in `src/config.rs` so `'m' | 'B'` maps to `HudMenu::MarkBuffer` (allowing either `m` or uppercase `B` to specify Mark/Buffer), and lowercase `'b'` maps exclusively to `HudMenu::MultiCursor`.
+
+### Request 259
+> "ignore previous request; check why no warning when both config option allow_hud and empty_hud present?"
+**Response:**
+Diagnosed the missing warning: `AppConfig::try_from` correctly identified the conflict and added the message to `app_config.load_errors`, but `AppConfig::load_from_current_directory` (`src/config.rs`) constructed a fresh `load_errors` list that failed to chain `app_config.load_errors` before returning `AppConfig { load_errors, ..app_config }`, overwriting and wiping out all validation warnings. Added `.chain(app_config.load_errors)` to preserve them so `AppConfig::singleton().load_errors()` populates properly and displays the "Config Warning" modal popup on startup.
+
+### Request 260
+> "commit it"
+**Response:**
+Committed changes implementing `empty_hud` and `allow_hud` configuration options, in-place session HUD toggle (`?`), Delete/Eat mapping for `d/e`, `m/B` for Mark/Buffer, `b` for Multi-cursor, and fixing load errors propagation for startup config warning.
+
+
+
 

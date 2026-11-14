@@ -532,6 +532,7 @@ impl Component for Editor {
             RevertHunk(diff_mode) => return self.revert_hunk(context, diff_mode),
             GitBlame => return self.git_blame(context),
             ReloadFile { force } => return self.reload(context, force),
+            Format => return self.format(context),
             MergeContent {
                 content_filesystem,
                 content_editor,
@@ -5091,6 +5092,16 @@ impl Editor {
         Ok(dispatches.chain(self.get_document_did_change_dispatch()))
     }
 
+    pub fn format(&mut self, context: &Context) -> Result<Dispatches, anyhow::Error> {
+        let last_visible_line = self.last_visible_line(context);
+        let current_selection_set = self.selection_set.clone();
+        let dispatches = self
+            .buffer_mut()
+            .format(current_selection_set, last_visible_line)?;
+        self.clamp(context)?;
+        Ok(dispatches.chain(self.get_document_did_change_dispatch()))
+    }
+
     fn clear_incremental_search_matches(&mut self) {
         self.incremental_search_matches = None;
     }
@@ -5764,6 +5775,7 @@ pub enum DispatchEditor {
     ReloadFile {
         force: bool,
     },
+    Format,
     MergeContent {
         content_filesystem: String,
         content_editor: String,

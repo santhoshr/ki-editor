@@ -832,6 +832,36 @@ impl Buffer {
         })
     }
 
+    pub fn format(
+        &mut self,
+        current_selection_set: SelectionSet,
+        last_visible_line: usize,
+    ) -> anyhow::Result<Dispatches> {
+        match self.get_formatted_content() {
+            Some(Ok(formatted_content)) => {
+                if self.rope == formatted_content.as_str() {
+                    return Ok(Dispatches::empty());
+                }
+                self.update_content(
+                    &formatted_content,
+                    current_selection_set,
+                    last_visible_line,
+                )
+            }
+            Some(Err(error)) => match error.downcast_ref::<SpawnCommandError>() {
+                // Specially handle command not found error
+                Some(SpawnCommandError::CommandNotFound { command }) => Ok(Dispatches::one(
+                    Dispatch::RaiseFormatterNotExist(FormatterCommand(command.clone())),
+                )),
+                None => Ok(Dispatches::one(Dispatch::ShowGlobalInfo(Info::new(
+                    "Failed formatter execution".to_string(),
+                    format!("{error}"),
+                )))),
+            },
+            None => Ok(Dispatches::empty()),
+        }
+    }
+
     pub fn save(
         &mut self,
         context: &Context,

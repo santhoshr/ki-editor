@@ -1961,6 +1961,26 @@ Committed changes implementing `empty_hud` and `allow_hud` configuration options
 **Response:**
 Committed changes removing the file name header from the tabstrip and displaying the relative file path including file name in the bottom status bar.
 
+### Request 263
+> "Space f s should manually trigger format command"
+**Response:**
+Noted the keybinding request. Followed up by the user correcting the prefix from `Space f` to `Space j`.
+
+### Request 264
+> "Space j s should manually trigger format command"
+**Response:**
+1. Added `Buffer::format` in `src/buffer.rs` to format the buffer using `get_formatted_content()` and apply non-destructive in-memory edits via `update_content`, cleanly handling missing formatters and execution errors without requiring save-on-disk.
+2. Added `Format` variant to `DispatchEditor` and implemented `Editor::format` in `src/components/editor/mod.rs` to run `buffer.format()`, clamp view/selections, and notify LSP via `get_document_did_change_dispatch()`.
+3. Added `Keybinding::new_undocumented(key!("s"), "Format", Dispatch::ToEditor(DispatchEditor::Format))` to `space_editor_keymap_legend_config` (`Space j`) in `src/keymap.rs`.
+4. Documented `Space j s` in `newdoc/index.html`.
+
+### Request 265
+> "commit it"
+**Response:**
+Committed changes implementing manual format trigger via `Space j s`, non-destructive `Buffer::format`, and `DispatchEditor::Format`.
+
+
+
 
 
 

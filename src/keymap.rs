@@ -624,6 +624,11 @@ pub fn space_editor_keymap_legend_config() -> KeymapLegendConfig {
                 Dispatch::ToEditor(ReloadFile { force: true }),
             ),
             Keybinding::new_undocumented(key!("e"), "Reload All Files", Dispatch::ReloadAllFiles),
+            Keybinding::new_undocumented(
+                key!("s"),
+                "Format",
+                Dispatch::ToEditor(DispatchEditor::Format),
+            ),
         ]),
     }
 }

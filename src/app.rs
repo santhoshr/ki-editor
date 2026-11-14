@@ -134,6 +134,7 @@ pub struct App<T: Frontend> {
     pending_bookmark_default_path: Option<AbsolutePath>,
     pending_is_quick_marks: bool,
     pub bookmark_path: Vec<char>,
+    is_navigating_history: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, JsonSchema)]
@@ -283,6 +284,7 @@ impl<T: Frontend> App<T> {
             pending_bookmark_default_path: None,
             pending_is_quick_marks: false,
             bookmark_path: Vec::new(),
+            is_navigating_history: false,
         };
 
         app.restore_session();
@@ -427,10 +429,12 @@ impl<T: Frontend> App<T> {
     }
 
     fn prepare_to_suspend_or_quit(&mut self) -> anyhow::Result<()> {
+        self.push_jump_entry();
         let mut frontend = self.frontend.lock().unwrap();
         frontend.leave_alternate_screen()?;
         frontend.disable_raw_mode()?;
         frontend.disable_mouse_capture()?;
+        drop(frontend);
         self.context.persist_data();
         Ok(())
     }
@@ -509,7 +513,23 @@ impl<T: Frontend> App<T> {
             let is_insert_mode = component.borrow().editor().mode == crate::components::editor::Mode::Insert;
             if !is_insert_mode && key_event == key!("shift+space") {
                 self.open_bookmark_menu()?;
-                return Ok(true);
+                return Ok(false);
+            }
+            // Global vim-style jump list: c-o (jump back) and c-i (jump forward).
+            // Only active when a Prompt is NOT open or focused, so that
+            // the file-picker's ctrl+o (open-all) binding in prompt.rs is preserved.
+            let is_prompt_open = self.layout.get_component_by_kind(crate::ui_tree::ComponentKind::Prompt).is_some()
+                || self.layout.get_current_component_kind() == Some(crate::ui_tree::ComponentKind::Prompt);
+            if !is_prompt_open {
+                if key_event == key!("ctrl+o") {
+                    self.handle_dispatch(Dispatch::JumpBack)?;
+                    return Ok(false);
+                } else if key_event == key!("ctrl+i") {
+                    self.handle_dispatch(Dispatch::JumpForward)?;
+                    return Ok(false);
+                } else if key_event == key!("release-ctrl+o") || key_event == key!("release-ctrl+i") {
+                    return Ok(false);
+                }
             }
             if is_insert_mode {
                 if key_event == key!("j") {
@@ -1550,6 +1570,14 @@ impl<T: Frontend> App<T> {
             Dispatch::MovementHistoryNavigation(movement) => {
                 self.movement_history_navigation(movement)?;
             }
+            Dispatch::JumpBack => self.jump_navigate_back()?,
+            Dispatch::JumpForward => self.jump_navigate_forward()?,
+            Dispatch::PushJumpLocation { path, range } => {
+                if !self.is_navigating_history {
+                    self.context
+                        .jump_push(crate::persistence::JumpEntry { path, range });
+                }
+            }
             Dispatch::ToggleSelectionMark => self.toggle_selection_mark()?,
             Dispatch::ToggleFileMark => self.toggle_file_mark()?,
             Dispatch::SetFileDirtyStatus { path, dirty_status } => {
@@ -2208,11 +2236,13 @@ impl<T: Frontend> App<T> {
             self.context.recent_mut().add_file(path.clone());
         }
 
+        if store_history && !self.is_navigating_history {
+            self.push_current_location_into_navigation_history(true);
+            self.context.clear_forward_history();
+            self.push_jump_entry();
+        }
+
         if let Some(matching_editor) = self.layout.open_file(path, focus) {
-            if store_history {
-                self.push_current_location_into_navigation_history(true);
-                self.context.clear_forward_history();
-            }
             if owner == BufferOwner::User {
                 self.context.mark_file(path.clone());
             }
@@ -2233,7 +2263,7 @@ impl<T: Frontend> App<T> {
             ));
         }
 
-        self.open_file_unchecked(path, owner, store_history, focus)
+        self.open_file_unchecked(path, owner, false, focus)
     }
 
     /// Open a path that does not exist yet as an empty buffer.
@@ -2254,9 +2284,10 @@ impl<T: Frontend> App<T> {
             self.context.recent_mut().add_file(path.clone());
         }
 
-        if store_history {
+        if store_history && !self.is_navigating_history {
             self.push_current_location_into_navigation_history(true);
             self.context.clear_forward_history();
+            self.push_jump_entry();
         }
 
         // Check if the file is opened before so that we won't notify the LSP twice
@@ -2553,7 +2584,7 @@ impl<T: Frontend> App<T> {
         let dispatches = component
             .borrow_mut()
             .editor_mut()
-            .set_char_index_range(location.range, &self.context)?;
+            .set_char_index_range(location.range, store_history, &self.context)?;
         self.handle_dispatches(dispatches)?;
         Ok(())
     }
@@ -4501,25 +4532,145 @@ impl<T: Frontend> App<T> {
     }
 
     fn navigate_back(&mut self) -> anyhow::Result<()> {
+        self.is_navigating_history = true;
+        let mut result = Ok(());
         while let Some(location) = self.context.location_previous() {
             if location.path.exists() {
                 self.push_current_location_into_navigation_history(false);
-                self.go_to_location(&location, false)?;
-                return Ok(());
+                if let Some(current) = self.current_jump_entry() {
+                    self.context.jump_save_forward(current);
+                }
+                self.context.jump_pop_matching_backward(&location);
+                result = self.go_to_location(&location, false);
+                break;
             }
         }
-        Ok(())
+        self.is_navigating_history = false;
+        result
+    }
+
+    // ── Vim-style global jump list (c-o / c-i) ──────────────────────────────
+
+    /// Build a JumpEntry from the currently active editor position.
+    fn current_jump_entry(&self) -> Option<crate::persistence::JumpEntry> {
+        let path = self.current_component().borrow().editor().path()?;
+        let range = self
+            .current_component()
+            .borrow()
+            .editor()
+            .current_selection_range();
+        Some(crate::persistence::JumpEntry {
+            path: path.to_path_buf().clone(),
+            range,
+        })
+    }
+
+    /// Push the current position onto the global jump list.
+    pub fn push_jump_entry(&mut self) {
+        if self.is_navigating_history {
+            return;
+        }
+        if let Some(entry) = self.current_jump_entry() {
+            self.context.jump_push(entry);
+        }
+    }
+
+    fn jump_navigate_back(&mut self) -> anyhow::Result<()> {
+        let current = match self.current_jump_entry() {
+            Some(e) => e,
+            None => return Ok(()),
+        };
+        let current_path = self.get_current_file_path();
+        self.is_navigating_history = true;
+        let mut result = Ok(());
+        while let Some(dest) = self.context.jump_back(current.clone()) {
+            if dest.path == current.path && dest.range == current.range {
+                continue;
+            }
+            let path = match AbsolutePath::try_from(dest.path.clone()) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+            if !path.exists() {
+                continue;
+            }
+            let location = crate::quickfix_list::Location {
+                path,
+                range: dest.range,
+            };
+            if let Some(cp) = current_path {
+                self.context.push_location_history(
+                    Location {
+                        path: cp,
+                        range: current.range,
+                    },
+                    false,
+                );
+            }
+            self.context.pop_matching_location_backward(&dest);
+            result = self.go_to_location(&location, false);
+            break;
+        }
+        self.is_navigating_history = false;
+        result
+    }
+
+    fn jump_navigate_forward(&mut self) -> anyhow::Result<()> {
+        let current = match self.current_jump_entry() {
+            Some(e) => e,
+            None => return Ok(()),
+        };
+        let current_path = self.get_current_file_path();
+        self.is_navigating_history = true;
+        let mut result = Ok(());
+        while let Some(dest) = self.context.jump_forward(current.clone()) {
+            if dest.path == current.path && dest.range == current.range {
+                continue;
+            }
+            let path = match AbsolutePath::try_from(dest.path.clone()) {
+                Ok(p) => p,
+                Err(_) => continue,
+            };
+            if !path.exists() {
+                continue;
+            }
+            let location = crate::quickfix_list::Location {
+                path,
+                range: dest.range,
+            };
+            if let Some(cp) = current_path {
+                self.context.push_location_history(
+                    Location {
+                        path: cp,
+                        range: current.range,
+                    },
+                    true,
+                );
+            }
+            self.context.pop_matching_location_forward(&dest);
+            result = self.go_to_location(&location, false);
+            break;
+        }
+        self.is_navigating_history = false;
+        result
     }
 
     fn navigate_forward(&mut self) -> anyhow::Result<()> {
+        self.is_navigating_history = true;
+        let mut result = Ok(());
         while let Some(location) = self.context.location_next() {
             if location.path.exists() {
                 self.push_current_location_into_navigation_history(true);
-                self.go_to_location(&location, false)?;
-                return Ok(());
+                if let Some(current) = self.current_jump_entry() {
+                    self.context.jump_save_backward(current);
+                }
+                self.context.jump_pop_matching_forward(&location);
+                result = self.go_to_location(&location, false);
+                break;
             }
         }
-        Ok(())
+        self.is_navigating_history = false;
+        result
     }
 
     fn movement_history_navigation(
@@ -4530,10 +4681,28 @@ impl<T: Frontend> App<T> {
             HistoryNavigationMovement::CoarseBack => self.navigate_back(),
             HistoryNavigationMovement::CoarseForward => self.navigate_forward(),
             HistoryNavigationMovement::FineBack => {
-                self.handle_dispatch_editor(DispatchEditor::GoBack)
+                let current = self.current_jump_entry();
+                self.is_navigating_history = true;
+                let res = self.handle_dispatch_editor(DispatchEditor::GoBack);
+                self.is_navigating_history = false;
+                if let (Some(curr), Some(new_pos)) = (current, self.current_jump_entry()) {
+                    if curr.range != new_pos.range {
+                        self.context.jump_sync_fine_back(curr, new_pos);
+                    }
+                }
+                res
             }
             HistoryNavigationMovement::FineForward => {
-                self.handle_dispatch_editor(DispatchEditor::GoForward)
+                let current = self.current_jump_entry();
+                self.is_navigating_history = true;
+                let res = self.handle_dispatch_editor(DispatchEditor::GoForward);
+                self.is_navigating_history = false;
+                if let (Some(curr), Some(new_pos)) = (current, self.current_jump_entry()) {
+                    if curr.range != new_pos.range {
+                        self.context.jump_sync_fine_forward(curr, new_pos);
+                    }
+                }
+                res
             }
         }
     }
@@ -5746,6 +5915,13 @@ pub enum Dispatch {
     SetKeyboardLayout(KeyboardLayout),
     OpenKeyboardLayoutPrompt,
     MovementHistoryNavigation(HistoryNavigationMovement),
+    /// Vim-style jump list: c-o (jump back) and c-i (jump forward)
+    JumpBack,
+    JumpForward,
+    PushJumpLocation {
+        path: PathBuf,
+        range: CharIndexRange,
+    },
     ToggleSelectionMark,
     ToggleFileMark,
     SetFileDirtyStatus {

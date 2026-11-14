@@ -1435,6 +1435,49 @@
       </table>
     </section>
 
+    <section id="global-jump-list">
+      <h3>⇄ Global Jump List (<kbd>Ctrl+O</kbd> / <kbd>Ctrl+I</kbd>)</h3>
+      <p>Vim-style jump list that works <strong>globally across files and sessions</strong>.
+         Unlike the Movement History (which is session-only), the jump list is persisted to disk
+         and restored when Ki restarts.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Action</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><kbd>Ctrl+O</kbd></td>
+            <td><strong>Jump Back</strong></td>
+            <td>Navigate to the previous position in the global jump list.
+                Works across files: c-o in <em>src/main.rs</em> after opening
+                <em>src/lib.rs</em> takes you back to <em>src/main.rs</em> at the exact cursor position.
+                Persisted across sessions: close Ki and reopen — c-o still works.</td>
+          </tr>
+          <tr>
+            <td><kbd>Ctrl+I</kbd></td>
+            <td><strong>Jump Forward</strong></td>
+            <td>Navigate forward (inverse of Ctrl+O). Once you jump back, Ctrl+I
+                retraces the path forward through the jump list.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><strong>What triggers a jump entry?</strong> Jump entries are recorded when you:</p>
+      <ul>
+        <li>Open a different file (via file picker, LSP go-to-definition, quickfix navigation, etc.).</li>
+        <li>Navigate via LSP (<em>Go to Definition</em>, <em>Go to References</em>, etc.).</li>
+        <li>Use quickfix list navigation (<kbd>Space kq</kbd>).</li>
+      </ul>
+      <p><strong>Intelligent deduplication:</strong> consecutive identical positions are
+         not stacked. The list is capped at 200 entries per direction (oldest evicted from the front).
+         Deleted files are automatically skipped during navigation.</p>
+      <p><strong>Note:</strong> <kbd>Ctrl+O</kbd> inside the <em>File Picker prompt</em> retains its
+         original function (open all selected files simultaneously).</p>
+    </section>
+
     <!-- SECTION 9: INSERT MODE -->
     <section id="insert-mode">
       <h2>9. Insert Mode &amp; Autocompletion</h2>

@@ -20,12 +20,14 @@ pub mod _00001;
 pub mod _00002;
 pub mod _00003;
 pub mod _00004;
+pub mod _00005;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Version(pub u8);
 
-pub type Root = _00004::Root;
-pub type WorkspaceSession = _00004::WorkspaceSession;
+pub type Root = _00005::Root;
+pub type WorkspaceSession = _00005::WorkspaceSession;
+pub type JumpEntry = _00005::JumpEntry;
 
 pub struct Persistence {
     path: PathBuf,
@@ -113,6 +115,19 @@ impl Persistence {
             .workspace_sessions
             .get(working_directory)
             .map(|session| session.prompt_histories.clone())
+    }
+
+    pub fn get_global_jump_backward(&self) -> Vec<JumpEntry> {
+        self.root.global_jump_backward.clone()
+    }
+
+    pub fn get_global_jump_forward(&self) -> Vec<JumpEntry> {
+        self.root.global_jump_forward.clone()
+    }
+
+    pub fn set_global_jump_lists(&mut self, backward: Vec<JumpEntry>, forward: Vec<JumpEntry>) {
+        self.root.global_jump_backward = backward;
+        self.root.global_jump_forward = forward;
     }
 }
 

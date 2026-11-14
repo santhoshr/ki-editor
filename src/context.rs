@@ -13,7 +13,7 @@ use crate::{
     clipboard::{Clipboard, RingHistory, Texts},
     components::{editor_keymap::KeyboardLayout, prompt::PromptHistoryKey},
     list::grep::RegexConfig,
-    persistence::{Persistence, WorkspaceSession},
+    persistence::{JumpEntry, Persistence, WorkspaceSession},
     quickfix_list::{DiagnosticSeverityRange, Location, QuickfixList, QuickfixListItem},
     recent::RecentStore,
     selection::SelectionMode,
@@ -37,6 +37,12 @@ pub struct Context {
     keyboard_layouts: HashMap<String, KeyboardLayout>,
     location_history_backward: Vec<Location>,
     location_history_forward: Vec<Location>,
+
+    /// Global vim-style jump list (c-o / c-i). Persisted across sessions.
+    /// jump_backward holds older positions (c-o pops from here).
+    /// jump_forward holds positions skipped by c-o (c-i pops from here).
+    jump_backward: Vec<JumpEntry>,
+    jump_forward: Vec<JumpEntry>,
 
     marked_files: IndexSet<AbsolutePath>,
     untitled_files: HashSet<AbsolutePath>,
@@ -130,6 +136,20 @@ impl Context {
                     prompt_histories: self.prompt_histories.clone(),
                 },
             );
+
+            let backward: Vec<JumpEntry> = self
+                .jump_backward
+                .iter()
+                .filter(|e| e.path.exists())
+                .cloned()
+                .collect();
+            let forward: Vec<JumpEntry> = self
+                .jump_forward
+                .iter()
+                .filter(|e| e.path.exists())
+                .cloned()
+                .collect();
+            persistence.set_global_jump_lists(backward, forward);
 
             if let Err(error) = persistence.write() {
                 log::error!("Failed to write persistence due to {error:?}");
@@ -443,6 +463,27 @@ impl Context {
                 persistence.get_prompt_histories(current_working_directory.to_path_buf())
             })
             .unwrap_or_default();
+
+        // Load persisted global jump list, filtering out deleted files
+        let jump_backward = persistence
+            .as_ref()
+            .map(|p| {
+                p.get_global_jump_backward()
+                    .into_iter()
+                    .filter(|e| e.path.exists())
+                    .collect()
+            })
+            .unwrap_or_default();
+        let jump_forward = persistence
+            .as_ref()
+            .map(|p| {
+                p.get_global_jump_forward()
+                    .into_iter()
+                    .filter(|e| e.path.exists())
+                    .collect()
+            })
+            .unwrap_or_default();
+
         let mut recent = RecentStore::load_or_default();
         recent.add_folder(current_working_directory.clone());
         if recent.files().is_empty() {
@@ -466,6 +507,8 @@ impl Context {
             keyboard_layouts: app_config.keyboard_layouts().clone(),
             location_history_backward: Vec::new(),
             location_history_forward: Vec::new(),
+            jump_backward,
+            jump_forward,
             marked_files,
             untitled_files: HashSet::new(),
             auto_created_untitled_files: HashSet::new(),
@@ -728,8 +771,14 @@ impl Context {
 
     pub fn push_location_history(&mut self, location: Location, backward: bool) {
         if backward {
+            if self.location_history_backward.last() == Some(&location) {
+                return;
+            }
             self.location_history_backward.push(location);
         } else {
+            if self.location_history_forward.last() == Some(&location) {
+                return;
+            }
             self.location_history_forward.push(location);
         }
     }
@@ -842,6 +891,143 @@ impl Context {
     pub fn remove_from_location_history(&mut self, path: &AbsolutePath) {
         self.location_history_backward.retain(|loc| &loc.path != path);
         self.location_history_forward.retain(|loc| &loc.path != path);
+    }
+
+    // ── Global Jump List (c-o / c-i) ────────────────────────────────────────
+
+    /// Maximum number of entries kept in each half of the jump list.
+    const JUMP_LIST_MAX: usize = 200;
+
+    /// Push a new location onto the backward jump stack.
+    /// - Clears the forward stack (new navigation branch).
+    /// - Does not add an entry if it is identical to the most-recent backward entry,
+    ///   or if it is in the same file and within 5 characters (prevents micro-movements pile-up).
+    /// - Caps history at JUMP_LIST_MAX entries.
+    pub fn jump_push(&mut self, entry: JumpEntry) {
+        if self.jump_backward.last() == Some(&entry) {
+            return;
+        }
+        self.jump_backward.push(entry);
+        self.jump_forward.clear();
+        // Trim old entries from the front
+        if self.jump_backward.len() > Self::JUMP_LIST_MAX {
+            let drain_count = self.jump_backward.len() - Self::JUMP_LIST_MAX;
+            self.jump_backward.drain(..drain_count);
+        }
+    }
+
+    /// Navigate backward in the jump list (c-o). Returns the entry to jump to,
+    /// having first saved `current` onto the forward stack.
+    pub fn jump_back(&mut self, current: JumpEntry) -> Option<JumpEntry> {
+        let dest = self.jump_backward.pop()?;
+        if self.jump_forward.last() != Some(&current) {
+            self.jump_forward.push(current);
+        }
+        Some(dest)
+    }
+
+    /// Navigate forward in the jump list (c-i). Returns the entry to jump to,
+    /// having first saved `current` onto the backward stack.
+    pub fn jump_forward(&mut self, current: JumpEntry) -> Option<JumpEntry> {
+        let dest = self.jump_forward.pop()?;
+        if self.jump_backward.last() != Some(&current) {
+            self.jump_backward.push(current);
+        }
+        Some(dest)
+    }
+
+    pub fn jump_save_forward(&mut self, current: JumpEntry) {
+        if self.jump_forward.last() != Some(&current) {
+            self.jump_forward.push(current);
+        }
+    }
+
+    pub fn jump_save_backward(&mut self, current: JumpEntry) {
+        if self.jump_backward.last() != Some(&current) {
+            self.jump_backward.push(current);
+        }
+    }
+
+    pub fn jump_pop_matching_backward(&mut self, location: &Location) {
+        while let Some(last) = self.jump_backward.last() {
+            if last.path == *location.path.to_path_buf()
+                && (last.range == location.range || last.range.start == location.range.start)
+            {
+                self.jump_backward.pop();
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn jump_pop_matching_forward(&mut self, location: &Location) {
+        while let Some(last) = self.jump_forward.last() {
+            if last.path == *location.path.to_path_buf()
+                && (last.range == location.range || last.range.start == location.range.start)
+            {
+                self.jump_forward.pop();
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn pop_matching_location_backward(&mut self, dest: &JumpEntry) {
+        while let Some(last) = self.location_history_backward.last() {
+            if *last.path.to_path_buf() == dest.path
+                && (last.range == dest.range || last.range.start == dest.range.start)
+            {
+                self.location_history_backward.pop();
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn pop_matching_location_forward(&mut self, dest: &JumpEntry) {
+        while let Some(last) = self.location_history_forward.last() {
+            if *last.path.to_path_buf() == dest.path
+                && (last.range == dest.range || last.range.start == dest.range.start)
+            {
+                self.location_history_forward.pop();
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn jump_sync_fine_back(&mut self, curr: JumpEntry, new_pos: JumpEntry) {
+        if self.jump_forward.last() != Some(&curr) {
+            self.jump_forward.push(curr);
+        }
+        if let Some(last) = self.jump_backward.last() {
+            if last == &new_pos
+                || (last.path == new_pos.path && last.range.start == new_pos.range.start)
+            {
+                self.jump_backward.pop();
+            }
+        }
+    }
+
+    pub fn jump_sync_fine_forward(&mut self, curr: JumpEntry, new_pos: JumpEntry) {
+        if self.jump_backward.last() != Some(&curr) {
+            self.jump_backward.push(curr);
+        }
+        if let Some(last) = self.jump_forward.last() {
+            if last == &new_pos
+                || (last.path == new_pos.path && last.range.start == new_pos.range.start)
+            {
+                self.jump_forward.pop();
+            }
+        }
+    }
+
+    /// Remove all jump entries that point to  (e.g. when file is closed/deleted).
+    pub fn jump_remove_path(&mut self, path: &AbsolutePath) {
+        self.jump_backward
+            .retain(|e| AbsolutePath::try_from(e.path.clone()).ok().as_ref() != Some(path));
+        self.jump_forward
+            .retain(|e| AbsolutePath::try_from(e.path.clone()).ok().as_ref() != Some(path));
     }
 
     pub fn is_dirty(&self, path: &AbsolutePath) -> bool {

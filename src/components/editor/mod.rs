@@ -1187,12 +1187,25 @@ impl Editor {
             .reduce(Info::join)
             .map(Dispatch::ShowGlobalInfo);
         self.cursor_direction = Direction::Start;
+        let mut jump_dispatch = None;
         if store_history {
             self.buffer_mut()
                 .push_selection_set_history(selection_set.clone());
+            if let Some(path) = self.path() {
+                let range = self.selection_set.primary_selection().extended_range();
+                let new_range = selection_set.primary_selection().extended_range();
+                if range != new_range {
+                    jump_dispatch = Some(Dispatch::PushJumpLocation {
+                        path: path.to_path_buf().clone(),
+                        range,
+                    });
+                }
+            }
         }
         self.set_selection_set(selection_set, context);
-        Dispatches::default().append_some(show_info)
+        Dispatches::default()
+            .append_some(show_info)
+            .append_some(jump_dispatch)
     }
 
     pub fn char_index_range_to_selection_set(
@@ -4063,10 +4076,11 @@ impl Editor {
     pub fn set_char_index_range(
         &mut self,
         range: CharIndexRange,
+        store_history: bool,
         context: &Context,
     ) -> Result<Dispatches, anyhow::Error> {
         let selection_set = self.char_index_range_to_selection_set(range)?;
-        Ok(self.update_selection_set(selection_set, true, context))
+        Ok(self.update_selection_set(selection_set, store_history, context))
     }
 
     fn select_surround(

@@ -1852,3 +1852,58 @@ Explained architectural differences between old preview buffer retention vs expl
 
 ### Important Directives for Agents
 - **Strict User Policy:** Do NOT run automatic verification/test loops unless explicitly asked. Make changes directly and use `cargo build` for syntax/compilation checking only.
+
+### Request 250
+> "create c-o, c-i vim style jump, by merging ki's history both local and global, do intelligent persistence, so things don't pile up, it should work across sessions, I close editor, reopen, c-o should go back to last edited file and keep going back on the jump list, c-i is inverse of that, there should not be impact to existing ki history functionality local/global, same c-o shortcut used in file picker, it should be intact as well"
+**Response:**
+Implemented a full Vim-style global jump list (`c-o` / `c-i`) persisted across sessions:
+1. New persistence schema `_00005.rs`: added `global_jump_backward`/`global_jump_forward` (`Vec<JumpEntry>`) to root (not workspace-scoped). Migration from `_00004` preserves all data.
+2. `Context` methods: `jump_push`, `jump_back`, `jump_forward`, `jump_remove_path`. Dedup: consecutive identical entries skipped; cap: 200 entries/direction; forward stack cleared on new push.
+3. `Dispatch::JumpBack` / `Dispatch::JumpForward` variants + handlers in app.rs dispatch match.
+4. Key intercept in `handle_event`: `ctrl+o` → `JumpBack`, `ctrl+i` → `JumpForward`, **only when focused component is NOT a Prompt** — file-picker's `ctrl+o` (open-all) in `prompt.rs` is fully preserved.
+5. Jump pushed via `push_jump_entry()` in `open_file` and `open_file_unchecked` when `store_history=true` (captures previous position before switching).
+6. Added "Global Jump List" section to `newdoc/index.html`.
+
+### Request 251
+> "pressing c-o quits editor"
+> "continue"
+**Response:**
+Identified that `App::handle_event` returns `anyhow::Result<bool>` where `bool` represents `should_quit`. The `ctrl+o` and `ctrl+i` handlers had returned `Ok(true)` (mistakenly thinking `true` meant "handled"), which instructed `App::run` to quit the event loop immediately.
+Fixed by:
+1. Returning `Ok(false)` from `ctrl+o`, `ctrl+i`, and release events (as well as `shift+space`).
+2. Integrating local editor selection jumps with the global jump list via `Dispatch::PushJumpLocation` in `Editor::update_selection_set` (capturing position before motion when `store_history: true`).
+3. Moving `push_jump_entry()` in `open_file` before switching editors so the origin file/position is recorded.
+4. Calling `push_jump_entry()` on session exit in `prepare_to_suspend_or_quit` so reopening the editor retains the last edited file and cursor position at the top of the jump list.
+5. In `jump_navigate_back` and `jump_navigate_forward`, looping past entries matching the current location so jumps always advance to a different position.
+6. Filtering deleted paths on persistence load/save and deduplicating micro-movements (< 5 chars in same file) in `jump_push`.
+
+### Request 252
+> "remove micro-jump prevention; ki history menu doesn't seem to work now"
+**Response:**
+1. Removed the 5-character diff micro-jump threshold from `Context::jump_push` so all distinct positions are recorded.
+2. Fixed Ki's native history menu (`q` momentary layer: `j`/`l` coarse history, `u`/`o` fine history):
+   - In `App::open_file`, calling `push_current_location_into_navigation_history` before `layout.open_file` caused it to be called a second time in `open_file_unchecked` when opening a file for the first time, corrupting `location_history_backward` with duplicate entries. Restored calls to run once per file transition (in `layout.open_file` when already present, and in `open_file_unchecked` when loaded fresh).
+   - Added consecutive-duplicate guards to `Context::push_location_history` to prevent identical locations from polluting backward/forward stacks.
+   - Restored `set_char_index_range` to maintain selection set history in the active buffer.
+
+### Request 253
+> "once ki's history navigation is used, c-o, c-i only go back and forth between two immediate jumps"
+**Response:**
+Diagnosed and resolved the root cause of the 2-jump ping-pong loop:
+1. **History Pollution during Navigation:**
+   - In `src/components/editor/mod.rs`, `set_char_index_range` had hardcoded `store_history: true`. Whenever any navigation ran (`go_to_location`), it dispatched `PushJumpLocation`, which called `jump_push`, wiped `jump_forward`, and re-pushed the arrival location to `jump_backward`.
+   - Updated `set_char_index_range` to take `store_history: bool` and pass it to `update_selection_set`. When `store_history: false`, no jump dispatch or selection set history is pushed.
+   - Added `is_navigating_history: bool` guard flag on `App` active during all history navigations (`jump_navigate_back`, `jump_navigate_forward`, `navigate_back`, `navigate_forward`, and fine history navigation) ensuring dispatches cannot clear the forward stack or push jumps mid-navigation.
+2. **Bidirectional History Synchronization:**
+   - In `src/context.rs`, added synchronization helpers: `jump_save_forward`, `jump_save_backward`, `jump_pop_matching_backward`, `jump_pop_matching_forward`, `pop_matching_location_backward`, `pop_matching_location_forward`, `jump_sync_fine_back`, and `jump_sync_fine_forward`.
+   - When navigating with Ki's history (`q + j` / `q + l`), the departure position is saved to the jump list's opposite stack and matching entries popped, keeping the jump list in lockstep with Ki's coarse history.
+   - When navigating with fine history (`q + u` / `q + o`), the departure position is synchronized to `jump_forward`/`jump_backward`.
+   - When navigating with `c-o` / `c-i`, departure positions are mirrored into `location_history_forward`/`location_history_backward`.
+   - In `open_file`, departure position is captured before switching editors, and `open_file_unchecked` is called with `store_history: false` when called from `open_file` to prevent double-pushing.
+
+### Request 254
+> "commit it"
+**Response:**
+Committed changes implementing the Vim-style global jump list (`c-o` / `c-i`), cross-session persistence in schema migration `_00005`, and seamless bidirectional synchronization with Ki's coarse and fine history navigation.
+
+

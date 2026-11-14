@@ -40,7 +40,7 @@ impl Migration for Root {
     }
 
     fn migrate_to_current(self) -> anyhow::Result<super::Root> {
-        Ok(self)
+        super::_00005::Root::from_previous_version(self).migrate_to_current()
     }
 
     fn from_previous_version(previous: Self::PreviousVersion) -> Self {

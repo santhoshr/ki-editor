@@ -184,6 +184,10 @@ impl SuggestiveEditor {
         self.auto_select_at_dir = auto_select_at_dir;
     }
 
+    pub fn language(&self) -> Option<shared::language::Language> {
+        self.editor.buffer().language()
+    }
+
     pub fn handle_dispatch(
         &mut self,
         dispatch: DispatchSuggestiveEditor,

@@ -1966,6 +1966,8 @@
   <span style="color: #79c0ff;">"jhlk_np_rl_inverse"</span>: <span style="color: #ff7b72;">false</span>,        <span style="color: #8b949e;">// false (default) or true (inverts j/k right/left &amp; np pair)</span>
   <span style="color: #79c0ff;">"empty_hud"</span>: <span style="color: #a5d6ff;">"fCSRmz"</span>,               <span style="color: #8b949e;">// "all" or letters in any combination: S(pace), C(ommand), q(Move Hist), m/B(Mark/Buffer), d/e(Delete/Eat), R/x(Cut), t(Swap), g(Open), z(Undo/Redo), c(Copy/Dup), v(Paste), b(Multi-cursor), n(Find), ,(Surround), f(Extend). Menu split body is empty, only header bar is shown.</span>
   <span style="color: #79c0ff;">"allow_hud"</span>: <span style="color: #ff7b72;">null</span>,                   <span style="color: #8b949e;">// Inverse: only allowed menus display HUD body, rest are empty. If both empty_hud and allow_hud are set, both are ignored after a startup warning.</span>
+  <span style="color: #79c0ff;">"modeline"</span>: <span style="color: #ff7b72;">false</span>,                    <span style="color: #8b949e;">// Enable modeline language detection (default false). When enabled, scans top and bottom N lines for ki: lang=&lt;any&gt;, mode:, ft=, or shebang directives.</span>
+  <span style="color: #79c0ff;">"modelines"</span>: <span style="color: #79c0ff;">5</span>,                       <span style="color: #8b949e;">// Number of lines at top and bottom of buffer to scan for modelines (default 5).</span>
 
   <span style="color: #79c0ff;">"languages"</span>: {
     <span style="color: #79c0ff;">"rust"</span>: {
@@ -2078,6 +2080,19 @@
           </tr>
         </tbody>
       </table>
+
+      <h3>Modeline Language Detection</h3>
+      <p>When <code>"modeline": true</code> is enabled in your configuration, Ki scans the first and last <code>modelines</code> (default 5) lines of the file to determine the language and syntax grammar:</p>
+      <div class="card">
+        <h4><span>Supported Modeline Formats</span> <span class="badge badge-mode">Syntax Detection</span></h4>
+        <ul>
+          <li><strong>Ki Native Directive:</strong> <code>ki: lang=&lt;language&gt;</code> or <code>ki : lang = &lt;language&gt;</code> (e.g. <code>// ki: lang=rust</code>, <code># ki : lang = python</code>, <code>/* ki: lang = cpp */</code>, <code>&lt;!-- ki: lang=html --&gt;</code>)</li>
+          <li><strong>Vim Filetype:</strong> <code>vim: ft=&lt;language&gt;</code> or <code>set ft=&lt;language&gt;</code> (e.g. <code>/* vim: ft=c */</code>)</li>
+          <li><strong>Emacs / Generic Mode:</strong> <code>mode: &lt;language&gt;</code> (e.g. <code>// mode: javascript</code>)</li>
+          <li><strong>Shebang (line 1):</strong> <code>#!/bin/bash</code>, <code>#!/usr/bin/env python3</code>, etc.</li>
+        </ul>
+        <p>If the specified language matches any configured grammar, extension, LSP identifier, or alias, Ki immediately applies it to the buffer.</p>
+      </div>
     </section>
 
     <!-- SECTION 18: LEADER KEYMAP & CUSTOM SHELL SCRIPTS -->

@@ -194,6 +194,12 @@ impl Buffer {
                 });
             self.last_synced_time = path.last_modified_time().ok();
 
+            if let Some(new_lang) = crate::config::detect_language(Some(&path), &updated_content) {
+                if self.language.as_ref() != Some(&new_lang) {
+                    let _ = self.set_language(new_lang);
+                }
+            }
+
             Ok(dispatches)
         } else {
             Ok(Dispatches::default())
@@ -720,8 +726,7 @@ impl Buffer {
             String::new()
         };
         let language = if enable_tree_sitter {
-            crate::config::from_path(path)
-                .or_else(|| crate::config::from_content_directive(&content))
+            crate::config::detect_language(Some(path), &content)
         } else {
             None
         };

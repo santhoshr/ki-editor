@@ -75,6 +75,8 @@ pub struct Context {
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
     session_empty_hud_all: Option<bool>,
+    modeline: bool,
+    modelines: usize,
 
     last_repeatable_edit: std::cell::RefCell<Option<crate::components::editor::RepeatableEdit>>,
 
@@ -536,6 +538,8 @@ impl Context {
             navigation_keys: app_config.navigation_keys(),
             hjkl_config: app_config.hjkl_config(),
             session_empty_hud_all: None,
+            modeline: app_config.modeline(),
+            modelines: app_config.modelines(),
             last_repeatable_edit: std::cell::RefCell::new(None),
             non_existent_formatter_commands: Vec::new(),
         }
@@ -759,6 +763,14 @@ impl Context {
 
     pub fn hjkl_config(&self) -> crate::config::HjklConfig {
         self.hjkl_config
+    }
+
+    pub fn modeline(&self) -> bool {
+        self.modeline
+    }
+
+    pub fn modelines(&self) -> usize {
+        self.modelines
     }
 
     pub fn session_empty_hud_all(&self) -> Option<bool> {

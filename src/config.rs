@@ -16,7 +16,7 @@ use crate::themes::Theme;
 use figment::providers;
 use figment::providers::Format;
 use figment::Provider;
-use once_cell::sync::OnceCell;
+use once_cell::sync::{Lazy, OnceCell};
 use schemars::{JsonSchema, Schema, SchemaGenerator};
 use serde::{Deserialize, Serialize};
 use shared::absolute_path::AbsolutePath;
@@ -48,6 +48,8 @@ pub struct AppConfig {
     hjkl_config: HjklConfig,
     hud_visibility: HudVisibilityConfig,
     load_errors: Vec<String>,
+    modeline: bool,
+    modelines: usize,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema)]
@@ -98,6 +100,14 @@ pub struct RawConfig {
     empty_hud: Option<String>,
     #[serde(default)]
     allow_hud: Option<String>,
+    #[serde(default)]
+    modeline: bool,
+    #[serde(default = "default_modelines")]
+    modelines: usize,
+}
+
+fn default_modelines() -> usize {
+    5
 }
 
 fn default_hjkl_y_semicolon_action() -> HjklPairAction {
@@ -622,6 +632,8 @@ impl TryFrom<RawConfig> for AppConfig {
             hjkl_config,
             hud_visibility,
             load_errors,
+            modeline: value.modeline,
+            modelines: if value.modelines == 0 { 5 } else { value.modelines },
         })
     }
 }
@@ -1029,6 +1041,14 @@ impl AppConfig {
             }
         }
     }
+
+    pub fn modeline(&self) -> bool {
+        self.modeline
+    }
+
+    pub fn modelines(&self) -> usize {
+        self.modelines
+    }
 }
 
 pub fn from_path(path: &AbsolutePath) -> Option<Language> {
@@ -1054,6 +1074,166 @@ pub fn from_filename(path: &AbsolutePath) -> Option<Language> {
         .map(|(_, language)| (*language).clone())
 }
 
+static KI_MODELINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?i)\bki\s*:\s*lang\s*=\s*['"]?([a-zA-Z0-9_#+\-]+)['"]?"#).unwrap()
+});
+
+static OTHER_MODELINE_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?i)\b(?:mode:\s*|ft\s*=\s*)['"]?([a-zA-Z0-9_#+\-]+)['"]?"#).unwrap()
+});
+
+static SHEBANG_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?i)^#!.*/(?:env\s+)?['"]?([a-zA-Z0-9_#+\-]+)['"]?"#).unwrap()
+});
+
+pub fn resolve_language(id: &str) -> Option<Language> {
+    let raw = id.trim();
+    let lower = raw.to_ascii_lowercase();
+
+    // Map common aliases
+    let normalized = match lower.as_str() {
+        "c++" | "cpp" | "cxx" | "cc" => "cpp",
+        "c#" | "cs" | "csharp" => "c_sharp",
+        "f#" | "fs" => "fsharp",
+        "py" | "python3" => "python",
+        "rs" => "rust",
+        "js" => "javascript",
+        "ts" => "typescript",
+        "sh" => "bash",
+        "md" => "markdown",
+        _ => lower.as_str(),
+    };
+
+    let languages = AppConfig::singleton().languages();
+
+    // 1. Direct key match (e.g. "rust", "python", "cpp")
+    if let Some(lang) = languages.get(normalized) {
+        return Some(lang.clone());
+    }
+
+    // 2. Case-insensitive key match
+    if let Some((_, lang)) = languages
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case(normalized) || key.eq_ignore_ascii_case(&lower))
+    {
+        return Some(lang.clone());
+    }
+
+    // 3. Tree-sitter grammar id match
+    if let Some((_, lang)) = languages.iter().find(|(_, lang)| {
+        lang.tree_sitter_grammar_id()
+            .is_some_and(|g| g.eq_ignore_ascii_case(normalized) || g.eq_ignore_ascii_case(&lower))
+    }) {
+        return Some(lang.clone());
+    }
+
+    // 4. LSP language ID match
+    if let Some((_, lang)) = languages.iter().find(|(_, lang)| {
+        lang.lsp_language_id().as_ref().is_some_and(|lsp| {
+            lsp.to_string().eq_ignore_ascii_case(normalized)
+                || lsp.to_string().eq_ignore_ascii_case(&lower)
+        })
+    }) {
+        return Some(lang.clone());
+    }
+
+    // 5. Extensions match (e.g. if someone writes "rs" or "py" or "ts" directly)
+    if let Some((_, lang)) = languages.iter().find(|(_, lang)| {
+        lang.extensions().iter().any(|ext| {
+            ext.eq_ignore_ascii_case(normalized) || ext.eq_ignore_ascii_case(&lower)
+        })
+    }) {
+        return Some(lang.clone());
+    }
+
+    None
+}
+
+fn get_candidate_lines<'a>(content: &'a str, n: usize) -> Vec<&'a str> {
+    let n = if n == 0 { 5 } else { n };
+    let mut first_lines = Vec::with_capacity(n);
+    for line in content.lines().take(n) {
+        first_lines.push(line);
+    }
+    if first_lines.len() < n {
+        return first_lines;
+    }
+    let total_lines = content.lines().count();
+    if total_lines <= n * 2 {
+        content.lines().collect()
+    } else {
+        first_lines.reserve(n);
+        for line in content.lines().skip(total_lines - n) {
+            first_lines.push(line);
+        }
+        first_lines
+    }
+}
+
+pub fn from_modeline(content: &str, modelines: usize) -> Option<Language> {
+    let candidates = get_candidate_lines(content, modelines);
+
+    // 1. Check for ki: lang=... directives first
+    for &line in &candidates {
+        if let Some(captures) = KI_MODELINE_REGEX.captures(line) {
+            if let Some(m) = captures.get(1) {
+                if let Some(lang) = resolve_language(m.as_str()) {
+                    return Some(lang);
+                }
+            }
+        }
+    }
+
+    // 2. Check for other editor modelines (mode: or ft=)
+    for &line in &candidates {
+        if let Some(captures) = OTHER_MODELINE_REGEX.captures(line) {
+            if let Some(m) = captures.get(1) {
+                if let Some(lang) = resolve_language(m.as_str()) {
+                    return Some(lang);
+                }
+            }
+        }
+    }
+
+    // 3. Check for shebang on first line
+    if let Some(&first_line) = candidates.first() {
+        if let Some(captures) = SHEBANG_REGEX.captures(first_line) {
+            if let Some(m) = captures.get(1) {
+                if let Some(lang) = resolve_language(m.as_str()) {
+                    return Some(lang);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+pub fn parse_modeline_directive_from_line(line: &str) -> Option<Language> {
+    if let Some(captures) = KI_MODELINE_REGEX.captures(line) {
+        if let Some(m) = captures.get(1) {
+            if let Some(lang) = resolve_language(m.as_str()) {
+                return Some(lang);
+            }
+        }
+    }
+    if let Some(captures) = OTHER_MODELINE_REGEX.captures(line) {
+        if let Some(m) = captures.get(1) {
+            if let Some(lang) = resolve_language(m.as_str()) {
+                return Some(lang);
+            }
+        }
+    }
+    if let Some(captures) = SHEBANG_REGEX.captures(line) {
+        if let Some(m) = captures.get(1) {
+            if let Some(lang) = resolve_language(m.as_str()) {
+                return Some(lang);
+            }
+        }
+    }
+    None
+}
+
 /// Detect the language from the first line of the file content.
 ///
 /// Standard shebang format is checked as well as vim's `ft=` method and various
@@ -1064,29 +1244,29 @@ pub fn from_filename(path: &AbsolutePath) -> Option<Language> {
 ///
 /// - `#!/bin/bash`
 /// - `# vim: ft=bash`
-/// - `# mode: bash
+/// - `# mode: bash`
 ///
 /// Spaces and other content on the line do not matter.
 pub fn from_content_directive(content: &str) -> Option<Language> {
     let first_line = content.lines().next()?;
+    parse_modeline_directive_from_line(first_line)
+}
 
-    let re = Regex::new(r"(?:(?:^#!.*/)|(?:mode:)|(?:ft\s*=))\s*(\w+)").unwrap();
-    let language_id = re
-        .captures(first_line)
-        .and_then(|captures| captures.get(1).map(|mode| mode.as_str().to_string()));
+pub fn detect_language(path: Option<&AbsolutePath>, content: &str) -> Option<Language> {
+    let app_config = AppConfig::singleton();
+    if app_config.modeline() {
+        if let Some(language) = from_modeline(content, app_config.modelines()) {
+            return Some(language);
+        }
+    }
 
-    language_id.and_then(|id| {
-        AppConfig::singleton()
-            .languages()
-            .iter()
-            .find(|(_, language)| {
-                language
-                    .lsp_language_id()
-                    .clone()
-                    .is_some_and(|lsp_id| lsp_id.to_string() == id)
-            })
-            .map(|(_, language)| (*language).clone())
-    })
+    if let Some(path) = path {
+        if let Some(language) = from_path(path) {
+            return Some(language);
+        }
+    }
+
+    from_content_directive(content)
 }
 
 #[cfg(test)]
@@ -1128,6 +1308,37 @@ mod test_language {
         run_test_case("-- tab_spaces: 5, mode: bash, use_tabs: false", "bash")?;
         run_test_case("-- tab_spaces: 5, mode:bash, use_tabs: false", "bash")?;
         run_test_case("-- vim: ft = bash", "bash")?;
+        run_test_case("// ki: lang=rust", "rust")?;
+        run_test_case("# ki : lang = python", "python")?;
+        run_test_case("/* ki: lang = cpp */", "cpp")?;
+        run_test_case("// ki : lang = 'c_sharp'", "c_sharp")?;
+        run_test_case("<!-- ki: lang=html -->", "html")?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_modeline() -> anyhow::Result<()> {
+        let content_top = "// ki: lang=rust\nfn main() {}\n";
+        assert_eq!(
+            from_modeline(content_top, 5).unwrap().tree_sitter_grammar_id().unwrap(),
+            "rust"
+        );
+
+        let content_bottom = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\n// ki: lang=python\n";
+        assert_eq!(
+            from_modeline(content_bottom, 5).unwrap().tree_sitter_grammar_id().unwrap(),
+            "python"
+        );
+
+        let content_flexible = "/* ki : lang = c++ */\nint main() {}";
+        assert_eq!(
+            from_modeline(content_flexible, 5).unwrap().tree_sitter_grammar_id().unwrap(),
+            "cpp"
+        );
+
+        let content_invalid = "// ki: lang=nonexistent_xyz\nfn main() {}\n";
+        assert!(from_modeline(content_invalid, 5).is_none());
 
         Ok(())
     }

@@ -51,5 +51,7 @@
     "hjkl_up_action": "fl",
     "jhlk_np_rl_inverse": false,
     "empty_hud": null,
-    "allow_hud": null
+    "allow_hud": null,
+    "modeline": false,
+    "modelines": 5
 }

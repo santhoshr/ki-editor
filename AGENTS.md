@@ -2009,6 +2009,34 @@ Followed up by user updating the shortcut key to `Space k c`.
 **Response:**
 Committed changes implementing language/syntax picker via `Space k c`, dynamic tree-sitter re-parsing, and async syntax highlighting reload.
 
+### Request 271
+> "will this take care of new grammer files added throught command line?"
+**Response:**
+Yes, because `AppConfig::singleton().languages()` reads the full language map at runtime, including any languages configured with grammar files or custom language blocks.
+
+### Request 272
+> "does ki has modeline concept?"
+**Response:**
+Ki previously only checked the first line for shebangs (`#!`) and simple directives (`mode:`, `ft=`). It had no configurable multi-line or top/bottom modeline scanning concept.
+
+### Request 273
+> "create config, modeline: enabled, default disabled, also modelines: 5, default 5, if enabled, then for configured modelines, if not upto 5, scan first and last lines for ki: lang=<any> or ki : lang = <any>, if <any> language provided matches available syntax/language files, proceed to apply; keep existing patterns as well"
+**Response:**
+1. Added `"modeline": false` and `"modelines": 5` to `src/config_default.json`, `RawConfig`, and `AppConfig` with lenient error fallback.
+2. Implemented `from_modeline` and `detect_language` in `src/config.rs`:
+   - If `modeline` is enabled, scans the first $N$ and last $N$ lines (where $N = \text{modelines}$, default 5) for `ki: lang=<any>` or `ki : lang = <any>` with flexible whitespace and optional quotes.
+   - Preserves existing patterns (`mode:`, `ft=`, and shebang `#!`).
+   - Resolves `<any>` language names against configured language keys, tree-sitter grammar IDs, LSP language IDs, extensions, and common aliases (`c++` -> `cpp`, `c#` -> `c_sharp`, `py` -> `python`, etc.).
+   - If a valid language is found, applies it immediately to the buffer.
+   - If disabled or if modeline directives do not match an available language, falls back cleanly to file path/extension detection.
+3. Updated `Buffer::from_path` and `Buffer::reload` (`src/buffer.rs`) to detect languages via `detect_language`.
+4. Documented configuration options and modeline syntax in `newdoc/index.html`.
+
+### Request 274
+> "commit it"
+**Response:**
+Committed changes implementing modeline language detection (`modeline` and `modelines` config, `ki: lang=<any>` directive parsing, and buffer language detection fallback).
+
 
 
 

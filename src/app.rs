@@ -2898,10 +2898,15 @@ impl<T: Frontend> App<T> {
 
     /// Restarts the LSP server responsible for the current buffer's language, if any.
     fn restart_lsp(&mut self) -> anyhow::Result<()> {
-        let Some(language) = self
-            .get_current_file_path()
-            .and_then(|path| crate::config::from_path(&path))
-        else {
+        let path = self.get_current_file_path();
+        let language = path
+            .as_ref()
+            .and_then(|p| self.layout.get_existing_editor(p))
+            .and_then(|e| e.borrow().language())
+            .or_else(|| {
+                path.as_ref().and_then(|p| crate::config::from_path(p))
+            });
+        let Some(language) = language else {
             return Ok(());
         };
         self.lsp_manager().restart_language(&language)

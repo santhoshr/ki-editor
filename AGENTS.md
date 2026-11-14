@@ -1950,6 +1950,18 @@ Diagnosed the missing warning: `AppConfig::try_from` correctly identified the co
 **Response:**
 Committed changes implementing `empty_hud` and `allow_hud` configuration options, in-place session HUD toggle (`?`), Delete/Eat mapping for `d/e`, `m/B` for Mark/Buffer, `b` for Multi-cursor, and fixing load errors propagation for startup config warning.
 
+### Request 261
+> "remove file name header that appears next to tabstrip or part of tabstrip, append file name to bottom status bar that displays file directory"
+**Response:**
+1. In `src/components/render_editor.rs` (`title_impl`), removed the secondary `title_bar_str` line displaying `[{full_path}]` under `RenderTitleMode::Tabline`, returning strictly `vec![line_str]` for a single-line tabstrip and reclaiming a row of vertical editor space.
+2. In `src/app.rs` (`render_status_line`), updated `StatusLineComponent::CurrentFileParentFolder` on the bottom status bar to display the full relative path including the file name (e.g. `src/app.rs` or `[Untitled]`) rather than stripping it to just the parent directory.
+
+### Request 262
+> "commit it"
+**Response:**
+Committed changes removing the file name header from the tabstrip and displaying the relative file path including file name in the bottom status bar.
+
+
 
 
 

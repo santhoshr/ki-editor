@@ -243,7 +243,7 @@ impl Editor {
         dimension: &Dimension,
         render_title_mode: &RenderTitleMode,
     ) -> Option<String> {
-        let result = if dimension.height <= 2 {
+        let result = if dimension.height <= 1 {
             vec![]
         } else {
             match render_title_mode {
@@ -454,26 +454,7 @@ impl Editor {
                         line_str.push_str(&" ".repeat(pad));
                     }
 
-                    // Title bar line displaying the full path filename
-                    let full_path = self
-                        .path()
-                        .map(|p| {
-                            if self.buffer().is_untitled() {
-                                "[Untitled]".to_string()
-                            } else {
-                                p.display_absolute()
-                            }
-                        })
-                        .unwrap_or_else(|| "[Untitled]".to_string());
-                    let full_path_text = format!("[{full_path}]");
-                    let title_bar_str = if get_string_width(&full_path_text) > available_width {
-                        truncate_from_left(&full_path_text, available_width)
-                    } else {
-                        let pad = available_width.saturating_sub(get_string_width(&full_path_text));
-                        format!("{}{full_path_text}", " ".repeat(pad))
-                    };
-
-                    vec![line_str, title_bar_str]
+                    vec![line_str]
                 }
             }
         };

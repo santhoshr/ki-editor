@@ -793,16 +793,17 @@ impl<T: Frontend> App<T> {
                             })
                             .map(FlexLayoutComponent::Text),
                         StatusLineComponent::CurrentFileParentFolder => {
-                            self.get_current_file_path().and_then(|path| {
-                                Some(FlexLayoutComponent::Text({
-                                    let path = path.parent().ok()??;
+                            let text = self
+                                .get_current_file_path()
+                                .map(|path| {
                                     path.display_relative_to(
                                         self.context.current_working_directory(),
                                     )
                                     .or_else(|_| path.display_relative_to_home())
                                     .unwrap_or_else(|_| path.display_absolute())
-                                }))
-                            })
+                                })
+                                .unwrap_or_else(|| "[Untitled]".to_string());
+                            Some(FlexLayoutComponent::Text(text))
                         }
                         StatusLineComponent::LspProgress => {
                             Some(FlexLayoutComponent::Text(self.context.lsp_progress()))

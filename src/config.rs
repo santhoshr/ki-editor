@@ -100,9 +100,9 @@ pub struct RawConfig {
     #[serde(default)]
     jhlk_np_rl_inverse: bool,
     #[serde(default)]
-    empty_hud: Option<String>,
+    min_hud: Option<String>,
     #[serde(default)]
-    allow_hud: Option<String>,
+    full_hud: Option<String>,
     #[serde(default)]
     modeline: bool,
     #[serde(default = "default_modelines")]
@@ -150,14 +150,14 @@ pub enum HudMenu {
 pub enum HudVisibilityConfig {
     /// Default: All HUDs are displayed normally
     Default,
-    /// empty_hud: "all"
-    EmptyAll,
-    /// allow_hud: "all"
-    AllowAll,
-    /// empty_hud: specific menus
-    Empty(HashSet<HudMenu>),
-    /// allow_hud: specific menus allowed, rest empty
-    Allow(HashSet<HudMenu>),
+    /// min_hud: "all"
+    MinAll,
+    /// full_hud: "all"
+    FullAll,
+    /// min_hud: specific menus
+    Min(HashSet<HudMenu>),
+    /// full_hud: specific menus full, rest min
+    Full(HashSet<HudMenu>),
 }
 
 pub fn parse_hud_menus(s: &str) -> HashSet<HudMenu> {
@@ -612,26 +612,26 @@ impl TryFrom<RawConfig> for AppConfig {
         };
         load_errors.extend(collision_errors);
 
-        let hud_visibility = match (value.empty_hud.as_deref(), value.allow_hud.as_deref()) {
+        let hud_visibility = match (value.min_hud.as_deref(), value.full_hud.as_deref()) {
             (Some(_), Some(_)) => {
                 load_errors.push(
-                    "Both 'empty_hud' and 'allow_hud' are specified in config; both settings will be ignored."
+                    "Both 'min_hud' and 'full_hud' are specified in config; both settings will be ignored."
                         .to_string(),
                 );
                 HudVisibilityConfig::Default
             }
-            (Some(empty), None) => {
-                if empty.trim().eq_ignore_ascii_case("all") {
-                    HudVisibilityConfig::EmptyAll
+            (Some(min), None) => {
+                if min.trim().eq_ignore_ascii_case("all") {
+                    HudVisibilityConfig::MinAll
                 } else {
-                    HudVisibilityConfig::Empty(parse_hud_menus(empty))
+                    HudVisibilityConfig::Min(parse_hud_menus(min))
                 }
             }
-            (None, Some(allow)) => {
-                if allow.trim().eq_ignore_ascii_case("all") {
-                    HudVisibilityConfig::AllowAll
+            (None, Some(full)) => {
+                if full.trim().eq_ignore_ascii_case("all") {
+                    HudVisibilityConfig::FullAll
                 } else {
-                    HudVisibilityConfig::Allow(parse_hud_menus(allow))
+                    HudVisibilityConfig::Full(parse_hud_menus(full))
                 }
             }
             (None, None) => HudVisibilityConfig::Default,
@@ -1056,19 +1056,19 @@ impl AppConfig {
         &self.hud_visibility
     }
 
-    pub fn is_empty_hud(&self, title: &str) -> bool {
+    pub fn is_min_hud(&self, title: &str) -> bool {
         match &self.hud_visibility {
             HudVisibilityConfig::Default => false,
-            HudVisibilityConfig::EmptyAll => true,
-            HudVisibilityConfig::AllowAll => false,
-            HudVisibilityConfig::Empty(set) => {
+            HudVisibilityConfig::MinAll => true,
+            HudVisibilityConfig::FullAll => false,
+            HudVisibilityConfig::Min(set) => {
                 if let Some(menu) = menu_for_title(title) {
                     set.contains(&menu)
                 } else {
                     false
                 }
             }
-            HudVisibilityConfig::Allow(set) => {
+            HudVisibilityConfig::Full(set) => {
                 if let Some(menu) = menu_for_title(title) {
                     !set.contains(&menu)
                 } else {

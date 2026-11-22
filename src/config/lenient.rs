@@ -155,8 +155,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         extract_field!(hjkl_up_action, "hjkl_up_action");
     let (jhlk_np_rl_inverse, jhlk_np_rl_inverse_error) =
         extract_field!(jhlk_np_rl_inverse, "jhlk_np_rl_inverse");
-    let (empty_hud, empty_hud_error) = extract_field!(empty_hud, "empty_hud");
-    let (allow_hud, allow_hud_error) = extract_field!(allow_hud, "allow_hud");
+    let (min_hud, min_hud_error) = extract_field!(min_hud, "min_hud");
+    let (full_hud, full_hud_error) = extract_field!(full_hud, "full_hud");
     let (modeline, modeline_error) = extract_field!(modeline, "modeline");
     let (modelines, modelines_error) = extract_field!(modelines, "modelines");
 
@@ -185,8 +185,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         hjkl_io_action,
         hjkl_up_action,
         jhlk_np_rl_inverse,
-        empty_hud,
-        allow_hud,
+        min_hud,
+        full_hud,
         modeline,
         modelines,
     };
@@ -216,8 +216,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(hjkl_io_action_error)
         .chain(hjkl_up_action_error)
         .chain(jhlk_np_rl_inverse_error)
-        .chain(empty_hud_error)
-        .chain(allow_hud_error)
+        .chain(min_hud_error)
+        .chain(full_hud_error)
         .chain(modeline_error)
         .chain(modelines_error)
         .collect();

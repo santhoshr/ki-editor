@@ -527,13 +527,13 @@ pub fn space_keymap_legend_config(editor: &Editor, context: &Context) -> KeymapL
                 ),
                 Keybinding::new_undocumented(
                     key!("?"),
-                    "Toggle Empty HUD",
-                    Dispatch::ToggleEmptyHud,
+                    "Toggle HUD",
+                    Dispatch::ToggleMinHud,
                 ),
                 Keybinding::new_undocumented(
                     key!("shift+/"),
-                    "Toggle Empty HUD",
-                    Dispatch::ToggleEmptyHud,
+                    "Toggle HUD",
+                    Dispatch::ToggleMinHud,
                 ),
                 Keybinding::new_undocumented(
                     key!("T"),
@@ -1248,13 +1248,13 @@ pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
         ),
         Keybinding::new_undocumented(
             key!("?"),
-            "Toggle Empty HUD",
-            Dispatch::ToggleEmptyHud,
+            "Toggle HUD",
+            Dispatch::ToggleMinHud,
         ),
         Keybinding::new_undocumented(
             key!("shift+/"),
-            "Toggle Empty HUD",
-            Dispatch::ToggleEmptyHud,
+            "Toggle HUD",
+            Dispatch::ToggleMinHud,
         ),
         Keybinding::new_undocumented(
             key!("T"),

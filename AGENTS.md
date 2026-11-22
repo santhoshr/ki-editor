@@ -1814,35 +1814,6 @@ Verified compilation via `cargo build`.
 **Response:**
 Explained architectural differences between old preview buffer retention vs explicit cleanup. Staged and committed changes for auto-closing unused system-generated Untitled buffers.
 
-### Request 250
-> "how cut and Change X different?"
-> "where can we move Change X / G I have plans for G"
-> "lets map C to Change X; duplicate Open menu, Open No Insert, add config, default_open_menu: "insert"/"noinsert", based on this config, maps g to insert or no insert; and G to no insert or insert; also g or G should swap between insert/noinsert on space tap like buffer/mark menus; make noinsert default; no functionality changes only key mapping, on noinsert instead of insert at the end of operation it will stay in normal mode;"
-**Response:**
-1. Re-mapped `Change X` (`Dispatch::ToEditor(ChangeCut)`) from `G` to `C` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1126).
-2. Added `default_open_menu` config (`"insert"` or `"noinsert"`, defaulting to `"noinsert"`) with `DefaultOpenMenu` enum across [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs), [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs), [`src/config_default.json`](file:///home/santh/Developer/ki-editor/src/config_default.json), and [`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs).
-3. Created duplicated `open_no_insert_keymap()` and `open_no_insert_keymap_legend_config()` ("≡ Open No Insert") in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs) dispatching `OpenNoInsert` and `OpenVerticallyNoInsert`.
-4. In [`src/components/editor/mod.rs`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs), updated `open` and `open_vertically` with an `insert: bool` flag and added `OpenNoInsert` and `OpenVerticallyNoInsert` to `DispatchEditor` and `RepeatableEdit`. When `insert` is false, the open edit is performed and the editor remains in Normal mode without entering Insert mode.
-5. In `keymap_actions_overridable` ([`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs)), bound both `g` and `G` using `Dispatch::ShowJointMomentaryLayer` with `swap_key: key!("space")`:
-   - If `default_open_menu == NoInsert`: `g` defaults to `≡ Open No Insert` and `G` defaults to `≡ Open`. Tapping space while holding either key swaps between No Insert and Insert.
-   - If `default_open_menu == Insert`: `g` defaults to `≡ Open` and `G` defaults to `≡ Open No Insert`. Tapping space swaps between them.
-   - Both `g` and `G` execute `Change` on tap.
-6. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
-7. Verified compilation via `cargo build`.
-
-### Request 251
-> "let us keep G as it is 'Change X', no need of C mapping; other than that all other changes are fine, g to switch between insert/noinsert"
-**Response:**
-1. Retained `G` strictly as `Change X` (`Dispatch::ToEditor(ChangeCut)`) and removed the `C` mapping in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs).
-2. Bound Normal mode `g` as the joint momentary layer swapping between `≡ Open No Insert` and `≡ Open` on <kbd>Space</kbd> tap (starting according to `default_open_menu`, default `"noinsert"`).
-3. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
-4. Verified compilation via `cargo build`.
-
-### Request 252
-> "commit it"
-**Response:**
-Staged all changes and committed as `feat(keymap): add Open No Insert menu and space-swapping on g, default_open_menu config`.
-
 ---
 
 ## 2. Agent Required Context & Architecture Guide
@@ -2084,8 +2055,92 @@ Prepared fixup commit targeting `2c059d2`. Followed up by user requesting a regu
 **Response:**
 Committed changes as a regular commit on top of HEAD (`feat(hud): add HUD toggle support for Quick-marks (Q) and Bookmark (K)`).
 
+### Request 278
+> "how cut and Change X different?"
+> "where can we move Change X / G I have plans for G"
+> "lets map C to Change X; duplicate Open menu, Open No Insert, add config, default_open_menu: "insert"/"noinsert", based on this config, maps g to insert or no insert; and G to no insert or insert; also g or G should swap between insert/noinsert on space tap like buffer/mark menus; make noinsert default; no functionality changes only key mapping, on noinsert instead of insert at the end of operation it will stay in normal mode;"
+**Response:**
+1. Re-mapped `Change X` (`Dispatch::ToEditor(ChangeCut)`) from `G` to `C` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1126).
+2. Added `default_open_menu` config (`"insert"` or `"noinsert"`, defaulting to `"noinsert"`) with `DefaultOpenMenu` enum across [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs), [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs), [`src/config_default.json`](file:///home/santh/Developer/ki-editor/src/config_default.json), and [`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs).
+3. Created duplicated `open_no_insert_keymap()` and `open_no_insert_keymap_legend_config()` ("≡ Open No Insert") in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs) dispatching `OpenNoInsert` and `OpenVerticallyNoInsert`.
+4. In [`src/components/editor/mod.rs`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs), updated `open` and `open_vertically` with an `insert: bool` flag and added `OpenNoInsert` and `OpenVerticallyNoInsert` to `DispatchEditor` and `RepeatableEdit`. When `insert` is false, the open edit is performed and the editor remains in Normal mode without entering Insert mode.
+5. In `keymap_actions_overridable` ([`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs)), bound both `g` and `G` using `Dispatch::ShowJointMomentaryLayer` with `swap_key: key!("space")`:
+   - If `default_open_menu == NoInsert`: `g` defaults to `≡ Open No Insert` and `G` defaults to `≡ Open`. Tapping space while holding either key swaps between No Insert and Insert.
+   - If `default_open_menu == Insert`: `g` defaults to `≡ Open` and `G` defaults to `≡ Open No Insert`. Tapping space swaps between them.
+   - Both `g` and `G` execute `Change` on tap.
+6. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
+7. Verified compilation via `cargo build`.
 
+### Request 279
+> "let us keep G as it is 'Change X', no need of C mapping; other than that all other changes are fine, g to switch between insert/noinsert"
+**Response:**
+1. Retained `G` strictly as `Change X` (`Dispatch::ToEditor(ChangeCut)`) and removed the `C` mapping in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs).
+2. Bound Normal mode `g` as the joint momentary layer swapping between `≡ Open No Insert` and `≡ Open` on <kbd>Space</kbd> tap (starting according to `default_open_menu`, default `"noinsert"`).
+3. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
+4. Verified compilation via `cargo build`.
 
+### Request 280
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(keymap): add Open No Insert menu and space-swapping on g, default_open_menu config`.
+
+### Request 281
+> "change empty_hud config text to min_hud, allow_hud to full_hud; let us make ? (shift+/) to toggle all HUDs; now only in Space HUD I can toggle hud with ?; make it available for all HUDs; pressing ? should reset to "all" huds for current session if min_hud is configured then it should make "all" to full, if full_hud is configured then "all" to min"
+**Response:**
+1. Renamed configuration keys `empty_hud` &rarr; `min_hud` and `allow_hud` &rarr; `full_hud` in [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs), [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs), and [`src/config_default.json`](file:///home/santh/Developer/ki-editor/src/config_default.json), keeping `empty_hud` and `allow_hud` as backward-compatible aliases.
+2. Updated `HudVisibilityConfig` enum variants to `MinAll`, `FullAll`, `Min(HashSet<HudMenu>)`, `Full(HashSet<HudMenu>)`, and added `is_min_hud(&self, title: &str) -> bool`.
+3. Updated session HUD toggle logic in `Context::toggle_session_min_hud_all` ([`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs)):
+   - If resetting session HUDs (i.e. `session_min_hud_all` is `None`):
+     - If `min_hud` is configured (`MinAll` or `Min(_)`), sets all HUDs to full (`is_min = false`).
+     - If `full_hud` is configured (`FullAll` or `Full(_)`) or default, sets all HUDs to min (`is_min = true`).
+   - Subsequent presses toggle between min and full across all HUDs.
+4. Universal HUD toggle via `?` / `shift+/`:
+   - Intercepted `?` and `shift+/` (both original and translated) in [`src/keymap_override/menu.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/menu.rs), [`src/keymap_override/momentary_layer/mod.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/momentary_layer/mod.rs), and [`src/keymap_override/bookmark.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/bookmark.rs) to dispatch `Dispatch::ToggleEmptyHud`.
+   - Updated HUD legend action label from "Toggle Empty HUD" to "Toggle HUD" in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs).
+5. Documented `min_hud`, `full_hud`, and universal `?` toggle in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html).
+6. Verified compilation via `cargo build`.
+
+### Request 282
+> "I have full hud configured for bSQK, so opening F transform shows min hud, no when I want it to appear full size, pressing shift+/ doesn't change it I have to press it twice; I think the behaviour might be right, probably we should make toggle based on current HUD state; but applies to "all""
+**Response:**
+1. Added `fn as_any(&self) -> &dyn Any;` to `AnyComponent` in [`src/components/component.rs`](file:///home/santh/Developer/ki-editor/src/components/component.rs) to support immutable downcasting on `Component` trait objects.
+2. Updated `App::toggle_empty_hud` in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs):
+   - Queries the currently active `KeymapLegend` via `self.layout.get_component_by_kind(ComponentKind::KeymapLegend)`.
+   - Checks `legend.is_empty_hud(&self.context)` to detect whether the active HUD on screen is currently min or full.
+   - Inverts that active HUD state and updates `self.context.session_min_hud_all` so the opposite state applies universally to "all" HUDs for the rest of the session.
+3. Added `toggle_session_min_hud_all_with_current` and `set_session_min_hud_all` in [`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs) to synchronize session state based on the current HUD's state.
+4. Verified compilation via `cargo build`.
+
+### Request 283
+> "also rename empty_hud to min_hud and allow_hud to full_hud in code as well"
+**Response:**
+1. Renamed `Dispatch::ToggleEmptyHud` to `Dispatch::ToggleMinHud` in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs), [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs), and keymap overrides ([`src/keymap_override/menu.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/menu.rs), [`src/keymap_override/momentary_layer/mod.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/momentary_layer/mod.rs), [`src/keymap_override/bookmark.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/bookmark.rs)).
+2. Renamed handler `App::toggle_empty_hud` &rarr; `App::toggle_min_hud` in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs).
+3. Renamed `KeymapLegend::is_empty_hud` &rarr; `KeymapLegend::is_min_hud` in [`src/components/keymap_legend.rs`](file:///home/santh/Developer/ki-editor/src/components/keymap_legend.rs).
+4. Removed deprecated `is_empty_hud`, `session_empty_hud_all`, and `toggle_session_empty_hud_all` across [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs) and [`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs).
+5. Verified compilation via `cargo build`.
+
+### Request 284
+> "do this for allow_hud no need for duplicate alias keep full_hud not allow_hud"
+**Response:**
+1. Removed `allow_hud` alias completely from `RawConfig` in [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs) and lenient extraction in [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs), retaining solely `full_hud`.
+2. Removed `allow_hud` from config warning check in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs).
+3. Removed `allow_hud` mention in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html).
+4. Verified compilation via `cargo build`.
+
+### Request 285
+> "also remove empty_hud alias/reference"
+**Response:**
+1. Removed `#[serde(alias = "empty_hud")]` from `min_hud` in [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs).
+2. Simplified lenient extraction in [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs) to use `extract_field!(min_hud, "min_hud")` directly without alias fallback.
+3. Removed `empty_hud` from config warning filter in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs).
+4. Removed `empty_hud` alias mention from [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html).
+5. Verified compilation via `cargo build`.
+
+### Request 286
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(hud): rename empty_hud/allow_hud to min_hud/full_hud and add universal HUD toggle (?)`.
 
 
 

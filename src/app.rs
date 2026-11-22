@@ -11,7 +11,7 @@ use crate::{
         editor_keymap::KeyboardLayout,
         editor_keymap_printer::KeymapDisplayOption,
         file_explorer::FileExplorer,
-        keymap_legend::{Keybinding, Keymap, KeymapLegendConfig, OnTap, ReleaseKey},
+        keymap_legend::{Keybinding, Keymap, KeymapLegend, KeymapLegendConfig, OnTap, ReleaseKey},
         prompt::{
             Prompt, PromptConfig, PromptHistoryKey, PromptItems, PromptItemsBackgroundTask,
             PromptOnChangeDispatch, PromptOnEnter,
@@ -360,8 +360,8 @@ impl<T: Frontend> App<T> {
 
         for error in AppConfig::singleton().load_errors() {
             if error.contains("bookmark_menu_invocation")
-                || error.contains("empty_hud")
-                || error.contains("allow_hud")
+                || error.contains("min_hud")
+                || error.contains("full_hud")
             {
                 self.show_global_info(Info::new("Config Warning".to_string(), error.clone()));
             }
@@ -1507,7 +1507,7 @@ impl<T: Frontend> App<T> {
                 }
             }
             Dispatch::CycleMarkedFile(movement) => self.cycle_marked_file(movement)?,
-            Dispatch::ToggleEmptyHud => self.toggle_empty_hud()?,
+            Dispatch::ToggleMinHud => self.toggle_min_hud()?,
             Dispatch::GotoLocalMark(movement) => self.goto_local_mark(movement)?,
             Dispatch::GotoGlobalMark(direction) => self.goto_global_mark(direction)?,
             Dispatch::OpenBookmarkMenu => self.open_bookmark_menu()?,
@@ -3412,8 +3412,20 @@ impl<T: Frontend> App<T> {
         Ok(())
     }
 
-    fn toggle_empty_hud(&mut self) -> anyhow::Result<()> {
-        let _ = self.context.toggle_session_empty_hud_all();
+    fn toggle_min_hud(&mut self) -> anyhow::Result<()> {
+        let current_hud_is_min = self
+            .layout
+            .get_component_by_kind(ComponentKind::KeymapLegend)
+            .and_then(|c| {
+                let borrowed = c.borrow();
+                borrowed
+                    .as_any()
+                    .downcast_ref::<KeymapLegend>()
+                    .map(|legend| legend.is_min_hud(&self.context))
+            });
+        let _ = self
+            .context
+            .toggle_session_min_hud_all_with_current(current_hud_is_min);
         self.layout.recalculate_layout(&self.context);
         Ok(())
     }
@@ -5917,7 +5929,7 @@ pub enum Dispatch {
         landing_action: crate::keymap_override::jump::JumpLandingAction,
     },
     CloseAppKeymapLegend,
-    ToggleEmptyHud,
+    ToggleMinHud,
     CycleMarkedFile(Movement),
     GotoLocalMark(Movement),
     GotoGlobalMark(Direction),

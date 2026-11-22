@@ -54,6 +54,14 @@ impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
         if key_event.original == key!("esc") {
             return Ok(self.close_dispatches());
         }
+        if key_event.original == key!("?")
+            || key_event.original == key!("shift+/")
+            || key_event.translated == key!("?")
+            || key_event.translated == key!("shift+/")
+        {
+            self.other_keys_pressed = true;
+            return Ok(Dispatches::one(Dispatch::ToggleMinHud));
+        }
         let (key_press, dispatches) = self.base.inner().handle_press(key_event)?;
         if key_press || !dispatches.is_empty() {
             self.other_keys_pressed |= key_press;

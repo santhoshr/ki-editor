@@ -344,16 +344,16 @@ impl KeymapLegend {
         }
     }
 
-    pub fn is_empty_hud(&self, context: &Context) -> bool {
-        if let Some(session_empty) = context.session_empty_hud_all() {
-            session_empty
+    pub fn is_min_hud(&self, context: &Context) -> bool {
+        if let Some(session_min) = context.session_min_hud_all() {
+            session_min
         } else {
-            AppConfig::singleton().is_empty_hud(&self.config.title)
+            AppConfig::singleton().is_min_hud(&self.config.title)
         }
     }
 
     fn refresh(&mut self, width: usize, context: &Context) {
-        if self.is_empty_hud(context) {
+        if self.is_min_hud(context) {
             let _ = self
                 .editor_mut()
                 .set_content("", context)
@@ -479,7 +479,7 @@ impl Component for KeymapLegend {
             )
             .lines()
             .count();
-        if self.is_empty_hud(context) {
+        if self.is_min_hud(context) {
             return Some(title_lines.max(1));
         }
         let content = self.display(width, self.keyboard_layout(context).as_ref());

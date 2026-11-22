@@ -212,10 +212,14 @@ pub trait Component: Any + AnyComponent {
 
 /// Modified from https://github.com/helix-editor/helix/blob/91da0dc172dde1a972be7708188a134db70562c3/helix-term/src/compositor.rs#L212
 pub trait AnyComponent {
+    fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: Component> AnyComponent for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }

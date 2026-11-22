@@ -57,6 +57,14 @@ impl KeymapOverrideTrait for BookmarkKeymapOverride {
             return Ok(close_dispatches);
         }
 
+        if key_event.original == key!("?")
+            || key_event.original == key!("shift+/")
+            || key_event.translated == key!("?")
+            || key_event.translated == key!("shift+/")
+        {
+            return Ok(Dispatches::one(Dispatch::ToggleMinHud));
+        }
+
         if self.is_quick_marks {
             if key_event.original == key!("tab") || key_event.translated == key!("tab") {
                 return Ok(close_dispatches.chain(Dispatches::one(Dispatch::OpenQuickMarksFilesPicker)));

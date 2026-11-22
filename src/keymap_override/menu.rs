@@ -28,6 +28,14 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
             return Ok(close_dispatches);
         }
 
+        if key_event.original == key!("?")
+            || key_event.original == key!("shift+/")
+            || key_event.translated == key!("?")
+            || key_event.translated == key!("shift+/")
+        {
+            return Ok(Dispatches::one(Dispatch::ToggleMinHud));
+        }
+
         let binding = if crate::components::keymap_legend::is_literal_keymap(&self.config.title) {
             self.config.keymap.get_original(&key_event)
         } else {
@@ -39,7 +47,7 @@ impl KeymapOverrideTrait for MenuKeymapOverride {
 
         if let Some(binding) = binding {
             let dispatches = binding.get_dispatches();
-            if dispatches.contains(&Dispatch::ToggleEmptyHud) {
+            if dispatches.contains(&Dispatch::ToggleMinHud) {
                 return Ok(dispatches);
             }
             return Ok(close_dispatches.chain(dispatches));

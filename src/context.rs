@@ -75,7 +75,7 @@ pub struct Context {
     filetree_open_with_path: bool,
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
-    session_empty_hud_all: Option<bool>,
+    session_min_hud_all: Option<bool>,
     modeline: bool,
     modelines: usize,
 
@@ -539,7 +539,7 @@ impl Context {
             filetree_open_with_path: app_config.filetree_open_with_path(),
             navigation_keys: app_config.navigation_keys(),
             hjkl_config: app_config.hjkl_config(),
-            session_empty_hud_all: None,
+            session_min_hud_all: None,
             modeline: app_config.modeline(),
             modelines: app_config.modelines(),
             last_repeatable_edit: std::cell::RefCell::new(None),
@@ -779,23 +779,43 @@ impl Context {
         self.modelines
     }
 
-    pub fn session_empty_hud_all(&self) -> Option<bool> {
-        self.session_empty_hud_all
+    pub fn session_min_hud_all(&self) -> Option<bool> {
+        self.session_min_hud_all
     }
 
-    pub fn toggle_session_empty_hud_all(&mut self) -> bool {
-        let currently_empty = match self.session_empty_hud_all {
-            Some(empty) => empty,
-            None => {
-                let app_config = crate::config::AppConfig::singleton();
-                app_config.is_empty_hud("Space")
-                    || app_config.is_empty_hud("Command")
-                    || app_config.hud_visibility() == &crate::config::HudVisibilityConfig::EmptyAll
-            }
+    pub fn set_session_min_hud_all(&mut self, is_min: bool) {
+        self.session_min_hud_all = Some(is_min);
+    }
+
+    pub fn toggle_session_min_hud_all(&mut self) -> bool {
+        self.toggle_session_min_hud_all_with_current(None)
+    }
+
+    pub fn toggle_session_min_hud_all_with_current(&mut self, current_is_min: Option<bool>) -> bool {
+        let new_min = match current_is_min {
+            Some(is_min) => !is_min,
+            None => match self.session_min_hud_all {
+                Some(is_min) => !is_min,
+                None => {
+                    let app_config = crate::config::AppConfig::singleton();
+                    match app_config.hud_visibility() {
+                        crate::config::HudVisibilityConfig::MinAll
+                        | crate::config::HudVisibilityConfig::Min(_) => {
+                            // if min_hud is configured, make "all" to full (is_min = false)
+                            false
+                        }
+                        crate::config::HudVisibilityConfig::FullAll
+                        | crate::config::HudVisibilityConfig::Full(_)
+                        | crate::config::HudVisibilityConfig::Default => {
+                            // if full_hud is configured (or default), make "all" to min (is_min = true)
+                            true
+                        }
+                    }
+                }
+            },
         };
-        let new_empty = !currently_empty;
-        self.session_empty_hud_all = Some(new_empty);
-        new_empty
+        self.session_min_hud_all = Some(new_min);
+        new_min
     }
 
     pub fn set_keyboard_layout(&mut self, mut keyboard_layout: KeyboardLayout) {

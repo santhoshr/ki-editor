@@ -43,6 +43,7 @@ use crate::{
     surround::EnclosureKind,
     transformation::{MyRegex, Transformation},
 };
+pub mod number;
 use crossterm::event::{MouseButton, MouseEventKind};
 use event::{KeyEvent, KeyEventKind};
 use itertools::{Either, Itertools};
@@ -117,6 +118,7 @@ pub enum RepeatableEdit {
     OpenWithGapNoInsert(GetGapMovement),
     JoinSelection,
     BreakSelection,
+    ChangeNumber(i64),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -273,6 +275,7 @@ impl Component for Editor {
             AlignViewBottom => self.align_selection_to_bottom(context),
             #[cfg(test)]
             AlignViewCenter => self.align_selection_to_center(context),
+            ChangeNumber(delta) => return self.change_number(delta, context),
             Transform(transformation) => {
                 self.record_repeatable_edit(context, RepeatableEdit::Transform(transformation.clone()));
                 return self.transform_selection(transformation, context);
@@ -961,6 +964,7 @@ impl Editor {
             }
             RepeatableEdit::JoinSelection => self.join_selection(context),
             RepeatableEdit::BreakSelection => self.break_selection(context),
+            RepeatableEdit::ChangeNumber(delta) => self.change_number(delta, context),
         }
     }
 
@@ -3313,6 +3317,10 @@ impl Editor {
         self.apply_edit_transaction(edit_transaction, context)
     }
 
+    pub fn keymap_override(&self) -> Option<&EditorKeymapOverride> {
+        self.keymap_override.as_ref()
+    }
+
     pub fn buffer(&self) -> Ref<'_, Buffer> {
         self.buffer.borrow()
     }
@@ -3623,6 +3631,27 @@ impl Editor {
                 .try_collect()?,
         );
         self.apply_edit_transaction(edit_transaction, context)
+    }
+
+    pub fn change_number(
+        &mut self,
+        delta: i64,
+        context: &Context,
+    ) -> anyhow::Result<Dispatches> {
+        let (any_changed, action_groups) = number::change_numbers(
+            self.buffer().rope(),
+            self.selection_set.selections().iter(),
+            &self.cursor_direction,
+            delta,
+        );
+
+        if any_changed {
+            self.record_repeatable_edit(context, RepeatableEdit::ChangeNumber(delta));
+            let edit_transaction = EditTransaction::from_action_groups(action_groups);
+            self.apply_edit_transaction(edit_transaction, context)
+        } else {
+            Ok(Dispatches::default())
+        }
     }
 
     pub fn display_mode(&self) -> String {
@@ -5667,6 +5696,7 @@ pub enum ViewAlignment {
 #[derive(Clone, Debug, PartialEq, NamedVariant)]
 pub enum DispatchEditor {
     Surround(String, String),
+    ChangeNumber(i64),
     #[cfg(test)]
     SetScrollOffset(usize),
     ShowJumps {

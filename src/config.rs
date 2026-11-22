@@ -144,6 +144,8 @@ pub enum HudMenu {
     DeleteEat,   // 'd', 'e'
     QuickMarks,  // 'Q'
     Bookmark,    // 'K'
+    Increment,   // 'a'
+    Decrement,   // 'A', 'X'
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -215,6 +217,12 @@ pub fn parse_hud_menus(s: &str) -> HashSet<HudMenu> {
             'K' | 'k' => {
                 set.insert(HudMenu::Bookmark);
             }
+            'a' => {
+                set.insert(HudMenu::Increment);
+            }
+            'A' | 'X' => {
+                set.insert(HudMenu::Decrement);
+            }
             _ => {}
         }
     }
@@ -274,6 +282,10 @@ pub fn menu_for_title(title: &str) -> Option<HudMenu> {
         || title.contains("Eat")
     {
         Some(HudMenu::DeleteEat)
+    } else if title == "≡ Increment" || title.contains("Increment") {
+        Some(HudMenu::Increment)
+    } else if title == "≡ Decrement" || title.contains("Decrement") {
+        Some(HudMenu::Decrement)
     } else {
         None
     }
@@ -1620,5 +1632,16 @@ mod test_config {
             super::menu_for_title("≡ Bookmark > a  (⌫ Back, ⇥ Filter)"),
             Some(super::HudMenu::Bookmark)
         );
+        assert_eq!(
+            super::menu_for_title("≡ Increment"),
+            Some(super::HudMenu::Increment)
+        );
+        assert_eq!(
+            super::menu_for_title("≡ Decrement"),
+            Some(super::HudMenu::Decrement)
+        );
+        let inc_dec = super::parse_hud_menus("aA");
+        assert!(inc_dec.contains(&super::HudMenu::Increment));
+        assert!(inc_dec.contains(&super::HudMenu::Decrement));
     }
 }

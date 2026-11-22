@@ -1236,6 +1236,24 @@ pub fn keymap_core_movements(prior_change: Option<PriorChange>) -> Vec<Keybindin
 
 pub fn command_keymap(editor: &Editor, context: &Context) -> Keymap {
     let mut bindings = vec![
+        Keybinding::momentary_layer(MomentaryLayer {
+            event: key!("a"),
+            name: "≡ Increment".to_string(),
+            config: increment_keymap_legend_config(),
+            on_tap: Some(OnTap::new(
+                "Increment",
+                Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+            )),
+        }),
+        Keybinding::momentary_layer(MomentaryLayer {
+            event: key!("x"),
+            name: "≡ Decrement".to_string(),
+            config: decrement_keymap_legend_config(),
+            on_tap: Some(OnTap::new(
+                "Decrement",
+                Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+            )),
+        }),
         Keybinding::new_undocumented(
             key!("f"),
             "Open File (or CD)",
@@ -2204,6 +2222,130 @@ pub fn paste_keymap() -> Keymap {
         ]
         .as_ref(),
     )
+}
+
+pub fn increment_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Increment".to_string(),
+        keymap: increment_keymap(),
+    }
+}
+
+pub fn increment_keymap() -> Keymap {
+    Keymap::new(&[
+        Keybinding::new_undocumented(
+            key!("i"),
+            "^ +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("up"),
+            "^ +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("k"),
+            "v -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("down"),
+            "v -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("l"),
+            "+1 >>",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("right"),
+            "+1 >>",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("j"),
+            "<< -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("left"),
+            "<< -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("o"),
+            "+1 >",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("u"),
+            "< -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+    ])
+}
+
+pub fn decrement_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Decrement".to_string(),
+        keymap: decrement_keymap(),
+    }
+}
+
+pub fn decrement_keymap() -> Keymap {
+    Keymap::new(&[
+        Keybinding::new_undocumented(
+            key!("i"),
+            "^ -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("up"),
+            "^ -1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("k"),
+            "v +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("down"),
+            "v +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("l"),
+            "-1 >>",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("right"),
+            "-1 >>",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("j"),
+            "<< +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("left"),
+            "<< +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("o"),
+            "-1 >",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(-1)),
+        ),
+        Keybinding::new_undocumented(
+            key!("u"),
+            "< +1",
+            Dispatch::ToEditor(DispatchEditor::ChangeNumber(1)),
+        ),
+    ])
 }
 
 pub fn duplicate_keymap() -> Keymap {

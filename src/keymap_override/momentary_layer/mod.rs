@@ -43,6 +43,8 @@ pub struct MomentaryLayerKeymapOverride {
     base: MomentaryLayerBase,
     release_key: KeyEvent,
     other_keys_pressed: bool,
+    last_action: Option<(crossterm::event::KeyCode, std::time::Instant)>,
+    action_keys: std::collections::HashSet<crossterm::event::KeyCode>,
 }
 
 impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
@@ -65,6 +67,18 @@ impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
         let (key_press, dispatches) = self.base.inner().handle_press(key_event)?;
         if key_press || !dispatches.is_empty() {
             self.other_keys_pressed |= key_press;
+            self.action_keys.insert(key_event.original.code);
+            self.action_keys.insert(key_event.translated.code);
+
+            let now = std::time::Instant::now();
+            if let Some((last_code, last_time)) = self.last_action {
+                if last_code == key_event.original.code || last_code == key_event.translated.code {
+                    if now.duration_since(last_time) < std::time::Duration::from_millis(70) {
+                        return Ok(Dispatches::default());
+                    }
+                }
+            }
+            self.last_action = Some((key_event.original.code, now));
             return Ok(dispatches);
         }
         if key_event.original == key!("space") || key_event.original == key!("enter") {
@@ -107,6 +121,14 @@ impl KeymapOverrideTrait for MomentaryLayerKeymapOverride {
 }
 
 impl MomentaryLayerKeymapOverride {
+    pub fn release_key(&self) -> KeyEvent {
+        self.release_key
+    }
+
+    pub fn action_keys(&self) -> &std::collections::HashSet<crossterm::event::KeyCode> {
+        &self.action_keys
+    }
+
     pub fn new(
         override_scope: KeymapOverrideScope,
         config: KeymapLegendConfig,
@@ -120,6 +142,8 @@ impl MomentaryLayerKeymapOverride {
             }),
             release_key: release_key.key_event(),
             other_keys_pressed: false,
+            last_action: None,
+            action_keys: std::collections::HashSet::new(),
         }
     }
 
@@ -148,6 +172,8 @@ impl MomentaryLayerKeymapOverride {
             }),
             release_key: release_key.key_event(),
             other_keys_pressed: false,
+            last_action: None,
+            action_keys: std::collections::HashSet::new(),
         }
     }
 

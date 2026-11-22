@@ -14,8 +14,8 @@ use crate::{
     },
     context::Context,
     keymap::{
-        buffer_keymap, command_keymap, cut_keymap, delete_keymap, duplicate_keymap, eat_keymap,
-        insert_mode_delete_keymap, keymap_actions, keymap_core_movements, keymap_other_movements,
+        buffer_keymap, command_keymap, cut_keymap, decrement_keymap, delete_keymap, duplicate_keymap,
+        eat_keymap, increment_keymap, insert_mode_delete_keymap, keymap_actions, keymap_core_movements, keymap_other_movements,
         keymap_overridable, keymap_primary_selection_modes, keymap_secondary_selection_modes_init,
         keymap_surround, keymap_transform, keymap_universal, mark_keymap, movement_history_keymap,
         multicursor_menu_keymap, multicursor_momentary_layer_keymap, normal_mode_keymap,
@@ -458,6 +458,8 @@ impl KeymapPrintSections {
                 "Movement History".to_string(),
                 &movement_history_keymap(),
             ),
+            KeymapPrintSection::from_keymap("Increment".to_string(), &increment_keymap()),
+            KeymapPrintSection::from_keymap("Decrement".to_string(), &decrement_keymap()),
         ]
         .to_vec();
 

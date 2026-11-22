@@ -46,7 +46,8 @@ impl Token {
                     KeyEventKind::Press,
                 );
             }
-            match token.0.split('+').collect::<Vec<_>>().split_last() {
+            let token_str = if token.0 == "+" { "plus" } else { &token.0 };
+            match token_str.split('+').collect::<Vec<_>>().split_last() {
                 Some((key, modifiers)) => {
                     let result = Token::parse_key_code(key)?;
                     Ok(new_key_event(
@@ -107,6 +108,7 @@ impl Token {
             "space" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char(' '))),
             "backslash" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char('\\'))),
             "pipe" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char('|'))),
+            "plus" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char('+'))),
             "doublequote" | "\\\"" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char('"'))),
             "quote" | "singlequote" => Ok(ParseKeyCodeResult::from_key_code(KeyCode::Char('\''))),
             _ if s.len() == 1 => {

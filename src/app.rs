@@ -127,6 +127,7 @@ pub struct App<T: Frontend> {
     debounce_lsp_request_completion: Callback<()>,
     pub multibuffer: Option<Multibuffer>,
     last_insert_j_press: Option<std::time::Instant>,
+    momentary_layer_release_cooldown: Option<(std::collections::HashSet<crossterm::event::KeyCode>, std::time::Instant)>,
     auto_hide_global_info: bool,
     last_global_info: Option<Info>,
     last_terminal_title: Option<String>,
@@ -277,6 +278,7 @@ impl<T: Frontend> App<T> {
             file_watcher_input_sender,
             multibuffer: None,
             last_insert_j_press: None,
+            momentary_layer_release_cooldown: None,
             auto_hide_global_info: false,
             last_global_info: None,
             last_terminal_title: None,
@@ -373,10 +375,48 @@ impl<T: Frontend> App<T> {
             recv(self.priority_receiver) -> msg => msg,
             recv(self.receiver) -> msg => msg,
         } {
-            let should_quit = self.process_message(message).unwrap_or_else(|e| {
-                self.show_global_info(Info::new("ERROR".to_string(), e.to_string()));
-                false
-            });
+            let mut messages = std::collections::VecDeque::new();
+            messages.push_back(message);
+            while let Ok(msg) = self.priority_receiver.try_recv() {
+                messages.push_back(msg);
+            }
+
+            if let Some((release_key, action_keys)) = self.active_momentary_layer_info() {
+                let release_code = release_key.code;
+                let has_release = messages.iter().any(|m| match m {
+                    AppMessage::Event(Event::Key(k)) => {
+                        k.kind == KeyEventKind::Release
+                            && match (release_code, k.code) {
+                                (crossterm::event::KeyCode::Char(expected), crossterm::event::KeyCode::Char(actual)) => {
+                                    expected.to_ascii_lowercase() == actual.to_ascii_lowercase()
+                                }
+                                (expected, actual) => expected == actual,
+                            }
+                    }
+                    _ => false,
+                });
+
+                if has_release {
+                    messages.retain(|m| match m {
+                        AppMessage::Event(Event::Key(k)) => {
+                            !(k.kind == KeyEventKind::Press && action_keys.contains(&k.code))
+                        }
+                        _ => true,
+                    });
+                }
+            }
+
+            let mut should_quit = false;
+            while let Some(msg) = messages.pop_front() {
+                should_quit = self.process_message(msg).unwrap_or_else(|e| {
+                    self.show_global_info(Info::new("ERROR".to_string(), e.to_string()));
+                    false
+                });
+
+                if should_quit || self.should_quit() {
+                    break;
+                }
+            }
 
             if should_quit || self.should_quit() {
                 break;
@@ -483,8 +523,61 @@ impl<T: Frontend> App<T> {
         self.layout.components()
     }
 
+    pub fn active_momentary_layer_info(
+        &self,
+    ) -> Option<(KeyEvent, std::collections::HashSet<crossterm::event::KeyCode>)> {
+        if let Some(ref keymap_override) = self.keymap_override {
+            if let Some(momentary) = keymap_override.as_momentary_layer() {
+                return Some((momentary.release_key(), momentary.action_keys().clone()));
+            }
+        }
+        let component = self.current_component();
+        let borrowed = component.borrow();
+        if let Some(keymap_override) = borrowed.editor().keymap_override() {
+            if let Some(momentary) = keymap_override.as_momentary_layer() {
+                return Some((momentary.release_key(), momentary.action_keys().clone()));
+            }
+        }
+        None
+    }
+
+    fn drain_momentary_layer_buffered_keys(&mut self) {
+        let Some((ref protected_keys, _)) = self.momentary_layer_release_cooldown else {
+            return;
+        };
+        let mut preserved = Vec::new();
+        while let Ok(msg) = self.priority_receiver.try_recv() {
+            match msg {
+                AppMessage::Event(Event::Key(key_event)) => {
+                    if protected_keys.contains(&key_event.code) {
+                        continue;
+                    }
+                    preserved.push(AppMessage::Event(Event::Key(key_event)));
+                }
+                other => preserved.push(other),
+            }
+        }
+        for msg in preserved {
+            let _ = self.sender.send(msg);
+        }
+    }
+
     /// Returns true if the app should quit.
     pub fn handle_event(&mut self, mut event: Event) -> anyhow::Result<bool> {
+        if let Event::Key(ref key_event) = event {
+            if key_event.kind == KeyEventKind::Press {
+                if let Some((ref protected_keys, released_at)) = self.momentary_layer_release_cooldown {
+                    if released_at.elapsed() < std::time::Duration::from_millis(150) {
+                        if protected_keys.contains(&key_event.code) {
+                            return Ok(false);
+                        }
+                    } else {
+                        self.momentary_layer_release_cooldown = None;
+                    }
+                }
+            }
+        }
+
         if let Event::Key(ref mut key_event) = event {
             if *key_event == key!("ctrl+g") || *key_event == key!("ctrl+[") {
                 *key_event = key!("esc");
@@ -1466,6 +1559,12 @@ impl<T: Frontend> App<T> {
                 self.layout.close_global_info();
             }
             Dispatch::CloseKeymapLegend => {
+                if let Some((release_key, action_keys)) = self.active_momentary_layer_info() {
+                    let mut protected = action_keys;
+                    protected.insert(release_key.code);
+                    self.momentary_layer_release_cooldown = Some((protected, std::time::Instant::now()));
+                    self.drain_momentary_layer_buffered_keys();
+                }
                 self.handle_dispatch_editor(DispatchEditor::SetKeymapOverride(None))?;
                 self.layout.close_keymap_legend();
             }
@@ -1483,6 +1582,12 @@ impl<T: Frontend> App<T> {
                 })?;
             }
             Dispatch::CloseAppKeymapLegend => {
+                if let Some((release_key, action_keys)) = self.active_momentary_layer_info() {
+                    let mut protected = action_keys;
+                    protected.insert(release_key.code);
+                    self.momentary_layer_release_cooldown = Some((protected, std::time::Instant::now()));
+                    self.drain_momentary_layer_buffered_keys();
+                }
                 self.keymap_override = None;
                 self.layout.close_app_keymap_legend();
             }

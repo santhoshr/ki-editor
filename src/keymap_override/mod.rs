@@ -26,6 +26,14 @@ pub enum AppKeymapOverride {
     MomentaryLayer(MomentaryLayerKeymapOverride),
 }
 
+impl AppKeymapOverride {
+    pub fn as_momentary_layer(&self) -> Option<&MomentaryLayerKeymapOverride> {
+        match self {
+            AppKeymapOverride::MomentaryLayer(momentary) => Some(momentary),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum EditorKeymapOverride {
     Jumps(JumpKeymapOverride),
@@ -33,6 +41,15 @@ pub enum EditorKeymapOverride {
     Menu(MenuKeymapOverride),
     MomentaryLayer(MomentaryLayerKeymapOverride),
     Bookmark(BookmarkKeymapOverride),
+}
+
+impl EditorKeymapOverride {
+    pub fn as_momentary_layer(&self) -> Option<&MomentaryLayerKeymapOverride> {
+        match self {
+            EditorKeymapOverride::MomentaryLayer(momentary) => Some(momentary),
+            _ => None,
+        }
+    }
 }
 
 pub trait KeymapOverrideTrait {

@@ -2142,6 +2142,45 @@ Staged all changes and committed as `feat(keymap): add Open No Insert menu and s
 **Response:**
 Staged all changes and committed as `feat(hud): rename empty_hud/allow_hud to min_hud/full_hud and add universal HUD toggle (?)`.
 
+### Request 287
+> "create c-a/c-x style number increment/decrement; two MoL Increment/Decrement place on Command menu a and x; On tap they increase or decrease number by 1; when holding up/down or next/previous or right/left should increase/decrease if it is a, inverse if it is x decrease/increase; no need for c-o/c-x mapping"
+**Response:**
+1. Implemented number detection and delta replacement in [`src/components/editor/number.rs`](file:///home/santh/Developer/ki-editor/src/components/editor/number.rs) handling decimal (with leading-zero preservation and negative sign support), hex (`0x`/`0X`), and binary (`0b`/`0B`) numbers under or after cursors on the active line, moving selection cursors over the mutated numbers.
+2. Added `DispatchEditor::ChangeNumber(i64)` and repeatable edit support (`.` repeat) in [`src/components/editor/mod.rs`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs).
+3. Created `increment_keymap` and `decrement_keymap` and configured momentary layers on Command menu keys `a` and `x` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs):
+   - On tap: `a` increments number by 1, `x` decrements number by 1.
+   - While holding `a` (`≡ Increment`): `up`, `next`, `right`, `+`, `=`, `a` increase by 1; `down`, `previous`, `left`, `-` decrease by 1.
+   - While holding `x` (`≡ Decrement`): `up`, `next`, `right`, `-`, `x` decrease by 1; `down`, `previous`, `left`, `+`, `=` increase by 1.
+4. Added `Increment` and `Decrement` to `HudMenu` and HUD title mapping in [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs) and registered keymap sections in [`src/components/editor_keymap_printer.rs`](file:///home/santh/Developer/ki-editor/src/components/editor_keymap_printer.rs).
+5. Added `+`/`plus` key parsing support in [`event/src/lib.rs`](file:///home/santh/Developer/ki-editor/event/src/lib.rs) and documented bindings in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html).
+
+### Request 288
+> "remove a and x itself from inc/dec they are hold key only on tap they change"
+**Response:**
+Removed `key!("a")` from `increment_keymap` and `key!("x")` from `decrement_keymap` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs). Keys `a` and `x` now exclusively act as the hold trigger keys for their respective momentary layers and change the number solely when tapped.
+
+### Request 289
+> "also remove + - = don't overdo"
+**Response:**
+Removed `+`, `=`, and `-` keys from `increment_keymap` and `decrement_keymap` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs), keeping strictly the directional and movement keys (Up/Down, Next/Previous, Right/Left). Updated [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html).
+
+### Request 290
+> "the keys gets buffered and keeps inc/dec after hold release add some bounce/protection; this issue is common to all hold+key action, find a solution"
+**Response:**
+1. In [`src/keymap_override/momentary_layer/mod.rs`](file:///home/santh/Developer/ki-editor/src/keymap_override/momentary_layer/mod.rs), added repeat rate throttling (70ms threshold) and tracked `action_keys` across all momentary layers to prevent OS keyboard autorepeat from flooding the input queue.
+2. In [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs), batched queued inputs in `App::run` and added lookahead release detection: when a momentary layer's `Release` event is pending in the queue, obsolete queued `Press` events for its action keys are discarded before processing.
+3. Added post-release bounce protection in [`src/app.rs`](file:///home/santh/Developer/ki-editor/src/app.rs): on layer release, immediately drains pending action keys from `priority_receiver` and drops trailing ghost key repeats within a 150ms window in `handle_event`.
+
+### Request 291
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(editor): add number increment/decrement MoL layers and debounce hold-key buffering`.
+
+
+
+
+
+
 
 
 

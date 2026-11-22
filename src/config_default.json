@@ -43,6 +43,7 @@
     "swap_key": "x",
     "pick_menu_df_swap": true,
     "e_normal_mode": "mark",
+    "default_open_menu": "noinsert",
     "filetree_open_with_path": true,
     "icon_style": "nerd-font",
     "navigation_keys": "hjkl",

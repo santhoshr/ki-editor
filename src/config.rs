@@ -42,6 +42,7 @@ pub struct AppConfig {
     swap_key: SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: ENormalMode,
+    default_open_menu: DefaultOpenMenu,
     filetree_open_with_path: bool,
     icon_config: shared::icons::IconsConfig,
     navigation_keys: NavigationKeys,
@@ -81,6 +82,8 @@ pub struct RawConfig {
     pick_menu_df_swap: bool,
     #[serde(default)]
     e_normal_mode: ENormalMode,
+    #[serde(default)]
+    default_open_menu: DefaultOpenMenu,
     #[serde(default)]
     filetree_open_with_path: bool,
     #[serde(default)]
@@ -340,6 +343,15 @@ pub enum NavigationKeys {
     Hjkl,
     #[serde(rename = "jhlk", alias = "JHLK")]
     Jhlk,
+}
+
+#[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum DefaultOpenMenu {
+    #[default]
+    #[serde(rename = "noinsert", alias = "no_insert", alias = "NoInsert")]
+    NoInsert,
+    #[serde(rename = "insert", alias = "Insert")]
+    Insert,
 }
 
 #[derive(Deserialize, Serialize, JsonSchema, Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -645,6 +657,7 @@ impl TryFrom<RawConfig> for AppConfig {
             swap_key: value.swap_key,
             pick_menu_df_swap: value.pick_menu_df_swap,
             e_normal_mode: value.e_normal_mode,
+            default_open_menu: value.default_open_menu,
             filetree_open_with_path: value.filetree_open_with_path,
             icon_config: shared::icons::build_icon_config(&value.icon_style),
             navigation_keys: value.navigation_keys,
@@ -1017,6 +1030,10 @@ impl AppConfig {
 
     pub fn e_normal_mode(&self) -> ENormalMode {
         self.e_normal_mode
+    }
+
+    pub fn default_open_menu(&self) -> DefaultOpenMenu {
+        self.default_open_menu
     }
 
     pub fn filetree_open_with_path(&self) -> bool {

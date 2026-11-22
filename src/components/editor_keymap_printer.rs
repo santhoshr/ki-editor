@@ -340,6 +340,7 @@ impl KeymapPrintSections {
                     None,
                     context.swap_key(),
                     context.e_normal_mode(),
+                    context.default_open_menu(),
                     context.quick_marks_menu_invocation(),
                     context.bookmark_menu_invocation(),
                 )),
@@ -383,6 +384,7 @@ impl KeymapPrintSections {
                     false,
                     &editor,
                     context.swap_key(),
+                    context.default_open_menu(),
                 )),
             ),
             KeymapPrintSection::from_keymap(
@@ -418,6 +420,7 @@ impl KeymapPrintSections {
                     &file_explorer_normal_mode_override(),
                     true,
                     context.swap_key(),
+                    context.default_open_menu(),
                 )),
             ),
             KeymapPrintSection::from_keymap(

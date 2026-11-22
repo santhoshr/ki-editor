@@ -128,6 +128,8 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
     let (pick_menu_df_swap, pick_menu_df_swap_error) =
         extract_field!(pick_menu_df_swap, "pick_menu_df_swap");
     let (e_normal_mode, e_normal_mode_error) = extract_field!(e_normal_mode, "e_normal_mode");
+    let (default_open_menu, default_open_menu_error) =
+        extract_field!(default_open_menu, "default_open_menu");
     let (filetree_open_with_path, filetree_open_with_path_error) =
         extract_field!(filetree_open_with_path, "filetree_open_with_path");
     let (icon_style, icon_style_error) = extract_field!(icon_style, "icon_style");
@@ -175,6 +177,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         swap_key,
         pick_menu_df_swap,
         e_normal_mode,
+        default_open_menu,
         filetree_open_with_path,
         icon_style,
         navigation_keys,
@@ -205,6 +208,7 @@ pub(super) fn extract_lenient(figment: &figment::Figment) -> Extracted<RawConfig
         .chain(swap_key_error)
         .chain(pick_menu_df_swap_error)
         .chain(e_normal_mode_error)
+        .chain(default_open_menu_error)
         .chain(filetree_open_with_path_error)
         .chain(icon_style_error)
         .chain(navigation_keys_error)

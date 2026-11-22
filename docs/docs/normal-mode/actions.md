@@ -187,11 +187,13 @@ Activates the [≡ Paste](../momentary-layers/paste-mol.mdx).
 
 ### `Change`
 
-Deletes the current selection(s) and enter the Insert mode.
+Deletes the current selection(s) and enter the Insert mode. Triggered on tap of `g`.
 
 ### `Change X`
 
-This is similar to Change, but it copies the deleted text into the clipboard.Like `ctrl+x` in Windows and `cmd+x` in macOS.
+Keybinding: `G` (`Shift+g`)
+
+This is similar to Change, but it copies the deleted text into the clipboard. Like `ctrl+x` in Windows and `cmd+x` in macOS.
 
 ### `Replace`
 

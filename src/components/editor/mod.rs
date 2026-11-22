@@ -112,7 +112,9 @@ pub enum RepeatableEdit {
     DuplicateVertically(Direction),
     Align(Direction),
     OpenVertically { direction: Direction, text: String },
+    OpenVerticallyNoInsert(Direction),
     OpenWithGap { get_gap_movement: GetGapMovement, text: String },
+    OpenWithGapNoInsert(GetGapMovement),
     JoinSelection,
     BreakSelection,
 }
@@ -434,8 +436,10 @@ impl Component for Editor {
             MoveCursorVertically(direction) => {
                 return self.move_cursor_vertically(context, direction)
             }
-            Open(get_gap_movement) => return self.open(context, get_gap_movement),
-            OpenVertically(direction) => return self.open_vertically(context, direction),
+            Open(get_gap_movement) => return self.open(context, get_gap_movement, true),
+            OpenNoInsert(get_gap_movement) => return self.open(context, get_gap_movement, false),
+            OpenVertically(direction) => return self.open_vertically(context, direction, true),
+            OpenVerticallyNoInsert(direction) => return self.open_vertically(context, direction, false),
             GoBack => self.go_back(context),
             GoForward => self.go_forward(context),
             SelectSurround { enclosure, kind } => {
@@ -932,7 +936,7 @@ impl Editor {
             }
             RepeatableEdit::Align(direction) => self.align_selections(direction, context),
             RepeatableEdit::OpenVertically { direction, text } => {
-                let mut dispatches = self.open_vertically(context, direction)?;
+                let mut dispatches = self.open_vertically(context, direction, true)?;
                 if !text.is_empty() {
                     dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
                 }
@@ -940,14 +944,20 @@ impl Editor {
                 self.enter_normal_mode(context)?;
                 Ok(dispatches)
             }
+            RepeatableEdit::OpenVerticallyNoInsert(direction) => {
+                self.open_vertically(context, direction, false)
+            }
             RepeatableEdit::OpenWithGap { get_gap_movement, text } => {
-                let mut dispatches = self.open(context, get_gap_movement)?;
+                let mut dispatches = self.open(context, get_gap_movement, true)?;
                 if !text.is_empty() {
                     dispatches = dispatches.chain(self.insert(&text, context, EditHistoryKind::Coarse)?);
                 }
                 self.insert_origin = None;
                 self.enter_normal_mode(context)?;
                 Ok(dispatches)
+            }
+            RepeatableEdit::OpenWithGapNoInsert(get_gap_movement) => {
+                self.open(context, get_gap_movement, false)
             }
             RepeatableEdit::JoinSelection => self.join_selection(context),
             RepeatableEdit::BreakSelection => self.break_selection(context),
@@ -3390,21 +3400,34 @@ impl Editor {
         &mut self,
         context: &Context,
         direction: Direction,
+        insert: bool,
     ) -> Result<Dispatches, anyhow::Error> {
-        self.insert_origin = Some(InsertOrigin::OpenVertically(direction.clone()));
+        if insert {
+            self.insert_origin = Some(InsertOrigin::OpenVertically(direction.clone()));
+        } else {
+            self.record_repeatable_edit(context, RepeatableEdit::OpenVerticallyNoInsert(direction.clone()));
+        }
         let edit_transaction =
             self.get_paste_vertically_edit_transaction(direction.clone(), |_| "".to_string());
-        Ok(self
-            .apply_edit_transaction(edit_transaction, context)?
-            .append(Dispatch::ToEditor(EnterInsertMode(direction))))
+        let dispatches = self.apply_edit_transaction(edit_transaction, context)?;
+        if insert {
+            Ok(dispatches.append(Dispatch::ToEditor(EnterInsertMode(direction))))
+        } else {
+            Ok(dispatches)
+        }
     }
 
     fn open(
         &mut self,
         context: &Context,
         get_gap_movement: GetGapMovement,
+        insert: bool,
     ) -> Result<Dispatches, anyhow::Error> {
-        self.insert_origin = Some(InsertOrigin::OpenWithGap(get_gap_movement.clone()));
+        if insert {
+            self.insert_origin = Some(InsertOrigin::OpenWithGap(get_gap_movement.clone()));
+        } else {
+            self.record_repeatable_edit(context, RepeatableEdit::OpenWithGapNoInsert(get_gap_movement.clone()));
+        }
         let direction = get_gap_movement.to_direction();
         let edit_transaction = EditTransaction::from_action_groups(
             self.get_selection_set_with_gap(&get_gap_movement, context)?
@@ -3438,9 +3461,12 @@ impl Editor {
                 .collect_vec(),
         );
 
-        Ok(self
-            .apply_edit_transaction(edit_transaction, context)?
-            .append(Dispatch::ToEditor(EnterInsertMode(direction))))
+        let dispatches = self.apply_edit_transaction(edit_transaction, context)?;
+        if insert {
+            Ok(dispatches.append(Dispatch::ToEditor(EnterInsertMode(direction))))
+        } else {
+            Ok(dispatches)
+        }
     }
 
     pub fn apply_positional_edits(
@@ -4656,6 +4682,7 @@ impl Editor {
                 None,
                 context.swap_key(),
                 context.e_normal_mode(),
+                context.default_open_menu(),
                 context.quick_marks_menu_invocation(),
                 context.bookmark_menu_invocation(),
             ),
@@ -5699,7 +5726,9 @@ pub enum DispatchEditor {
         kind: SurroundKind,
     },
     Open(GetGapMovement),
+    OpenNoInsert(GetGapMovement),
     OpenVertically(Direction),
+    OpenVerticallyNoInsert(Direction),
     EnterNormalMode,
     EnterSwapMode,
     CursorAddToAllSelections,

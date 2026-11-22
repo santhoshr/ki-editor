@@ -71,6 +71,7 @@ pub struct Context {
     swap_key: crate::config::SwapKey,
     pick_menu_df_swap: bool,
     e_normal_mode: crate::config::ENormalMode,
+    default_open_menu: crate::config::DefaultOpenMenu,
     filetree_open_with_path: bool,
     navigation_keys: crate::config::NavigationKeys,
     hjkl_config: crate::config::HjklConfig,
@@ -534,6 +535,7 @@ impl Context {
             swap_key: app_config.swap_key(),
             pick_menu_df_swap: app_config.pick_menu_df_swap(),
             e_normal_mode: app_config.e_normal_mode(),
+            default_open_menu: app_config.default_open_menu(),
             filetree_open_with_path: app_config.filetree_open_with_path(),
             navigation_keys: app_config.navigation_keys(),
             hjkl_config: app_config.hjkl_config(),
@@ -645,6 +647,10 @@ impl Context {
 
     pub fn e_normal_mode(&self) -> crate::config::ENormalMode {
         self.e_normal_mode
+    }
+
+    pub fn default_open_menu(&self) -> crate::config::DefaultOpenMenu {
+        self.default_open_menu
     }
 
     pub fn filetree_open_with_path(&self) -> bool {

@@ -1814,6 +1814,35 @@ Verified compilation via `cargo build`.
 **Response:**
 Explained architectural differences between old preview buffer retention vs explicit cleanup. Staged and committed changes for auto-closing unused system-generated Untitled buffers.
 
+### Request 250
+> "how cut and Change X different?"
+> "where can we move Change X / G I have plans for G"
+> "lets map C to Change X; duplicate Open menu, Open No Insert, add config, default_open_menu: "insert"/"noinsert", based on this config, maps g to insert or no insert; and G to no insert or insert; also g or G should swap between insert/noinsert on space tap like buffer/mark menus; make noinsert default; no functionality changes only key mapping, on noinsert instead of insert at the end of operation it will stay in normal mode;"
+**Response:**
+1. Re-mapped `Change X` (`Dispatch::ToEditor(ChangeCut)`) from `G` to `C` in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs#L1126).
+2. Added `default_open_menu` config (`"insert"` or `"noinsert"`, defaulting to `"noinsert"`) with `DefaultOpenMenu` enum across [`src/config.rs`](file:///home/santh/Developer/ki-editor/src/config.rs), [`src/config/lenient.rs`](file:///home/santh/Developer/ki-editor/src/config/lenient.rs), [`src/config_default.json`](file:///home/santh/Developer/ki-editor/src/config_default.json), and [`src/context.rs`](file:///home/santh/Developer/ki-editor/src/context.rs).
+3. Created duplicated `open_no_insert_keymap()` and `open_no_insert_keymap_legend_config()` ("≡ Open No Insert") in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs) dispatching `OpenNoInsert` and `OpenVerticallyNoInsert`.
+4. In [`src/components/editor/mod.rs`](file:///home/santh/Developer/ki-editor/src/components/editor/mod.rs), updated `open` and `open_vertically` with an `insert: bool` flag and added `OpenNoInsert` and `OpenVerticallyNoInsert` to `DispatchEditor` and `RepeatableEdit`. When `insert` is false, the open edit is performed and the editor remains in Normal mode without entering Insert mode.
+5. In `keymap_actions_overridable` ([`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs)), bound both `g` and `G` using `Dispatch::ShowJointMomentaryLayer` with `swap_key: key!("space")`:
+   - If `default_open_menu == NoInsert`: `g` defaults to `≡ Open No Insert` and `G` defaults to `≡ Open`. Tapping space while holding either key swaps between No Insert and Insert.
+   - If `default_open_menu == Insert`: `g` defaults to `≡ Open` and `G` defaults to `≡ Open No Insert`. Tapping space swaps between them.
+   - Both `g` and `G` execute `Change` on tap.
+6. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
+7. Verified compilation via `cargo build`.
+
+### Request 251
+> "let us keep G as it is 'Change X', no need of C mapping; other than that all other changes are fine, g to switch between insert/noinsert"
+**Response:**
+1. Retained `G` strictly as `Change X` (`Dispatch::ToEditor(ChangeCut)`) and removed the `C` mapping in [`src/keymap.rs`](file:///home/santh/Developer/ki-editor/src/keymap.rs).
+2. Bound Normal mode `g` as the joint momentary layer swapping between `≡ Open No Insert` and `≡ Open` on <kbd>Space</kbd> tap (starting according to `default_open_menu`, default `"noinsert"`).
+3. Updated documentation in [`newdoc/index.html`](file:///home/santh/Developer/ki-editor/newdoc/index.html) and [`docs/docs/normal-mode/actions.md`](file:///home/santh/Developer/ki-editor/docs/docs/normal-mode/actions.md).
+4. Verified compilation via `cargo build`.
+
+### Request 252
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(keymap): add Open No Insert menu and space-swapping on g, default_open_menu config`.
+
 ---
 
 ## 2. Agent Required Context & Architecture Guide

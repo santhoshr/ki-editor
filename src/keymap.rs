@@ -1,6 +1,6 @@
 use crate::{
     app::{Dispatch, FilePickerKind, HistoryNavigationMovement, Scope, TabSide},
-    config::{ENormalMode, SwapKey},
+    config::{DefaultOpenMenu, ENormalMode, SwapKey},
     components::{
         editor::{
             Direction, DispatchEditor, Editor, IfCurrentNotFound, Movement, PriorChange, Reveal,
@@ -367,6 +367,7 @@ pub fn normal_mode_keymap_legend_config(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    default_open_menu: DefaultOpenMenu,
     quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
     bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> KeymapLegendConfig {
@@ -379,6 +380,7 @@ pub fn normal_mode_keymap_legend_config(
                 prior_change,
                 swap_key,
                 e_normal_mode,
+                default_open_menu,
                 quick_marks_invocation,
                 bookmark_invocation,
             )
@@ -390,6 +392,7 @@ pub fn normal_mode_keymap_legend_config(
                     editor,
                     swap_key,
                     e_normal_mode,
+                    default_open_menu,
                     quick_marks_invocation,
                     bookmark_invocation,
                 )),
@@ -848,6 +851,7 @@ pub fn extend_mode_keymap_legend_config(
     editor: &Editor,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    default_open_menu: DefaultOpenMenu,
     quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
     bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> KeymapLegendConfig {
@@ -860,6 +864,7 @@ pub fn extend_mode_keymap_legend_config(
                 Some(PriorChange::EnableSelectionExtension),
                 swap_key,
                 e_normal_mode,
+                default_open_menu,
                 quick_marks_invocation,
                 bookmark_invocation,
             )
@@ -879,6 +884,7 @@ pub fn normal_mode_keymap(
     prior_change: Option<PriorChange>,
     swap_key: SwapKey,
     e_normal_mode: ENormalMode,
+    default_open_menu: DefaultOpenMenu,
     quick_marks_invocation: crate::config::QuickMarksMenuInvocation,
     bookmark_invocation: crate::config::BookmarkMenuInvocation,
 ) -> Vec<Keybinding> {
@@ -891,7 +897,7 @@ pub fn normal_mode_keymap(
         .chain(keymap_other_movements(swap_key, e_normal_mode))
         .chain(keymap_primary_selection_modes(editor, prior_change))
         .chain(keymap_secondary_selection_modes_init(editor, prior_change))
-        .chain(keymap_actions(&normal_mode_override, false, editor, swap_key))
+        .chain(keymap_actions(&normal_mode_override, false, editor, swap_key, default_open_menu))
         .chain(keymap_others(quick_marks_invocation, bookmark_invocation))
         .chain(keymap_universal())
         .collect_vec()
@@ -1111,8 +1117,9 @@ pub fn keymap_overridable(
     normal_mode_override: &NormalModeOverride,
     none_if_no_override: bool,
     swap_key: SwapKey,
+    default_open_menu: DefaultOpenMenu,
 ) -> Vec<Keybinding> {
-    keymap_actions_overridable(normal_mode_override, none_if_no_override, swap_key)
+    keymap_actions_overridable(normal_mode_override, none_if_no_override, swap_key, default_open_menu)
         .into_iter()
         .chain(keymap_clipboard_related_actions_overridable(
             normal_mode_override.clone(),
@@ -1721,6 +1728,7 @@ pub fn keymap_actions(
     none_if_no_override: bool,
     editor: &Editor,
     swap_key: SwapKey,
+    default_open_menu: DefaultOpenMenu,
 ) -> Vec<Keybinding> {
     [
         Keybinding::new_undocumented(key!("I"), "Join", Dispatch::ToEditor(JoinSelection)),
@@ -1789,6 +1797,7 @@ pub fn keymap_actions(
         normal_mode_override,
         none_if_no_override,
         swap_key,
+        default_open_menu,
     ))
     .chain(keymap_clipboard_related_actions(
         normal_mode_override.clone(),
@@ -1829,6 +1838,7 @@ pub fn keymap_actions_overridable(
     normal_mode_override: &NormalModeOverride,
     none_if_no_override: bool,
     swap_key: SwapKey,
+    default_open_menu: DefaultOpenMenu,
 ) -> Vec<Keybinding> {
     let (swap_binding, cut_event) = match swap_key {
         SwapKey::Slash => (
@@ -1849,20 +1859,43 @@ pub fn keymap_actions_overridable(
         ),
     };
 
-    [
-        Keybinding::momentary_layer(MomentaryLayer {
-            event: key!("g"),
-            name: "≡ Open".to_string(),
-            config: KeymapLegendConfig {
-                title: "≡ Open".to_string(),
-                keymap: open_keymap(),
-            },
-            on_tap: Some(OnTap::new(
+    let (g_config, g_inactive, g_name) = match default_open_menu {
+        DefaultOpenMenu::NoInsert => (
+            open_no_insert_keymap_legend_config(),
+            open_keymap_legend_config(),
+            "≡ Open No Insert",
+        ),
+        DefaultOpenMenu::Insert => (
+            open_keymap_legend_config(),
+            open_no_insert_keymap_legend_config(),
+            "≡ Open",
+        ),
+    };
+
+    let g_binding = Keybinding::new_undocumented(
+        key!("g"),
+        g_name,
+        Dispatch::ShowJointMomentaryLayer {
+            swap_key: key!("space"),
+            active_config: g_config,
+            release_key: ReleaseKey::new(
+                key!("g"),
+                Some(OnTap::new(
+                    "Change",
+                    Dispatch::ToEditor(DispatchEditor::Change),
+                )),
+            ),
+            inactive_config: g_inactive,
+            inactive_tap: Some(OnTap::new(
                 "Change",
                 Dispatch::ToEditor(DispatchEditor::Change),
             )),
-        })
-        .override_keymap(normal_mode_override.change.as_ref(), none_if_no_override),
+        },
+    )
+    .override_keymap(normal_mode_override.change.as_ref(), none_if_no_override);
+
+    [
+        g_binding,
         Some(swap_binding),
         Keybinding::momentary_layer(MomentaryLayer {
             event: cut_event,
@@ -2537,4 +2570,69 @@ pub fn open_keymap() -> Keymap {
         ])
         .collect_vec(),
     )
+}
+
+pub fn open_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Open".to_string(),
+        keymap: open_keymap(),
+    }
+}
+
+pub fn open_no_insert_keymap() -> Keymap {
+    Keymap::new(
+        &[
+            Keybinding::new_undocumented(
+                key!("j"),
+                "<< Open",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::Left)),
+            ),
+            Keybinding::new_undocumented(
+                key!("l"),
+                "Open >>",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::Right)),
+            ),
+            Keybinding::new_undocumented(
+                key!("u"),
+                "< Open",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::Previous)),
+            ),
+            Keybinding::new_undocumented(
+                key!("o"),
+                "Open >",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::Next)),
+            ),
+            Keybinding::new_undocumented(
+                key!("h"),
+                "< Open",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::BeforeWithoutGap)),
+            ),
+            Keybinding::new_undocumented(
+                key!(";"),
+                "Open >",
+                Dispatch::ToEditor(DispatchEditor::OpenNoInsert(GetGapMovement::AfterWithoutGap)),
+            ),
+        ]
+        .into_iter()
+        .chain([
+            Keybinding::new_undocumented(
+                key!("i"),
+                "Open ^",
+                Dispatch::ToEditor(OpenVerticallyNoInsert(Direction::Start)),
+            ),
+            Keybinding::new_undocumented(
+                key!("k"),
+                "Open v",
+                Dispatch::ToEditor(OpenVerticallyNoInsert(Direction::End)),
+            ),
+        ])
+        .collect_vec(),
+    )
+}
+
+pub fn open_no_insert_keymap_legend_config() -> KeymapLegendConfig {
+    KeymapLegendConfig {
+        title: "≡ Open No Insert".to_string(),
+        keymap: open_no_insert_keymap(),
+    }
 }

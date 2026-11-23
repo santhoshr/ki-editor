@@ -2176,6 +2176,22 @@ Removed `+`, `=`, and `-` keys from `increment_keymap` and `decrement_keymap` in
 **Response:**
 Staged all changes and committed as `feat(editor): add number increment/decrement MoL layers and debounce hold-key buffering`.
 
+### Request 292
+> "shift + / or ? clears loaded config defaults and make HUD toggle global, let us make it momentary, that is only for instance it will toggle, next invocation will default to config values"
+**Response:**
+1. Made HUD toggle (`?` / `shift+/`) momentary and per-instance by tracking `min_hud_override: Option<bool>` directly on `KeymapLegend` rather than setting a session-wide global state on `Context`.
+2. Removed `session_min_hud_all` from `Context` (`src/context.rs`). Configured defaults (`min_hud` / `full_hud` from `AppConfig`) are preserved and never cleared or overwritten.
+3. Every new menu or momentary layer invocation defaults strictly to the user's config values. Pressing `?` or `shift+/` toggles the active HUD between min and full solely for the lifetime of that open HUD instance.
+4. Preserved `min_hud_override` during joint momentary layer space-swapping (`Dispatch::ShowKeymapLegend`) within the same hold.
+5. Verified cleanly via `cargo check` and `cargo build`.
+
+### Request 293
+> "commit it"
+**Response:**
+Staged all changes and committed as `feat(hud): make HUD toggle momentary per-instance and preserve config defaults`.
+
+
+
 
 
 

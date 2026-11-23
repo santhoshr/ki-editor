@@ -20,6 +20,7 @@ pub struct KeymapLegend {
     editor: Editor,
     config: KeymapLegendConfig,
     release_key: Option<ParsedReleaseKey>,
+    min_hud_override: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -329,7 +330,16 @@ impl Keybinding {
 }
 
 impl KeymapLegend {
+    #[cfg(test)]
     pub fn new(config: KeymapLegendConfig, release_key: Option<ReleaseKey>) -> KeymapLegend {
+        Self::new_with_override(config, release_key, None)
+    }
+
+    pub fn new_with_override(
+        config: KeymapLegendConfig,
+        release_key: Option<ReleaseKey>,
+        min_hud_override: Option<bool>,
+    ) -> KeymapLegend {
         let mut editor = Editor::from_text(None, "");
         editor.set_title(config.title.clone());
 
@@ -341,12 +351,22 @@ impl KeymapLegend {
             editor,
             config,
             release_key,
+            min_hud_override,
         }
     }
 
-    pub fn is_min_hud(&self, context: &Context) -> bool {
-        if let Some(session_min) = context.session_min_hud_all() {
-            session_min
+    pub fn min_hud_override(&self) -> Option<bool> {
+        self.min_hud_override
+    }
+
+    pub fn toggle_min_hud(&mut self, context: &Context) {
+        let current_is_min = self.is_min_hud(context);
+        self.min_hud_override = Some(!current_is_min);
+    }
+
+    pub fn is_min_hud(&self, _context: &Context) -> bool {
+        if let Some(override_val) = self.min_hud_override {
+            override_val
         } else {
             AppConfig::singleton().is_min_hud(&self.config.title)
         }

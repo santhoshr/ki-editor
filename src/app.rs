@@ -1414,12 +1414,27 @@ impl<T: Frontend> App<T> {
                 release_key,
             } => {
                 // HACK: used for joint MoLs
+                let prev_override = self
+                    .layout
+                    .get_component_by_kind(ComponentKind::KeymapLegend)
+                    .and_then(|c| {
+                        let borrowed = c.borrow();
+                        borrowed
+                            .as_any()
+                            .downcast_ref::<KeymapLegend>()
+                            .and_then(|legend| legend.min_hud_override())
+                    });
                 if on_root {
                     self.layout.close_app_keymap_legend();
                 } else {
                     self.layout.close_keymap_legend();
                 }
-                self.show_keymap_legend(on_root, keymap_legend_config, release_key);
+                self.show_keymap_legend_with_override(
+                    on_root,
+                    keymap_legend_config,
+                    release_key,
+                    prev_override,
+                );
             }
             #[cfg(test)]
             Dispatch::Custom(_) => unreachable!(),
@@ -2790,6 +2805,16 @@ impl<T: Frontend> App<T> {
         keymap_legend_config: KeymapLegendConfig,
         release_key: Option<ReleaseKey>,
     ) {
+        self.show_keymap_legend_with_override(on_root, keymap_legend_config, release_key, None);
+    }
+
+    fn show_keymap_legend_with_override(
+        &mut self,
+        on_root: bool,
+        keymap_legend_config: KeymapLegendConfig,
+        release_key: Option<ReleaseKey>,
+        min_hud_override: Option<bool>,
+    ) {
         let keyboard_layout = AppConfig::singleton()
             .show_key_in_keymap()
             .then(|| self.keyboard_layout().clone());
@@ -2809,7 +2834,7 @@ impl<T: Frontend> App<T> {
                 });
         }
         self.layout
-            .show_keymap_legend(on_root, keymap_legend_config, release_key);
+            .show_keymap_legend(on_root, keymap_legend_config, release_key, min_hud_override);
         self.layout.recalculate_layout(&self.context);
     }
 
@@ -3518,19 +3543,12 @@ impl<T: Frontend> App<T> {
     }
 
     fn toggle_min_hud(&mut self) -> anyhow::Result<()> {
-        let current_hud_is_min = self
-            .layout
-            .get_component_by_kind(ComponentKind::KeymapLegend)
-            .and_then(|c| {
-                let borrowed = c.borrow();
-                borrowed
-                    .as_any()
-                    .downcast_ref::<KeymapLegend>()
-                    .map(|legend| legend.is_min_hud(&self.context))
-            });
-        let _ = self
-            .context
-            .toggle_session_min_hud_all_with_current(current_hud_is_min);
+        if let Some(c) = self.layout.get_component_by_kind(ComponentKind::KeymapLegend) {
+            let mut borrowed = c.borrow_mut();
+            if let Some(legend) = borrowed.as_any_mut().downcast_mut::<KeymapLegend>() {
+                legend.toggle_min_hud(&self.context);
+            }
+        }
         self.layout.recalculate_layout(&self.context);
         Ok(())
     }

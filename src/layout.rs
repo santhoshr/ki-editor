@@ -316,6 +316,7 @@ impl Layout {
         on_root: bool,
         keymap_legend_config: KeymapLegendConfig,
         release_key: Option<ReleaseKey>,
+        min_hud_override: Option<bool>,
     ) {
         self.tree.append_component(
             if on_root {
@@ -325,9 +326,10 @@ impl Layout {
             },
             KindedComponent::new(
                 ComponentKind::KeymapLegend,
-                Rc::new(RefCell::new(KeymapLegend::new(
+                Rc::new(RefCell::new(KeymapLegend::new_with_override(
                     keymap_legend_config,
                     release_key,
+                    min_hud_override,
                 ))),
             ),
             false,
